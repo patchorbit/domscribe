@@ -1,0 +1,61 @@
+{
+  "name": "domscribe",
+  "version": "0.1.0",
+  "author": "Kaushik Gnanaskandan",
+  "license": "MIT",
+  "scripts": {},
+  "private": true,
+  "devDependencies": {
+    "@nx/js": "21.5.1",
+    "@swc-node/register": "~1.9.1",
+    "@swc/core": "~1.5.7",
+    "@swc/helpers": "~0.5.11",
+    "nx": "21.5.1",
+    "prettier": "^2.6.2",
+    "tslib": "^2.3.0",
+    "typescript": "~5.9.2"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "keywords": [
+    "patchorbit",
+    "patchorbit-domscribe",
+    "patchorbit-dom-scribe",
+    "patchorbit-dom-annotation",
+    "patchorbit-development-tools",
+    "patchorbit-ai-assistant",
+    "patchorbit-ai-agent",
+    "patchorbit-ai-tools",
+    "domscribe",
+    "annotations",
+    "dom-annotation",
+    "development-tools",
+    "ai-assistant",
+    "ai-agent",
+    "ai-tools",
+    "coding-assistant",
+    "coding-agent",
+    "ai-coding-assistant",
+    "ai-coding-agent",
+    "ai-coding-tools",
+    "real-time",
+    "websocket",
+    "http-api",
+    "conversation",
+    "chat-ui",
+    "react",
+    "ai-assistant",
+    "developer-tools",
+    "bidirectional",
+    "acknowledgments"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/patchorbit/domscribe.git"
+  },
+  "bugs": {
+    "url": "https://github.com/patchorbit/domscribe/issues"
+  },
+  "homepage": "https://github.com/patchorbit/domscribe#readme"
+}
