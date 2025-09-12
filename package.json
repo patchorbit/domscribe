@@ -1,0 +1,111 @@
+{
+  "name": "domscribe",
+  "version": "0.0.1-dev.167",
+  "author": "Kaushik Gnanaskandan",
+  "license": "MIT",
+  "scripts": {
+    "sync-dist": "nx run-many -t sync-dist",
+    "build:all": "nx run-many -t=lint,test,build --exclude domscribe-test-fixtures --output-style=stream",
+    "build:affected": "nx affected -t lint,test,build --exclude domscribe-test-fixtures --output-style=stream",
+    "release:version:local": "nx release version prerelease --preid dev --git-commit=false --git-tag=false --stage-changes=false",
+    "release:publish:local": "nx run-many -t sync-dist && nx release publish --registry=http://localhost:4873",
+    "release:local": "pnpm run build:all && pnpm run release:version:local && pnpm run release:publish:local",
+    "release:local:affected": "pnpm run build:affected && pnpm run release:version:local && pnpm run release:publish:local",
+    "release:patch": "pnpm run build:all && nx release version patch && pnpm run release:publish",
+    "release:minor": "pnpm run build:all && nx release version minor && pnpm run release:publish",
+    "release:major": "pnpm run build:all && nx release version major && pnpm run release:publish",
+    "release:publish": "nx run-many -t sync-dist && nx release publish",
+    "registry:publish": "pnpm run build:all && pnpm run registry:publish:only",
+    "registry:publish:only": "pnpm run release:version:local && pnpm run release:publish:local",
+    "registry:install": "node --import @swc-node/register/esm packages/domscribe-test-fixtures/scripts/install-fixtures.ts",
+    "pipeline:full": "pnpm run registry:publish && pnpm run registry:install && nx run-many -t integration,e2e -p domscribe-test-fixtures",
+    "pipeline:integration": "nx integration domscribe-test-fixtures",
+    "pipeline:e2e": "pnpm run registry:publish && pnpm run registry:install && nx e2e domscribe-test-fixtures"
+  },
+  "private": true,
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@nx/devkit": "22.5.3",
+    "@nx/eslint": "22.5.3",
+    "@nx/eslint-plugin": "22.5.3",
+    "@nx/js": "22.5.3",
+    "@nx/vite": "22.5.3",
+    "@nx/vitest": "22.5.3",
+    "@nx/web": "22.5.3",
+    "@swc-node/register": "1.11.1",
+    "@swc/core": "1.15.8",
+    "@swc/helpers": "0.5.19",
+    "@types/node": "25.3.3",
+    "@vitest/coverage-v8": "4.0.18",
+    "@vitest/ui": "4.0.18",
+    "ajv": "^8.18.0",
+    "eslint": "^10.0.2",
+    "eslint-config-prettier": "^10.1.8",
+    "jiti": "2.6.1",
+    "jsdom": "~28.1.0",
+    "jsonc-eslint-parser": "^3.1.0",
+    "nx": "22.5.3",
+    "prettier": "^3.8.1",
+    "tslib": "^2.8.1",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.56.1",
+    "verdaccio": "^6.2.9",
+    "vite": "^7.3.1",
+    "vite-plugin-dts": "~4.5.4",
+    "vitest": "4.0.18"
+  },
+  "workspaces": [
+    "packages/*",
+    "!packages/domscribe-test-fixtures/fixtures/**"
+  ],
+  "keywords": [
+    "patchorbit",
+    "patchorbit-domscribe",
+    "patchorbit-dom-scribe",
+    "patchorbit-dom-annotation",
+    "patchorbit-development-tools",
+    "patchorbit-ai-assistant",
+    "patchorbit-ai-agent",
+    "patchorbit-ai-tools",
+    "domscribe",
+    "annotations",
+    "dom-annotation",
+    "development-tools",
+    "ai-assistant",
+    "ai-agent",
+    "ai-tools",
+    "coding-assistant",
+    "coding-agent",
+    "ai-coding-assistant",
+    "ai-coding-agent",
+    "ai-coding-tools",
+    "real-time",
+    "websocket",
+    "http-api",
+    "conversation",
+    "chat-ui",
+    "react",
+    "developer-tools",
+    "bidirectional"
+  ],
+  "repository": "github:patchorbit/domscribe",
+  "bugs": {
+    "url": "https://github.com/patchorbit/domscribe/issues"
+  },
+  "homepage": "https://github.com/patchorbit/domscribe#readme",
+  "nx": {
+    "includedScripts": [],
+    "targets": {
+      "local-registry": {
+        "executor": "@nx/js:verdaccio",
+        "options": {
+          "port": 4873,
+          "config": ".verdaccio/config.yml",
+          "storage": "tmp/local-registry/storage",
+          "clear": false
+        }
+      }
+    }
+  },
+  "packageManager": "pnpm@9.12.0"
+}

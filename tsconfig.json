@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    { "path": "./packages/domscribe-core" },
+    { "path": "./packages/domscribe-manifest" },
+    { "path": "./packages/domscribe-relay" },
+    { "path": "./packages/domscribe-runtime" },
+    { "path": "./packages/domscribe-overlay" },
+    { "path": "./packages/domscribe-transform" },
+    { "path": "./packages/domscribe-react" },
+    { "path": "./packages/domscribe-vue" },
+    { "path": "./packages/domscribe-next" },
+    { "path": "./packages/domscribe-nuxt" },
+    { "path": "./packages/domscribe-test-fixtures" }
+  ]
+}

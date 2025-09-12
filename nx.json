@@ -1,0 +1,91 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": [
+      "default",
+      "!{projectRoot}/.eslintrc.json",
+      "!{projectRoot}/eslint.config.mjs",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+      "!{projectRoot}/tsconfig.spec.json",
+      "!{projectRoot}/src/test-setup.[jt]s"
+    ],
+    "sharedGlobals": [
+      "{workspaceRoot}/.github/workflows/ci.yml",
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/pnpm-lock.yaml",
+      "{workspaceRoot}/pnpm-workspace.yaml",
+      "{workspaceRoot}/tsconfig.base.json",
+      "{workspaceRoot}/tsconfig.json",
+      "{workspaceRoot}/vitest.workspace.ts",
+      "{workspaceRoot}/eslint.config.mjs"
+    ]
+  },
+  "defaultBase": "main",
+  "nxCloudId": "68c0bb9fa041424f046e00b8",
+  "plugins": [
+    {
+      "plugin": "@nx/js/typescript",
+      "options": {
+        "typecheck": {
+          "targetName": "typecheck"
+        },
+        "build": {
+          "targetName": "build",
+          "configName": "tsconfig.json",
+          "buildDepsName": "build-deps",
+          "watchDepsName": "watch-deps"
+        }
+      }
+    },
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      }
+    },
+    {
+      "plugin": "@nx/vite/plugin"
+    },
+    {
+      "plugin": "@nx/vitest",
+      "options": {
+        "testTargetName": "test"
+      }
+    },
+    {
+      "plugin": "./packages/domscribe-test-fixtures/plugin/fixture-targets.ts"
+    },
+    {
+      "plugin": "./scripts/nx-plugin.ts"
+    }
+  ],
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["default", "^default"]
+    },
+    "lint": {
+      "inputs": ["default", "^default"]
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/packages/{projectName}"
+      }
+    }
+  },
+  "workspaceLayout": {
+    "libsDir": "packages"
+  },
+  "release": {
+    "projects": ["*", "!domscribe-test-fixtures"],
+    "git": {
+      "commit": true,
+      "tag": true
+    }
+  }
+}

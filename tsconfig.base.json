@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "importHelpers": true,
+    "isolatedModules": true,
+    "noEmitOnError": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@domscribe/core": ["packages/domscribe-core/src/index.ts"],
+      "@domscribe/core/*": ["packages/domscribe-core/src/*"],
+      "@domscribe/runtime": ["packages/domscribe-runtime/src/index.ts"],
+      "@domscribe/runtime/*": ["packages/domscribe-runtime/src/*"],
+      "@domscribe/react": ["packages/domscribe-react/src/index.ts"],
+      "@domscribe/react/*": ["packages/domscribe-react/src/*"],
+      "@domscribe/overlay": ["packages/domscribe-overlay/src/index.ts"],
+      "@domscribe/overlay/*": ["packages/domscribe-overlay/src/*"],
+      "@domscribe/relay": ["packages/domscribe-relay/src/index.ts"],
+      "@domscribe/relay/program": [
+        "packages/domscribe-relay/src/program/index.ts"
+      ],
+      "@domscribe/relay/*": ["packages/domscribe-relay/src/*"],
+      "domscribe": ["packages/domscribe-cli/src/bin/domscribe.ts"],
+      "@domscribe/mcp": ["packages/domscribe-mcp/src/bin/domscribe-mcp.ts"],
+      "@domscribe/transform": ["packages/domscribe-transform/src/index.ts"],
+      "@domscribe/transform/*": ["packages/domscribe-transform/src/*"],
+      "@domscribe/manifest": ["packages/domscribe-manifest/src/index.ts"],
+      "@domscribe/manifest/*": ["packages/domscribe-manifest/src/*"],
+      "@domscribe/vue": ["packages/domscribe-vue/src/index.ts"],
+      "@domscribe/vue/*": ["packages/domscribe-vue/src/*"],
+      "@domscribe/nuxt": ["packages/domscribe-nuxt/src/index.ts"],
+      "@domscribe/nuxt/*": ["packages/domscribe-nuxt/src/*"],
+      "@domscribe/next": ["packages/domscribe-next/src/index.ts"],
+      "@domscribe/next/*": ["packages/domscribe-next/src/*"]
+    }
+  }
+}
