@@ -1,0 +1,15 @@
+{
+  "name": "@domscribe/runtime",
+  "version": "0.0.1-dev.167",
+  "type": "module",
+  "main": "src/index.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@domscribe/core": "workspace:*"
+  },
+  "devDependencies": {
+    "happy-dom": "^12.0.0"
+  }
+}
