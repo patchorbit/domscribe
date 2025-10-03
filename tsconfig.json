@@ -2,5 +2,21 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": []
+  "references": [
+    {
+      "path": "./packages/domscribe-core"
+    },
+    {
+      "path": "./tools"
+    },
+    {
+      "path": "./packages/domscribe-manifest"
+    },
+    {
+      "path": "./packages/domscribe-transform"
+    },
+    {
+      "path": "./packages/domscribe-test-fixtures"
+    }
+  ]
 }

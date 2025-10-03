@@ -1,0 +1,23 @@
+{
+  "name": "@domscribe/fixture-vite-react",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:production": "vite build --mode production",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "REACT_VERSION_PLACEHOLDER",
+    "react-dom": "REACT_VERSION_PLACEHOLDER"
+  },
+  "devDependencies": {
+    "@domscribe/transform": "workspace:*",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "VITE_VERSION_PLACEHOLDER"
+  }
+}

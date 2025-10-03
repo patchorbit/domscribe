@@ -1,90 +1,249 @@
 # Domscribe
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+> **UI‑aware dev tooling for pixel‑to‑code & pixel‑to‑agent workflows.**
+>
+> Click elements in your running app, capture just‑enough runtime context, map pixels to exact source lines, and hand off clean instructions to your favorite coding agent via MCP.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is almost ready ✨.
+---
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## ✨ What Domscribe gives you
 
-## Finish your CI setup
+* **Overlay** – in‑app element & text picker with visual highlights, annotation drawer, and shortcuts.
+* **Deterministic UI ↔ Source** – fast resolution from a picked element to file/component/line range.
+* **Transform Layer** – dev‑time AST transform that injects stable element IDs; no runtime behavior changes.
+* **Manifest** – append‑only DOM→source index with snapshots & repair tools.
+* **Runtime Context Capture** – props/state (phase‑gated), event breadcrumbs, and lightweight perf hints.
+* **Local Relay** – a small local process with HTTP/WS APIs and an **MCP server** exposing Domscribe tools.
+* **Agent Adapters (Phase A)** – plug Domscribe into coding agents you already use via MCP:
 
-[Click here to finish setting up your workspace!](https://cloud.nx.app/connect/2hcB49e5B4)
+  * `domscribe-claude-code`
+  * `domscribe-gemini`
+  * `domscribe-copilot-agent`
 
+> No API keys are required. Domscribe doesn’t talk to any cloud by default; your agent (Claude/Gemini/Copilot) continues using its own account.
 
-## Generate a library
+---
 
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
-```
-
-## Run tasks
-
-To build the library use:
-
-```sh
-npx nx build pkg1
-```
-
-To run any task with Nx use:
-
-```sh
-npx nx <target> <project-name>
-```
-
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
-
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Versioning and releasing
-
-To version and release the library use
+## 📦 Monorepo Structure
 
 ```
-npx nx release
+patchorbit/domscribe
+├─ packages/
+│  ├─ domscribe-core/           # shared types & utils (IDs, hashing, schemas)
+│  ├─ domscribe-transform/      # AST transforms (SWC/esbuild) + bundler glue
+│  ├─ domscribe-manifest/       # manifest writer/reader + snapshots + repair
+│  ├─ domscribe-overlay/        # in‑app UI (picker, drawer, debug)
+│  ├─ domscribe-relay/          # local process: HTTP/WS, resolver, MCP
+│  ├─ domscribe-react/          # React adapter (devtools/runtime capture)
+│  ├─ domscribe-next/           # Next.js adapter/wrapper
+│  ├─ domscribe-vue/            # Vue adapter (devtools/runtime capture)
+│  ├─ domscribe-claude-code/    # Agent adapter (MCP)
+│  ├─ domscribe-gemini/         # Agent adapter (MCP)
+│  └─ domscribe-copilot-agent/  # Agent adapter (MCP, tools‑first)
+├─ examples/
+│  ├─ react-vite-demo/
+│  ├─ nextjs-demo/
+│  └─ vue-vite-demo/
+└─ tooling/
+   ├─ eslint-config/
+   ├─ tsconfig/
+   └─ website/                  # docs site
 ```
 
-Pass `--dry-run` to see what would happen without actually releasing the library.
+---
 
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## 🚀 Quickstart
 
-## Keep TypeScript project references up to date
+### Requirements
 
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
+* Node.js **LTS** (≥ 18)
+* pnpm or npm
 
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
+### 1) Install packages (pick your framework)
 
-```sh
-npx nx sync
+**React (Vite)**
+
+```bash
+pnpm add -D @domscribe/transform @domscribe/overlay @domscribe/relay @domscribe/react
 ```
 
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
+**Next.js**
 
-```sh
-npx nx sync:check
+```bash
+pnpm add -D @domscribe/transform @domscribe/overlay @domscribe/relay @domscribe/next @domscribe/react
 ```
 
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
+**Vue (Vite)**
 
+```bash
+pnpm add -D @domscribe/transform @domscribe/overlay @domscribe/relay @domscribe/vue
+```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### 2) Wire the transform
 
-## Install Nx Console
+**Vite (React/Vue)** — *vite.config.ts*
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+```ts
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react' // or: import vue from '@vitejs/plugin-vue'
+import domscribe from '@domscribe/transform/vite'
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+export default defineConfig({
+  plugins: [react(), domscribe()], // or: [vue(), domscribe()]
+})
+```
 
-## Useful links
+**Next.js** — *next.config.js*
 
-Learn more:
+```js
+const { withDomscribe } = require('@domscribe/next')
+module.exports = withDomscribe({ reactStrictMode: true })
+```
 
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### 3) Run your app & toggle the overlay
 
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+pnpm run dev
+```
+
+* Open your app and press **Cmd/Ctrl + Shift + D** to toggle the overlay.
+* Click elements/text to create **Annotations**; open the drawer to view/organize them.
+* Use **Resolve** to jump directly to the owning source file/lines.
+
+### 4) Connect your coding agent (Phase A)
+
+You can keep using your existing agent—just add Domscribe’s **MCP server**.
+
+**Option A — One‑line helper (recommended)**
+
+```bash
+npx domscribe mcp register --agent claude-code   # or: gemini | copilot
+```
+
+This writes the agent’s MCP config snippet and validates connectivity.
+
+**Option B — Manual config**
+
+* **stdio** (preferred): configure your agent to launch `npx domscribe mcp serve --stdio`.
+* **HTTP**: point the agent to `http://localhost:7080/mcp` (if your agent supports HTTP MCP).
+
+**Common commands** (agent‑dependent)
+
+* `/domscribe resolve` → map current selection to file/component/lines
+* `/domscribe patch` → resolve → request context → agent drafts diff → Domscribe validates
+* `/domscribe apply` → apply the last validated diff (guarded)
+
+> Each adapter ships an instruction pack so the agent uses the tools correctly and returns clean unified diffs.
+
+---
+
+## 🧠 Concepts (quick)
+
+* **Transform** injects dev‑only `data-ds` IDs → **Manifest** maps IDs to files/components.
+* **Overlay** lets you select elements/text and manage **Annotations**.
+* **Local Relay** exposes HTTP/WS/MCP to resolve elements and orchestrate annotation lifecycle.
+* **Runtime capture** records props/state (phase‑gated) and event/perf breadcrumbs.
+
+---
+
+## 🔌 Local Relay API (dev‑only)
+
+* `GET /__domscribe/resolve?id=<data-ds>` → `{ file, component, range, breadcrumbs }`
+* `GET /api/v1/annotations` / `POST /api/v1/annotations`
+* WebSocket `/ws` → annotation status, manifest deltas
+
+Stable contracts and full references live in the docs site under `website/`.
+
+---
+
+## 🔒 Privacy & Safety
+
+* **Local‑first**: manifests and annotations live under `.domscribe/` in your workspace.
+* **No keys required**: adapters use your agent’s own model/account.
+* **Production safety**: dev attributes are stripped from production bundles.
+
+### CI guardrail (recommended)
+
+```yaml
+# .github/workflows/domscribe-scan.yml
+name: Domscribe Prod Strip Scan
+on: [push]
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: pnpm i --frozen-lockfile
+      - run: pnpm run build
+      - name: Scan for dev attributes
+        run: npx domscribe scan --path dist
+```
+
+---
+
+## 🧰 Examples
+
+* `examples/react-vite-demo`
+* `examples/nextjs-demo`
+* `examples/vue-vite-demo`
+
+Each shows overlay usage, manifests, and an agent adapter wired via MCP.
+
+---
+
+## 🧪 Tests
+
+* **Unit**: transform, manifest, resolver
+* **E2E**: overlay selection & resolve (Playwright)
+* **Golden**: manifest snapshots across refactors/HMR
+
+---
+
+## 📤 Local Release (Verdaccio + Nx Release)
+
+- Start Verdaccio locally (configured via `.verdaccio/config.yml`):
+
+  - `pnpm nx local-registry` (starts Verdaccio on `http://localhost:4873` with open publish access per the included config)
+
+- Workspace `.npmrc` routes only the `@domscribe/*` scope to Verdaccio while all other packages continue using the public npm registry. See `.npmrc`:
+
+  - `@domscribe:registry=http://localhost:4873/`
+  - `registry=https://registry.npmjs.org/`
+
+- One‑step, non‑interactive releases with Nx Release (defaults baked into package scripts):
+
+  - Patch: `pnpm release:patch`
+  - Minor: `pnpm release:minor`
+  - Major: `pnpm release:major`
+  - Dry run: `pnpm release:dry-run`
+  - Publish only (skip versioning): `pnpm release:publish`
+
+Notes
+- The scripts set `NPM_CONFIG_REGISTRY=http://localhost:4873` for the process so publishing targets Verdaccio automatically.
+- The Verdaccio server config is server‑side. Clients still need either the `.npmrc` mapping above or the environment variable to publish/consume from the local registry.
+- Current Nx (21.x) uses `@nx/js:tsc` to build publishable output into `dist/...`. Nx Release then publishes from that folder to the registry.
+
+---
+
+## 🛠️ Development
+
+```bash
+pnpm i
+pnpm -w build
+pnpm -w test
+pnpm -w dev
+```
+
+---
+
+## 🤝 Contributing
+
+PRs welcome! See `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md`. Please open issues for adapters/agents you want prioritized.
+
+---
+
+## 📄 License
+
+MIT — see `LICENSE`.

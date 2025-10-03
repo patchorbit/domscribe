@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "title": "Shared library generator",
+  "description": "Stubs the shared library scaffolding and validates required options.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Library name to scaffold",
+      "minLength": 1
+    }
+  },
+  "required": ["name"],
+  "additionalProperties": false
+}

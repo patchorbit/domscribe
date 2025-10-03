@@ -1,0 +1,3 @@
+packages:
+  - packages/*
+  - "!packages/domscribe-test-fixtures/fixtures/**"

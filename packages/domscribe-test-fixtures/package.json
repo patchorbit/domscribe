@@ -1,0 +1,13 @@
+{
+  "name": "@domscribe/test-fixtures",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Kitchen-sink test fixtures and integration tests for Domscribe",
+  "devDependencies": {
+    "@domscribe/core": "workspace:*",
+    "@domscribe/manifest": "workspace:*",
+    "@domscribe/transform": "workspace:*",
+    "vite": "^5.4.11"
+  }
+}

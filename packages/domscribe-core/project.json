@@ -1,0 +1,75 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "domscribe-core",
+  "projectType": "library",
+  "root": "packages/domscribe-core",
+  "sourceRoot": "packages/domscribe-core/src",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": [
+        "{workspaceRoot}/dist/packages/domscribe-core"
+      ],
+      "options": {
+        "rootDir": "packages/domscribe-core/src",
+        "outputPath": "dist/packages/domscribe-core",
+        "main": "packages/domscribe-core/src/index.ts",
+        "tsConfig": "packages/domscribe-core/tsconfig.lib.json",
+        "generatePackageJson": true,
+        "generateExportsField": true,
+        "assets": [
+          "packages/domscribe-core/*.md"
+        ]
+      },
+      "configurations": {
+        "watch": {
+          "watch": true
+        }
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/clean-domscribe-core.mjs"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": [
+        "{options.outputFile}"
+      ],
+      "options": {
+        "eslintConfig": "eslint.config.mjs",
+        "lintFilePatterns": [
+          "packages/domscribe-core/**/*.ts",
+          "packages/domscribe-core/**/*.tsx",
+          "packages/domscribe-core/**/*.mts",
+          "packages/domscribe-core/**/*.cts"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": [
+        "{projectRoot}/test-output"
+      ],
+      "options": {
+        "config": "packages/domscribe-core/vite.config.ts"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:noop"
+    },
+    "watch-deps": {
+      "executor": "nx:noop"
+    },
+    "build-deps": {
+      "executor": "nx:noop"
+    }
+  },
+  "tags": [
+    "scope:core",
+    "type:lib",
+    "type:test"
+  ]
+}

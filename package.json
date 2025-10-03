@@ -1,22 +1,49 @@
 {
   "name": "domscribe",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "author": "Kaushik Gnanaskandan",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "release:patch": "NPM_CONFIG_REGISTRY=http://localhost:4873 nx release --specifier patch --skip-project-changelogs --yes",
+    "release:minor": "NPM_CONFIG_REGISTRY=http://localhost:4873 nx release --specifier minor --skip-project-changelogs --yes",
+    "release:major": "NPM_CONFIG_REGISTRY=http://localhost:4873 nx release --specifier major --skip-project-changelogs --yes",
+    "release:dry-run": "NPM_CONFIG_REGISTRY=http://localhost:4873 nx release --specifier patch --skip-project-changelogs --dry-run --yes",
+    "release:publish": "NPM_CONFIG_REGISTRY=http://localhost:4873 nx release publish --yes"
+  },
   "private": true,
   "devDependencies": {
-    "@nx/js": "21.5.1",
-    "@swc-node/register": "~1.9.1",
-    "@swc/core": "~1.5.7",
-    "@swc/helpers": "~0.5.11",
-    "nx": "21.5.1",
-    "prettier": "^2.6.2",
-    "tslib": "^2.3.0",
-    "typescript": "~5.9.2"
+    "@eslint/js": "^9.36.0",
+    "@nx/devkit": "21.5.3",
+    "@nx/eslint": "21.5.3",
+    "@nx/eslint-plugin": "21.5.3",
+    "@nx/js": "21.5.3",
+    "@nx/vite": "21.5.3",
+    "@nx/web": "21.5.3",
+    "@swc-node/register": "~1.11.1",
+    "@swc/core": "~1.13.5",
+    "@swc/helpers": "~0.5.17",
+    "@types/node": "24.5.2",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
+    "ajv": "^8.17.1",
+    "eslint": "^9.36.0",
+    "eslint-config-prettier": "^10.1.8",
+    "jiti": "2.5.1",
+    "jsdom": "~27.0.0",
+    "jsonc-eslint-parser": "^2.4.0",
+    "nx": "21.5.3",
+    "prettier": "^3.6.2",
+    "tslib": "^2.8.1",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.44.0",
+    "verdaccio": "^6.1.6",
+    "vite": "^7.1.6",
+    "vite-plugin-dts": "~4.5.4",
+    "vitest": "^3.2.4"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "!packages/domscribe-test-fixtures/fixtures"
   ],
   "keywords": [
     "patchorbit",
@@ -50,12 +77,24 @@
     "bidirectional",
     "acknowledgments"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/patchorbit/domscribe.git"
-  },
+  "repository": "github:patchorbit/domscribe",
   "bugs": {
     "url": "https://github.com/patchorbit/domscribe/issues"
   },
-  "homepage": "https://github.com/patchorbit/domscribe#readme"
+  "homepage": "https://github.com/patchorbit/domscribe#readme",
+  "nx": {
+    "includedScripts": [],
+    "targets": {
+      "local-registry": {
+        "executor": "@nx/js:verdaccio",
+        "options": {
+          "port": 4873,
+          "config": ".verdaccio/config.yml",
+          "storage": "tmp/local-registry/storage"
+        }
+      }
+    }
+  },
+  "packageManager": "pnpm@9.12.0",
+  "dependencies": {}
 }

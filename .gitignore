@@ -4,6 +4,7 @@
 dist
 tmp
 out-tsc
+test-output
 
 # dependencies
 node_modules
@@ -42,3 +43,8 @@ Thumbs.db
 .nx/workspace-data
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
+
+vite.config.*.timestamp*
+vitest.config.*.timestamp*
+
+agent_docs/

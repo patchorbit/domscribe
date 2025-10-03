@@ -1,0 +1,62 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "domscribe-manifest",
+  "projectType": "library",
+  "root": "packages/domscribe-manifest",
+  "sourceRoot": "packages/domscribe-manifest/src",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": [
+        "{workspaceRoot}/dist/packages/domscribe-manifest"
+      ],
+      "options": {
+        "rootDir": "packages/domscribe-manifest/src",
+        "outputPath": "dist/packages/domscribe-manifest",
+        "main": "packages/domscribe-manifest/src/index.ts",
+        "tsConfig": "packages/domscribe-manifest/tsconfig.lib.json",
+        "generatePackageJson": true,
+        "generateExportsField": true,
+        "assets": [
+          "packages/domscribe-manifest/*.md"
+        ]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": [
+        "{options.outputFile}"
+      ],
+      "options": {
+        "eslintConfig": "eslint.config.mjs",
+        "lintFilePatterns": [
+          "packages/domscribe-manifest/**/*.ts",
+          "packages/domscribe-manifest/**/*.tsx"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": [
+        "{projectRoot}/test-output"
+      ],
+      "options": {
+        "config": "packages/domscribe-manifest/vite.config.ts"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:noop"
+    },
+    "watch-deps": {
+      "executor": "nx:noop"
+    },
+    "build-deps": {
+      "executor": "nx:noop"
+    }
+  },
+  "tags": [
+    "scope:core",
+    "type:lib",
+    "type:test"
+  ]
+}

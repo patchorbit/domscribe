@@ -1,0 +1,35 @@
+{
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "name": "workspace-tools",
+  "projectType": "library",
+  "root": "tools",
+  "sourceRoot": "tools",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{workspaceRoot}/dist/tools"],
+      "options": {
+        "rootDir": "tools",
+        "outputPath": "dist/tools",
+        "main": "tools/index.ts",
+        "tsConfig": "tools/tsconfig.json",
+        "generatePackageJson": true,
+        "generateExportsField": true
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm exec tsc --project tools/tsconfig.json --noEmit"
+      }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{projectRoot}/test-output"],
+      "options": {
+        "config": "tools/vite.config.ts"
+      }
+    }
+  },
+  "tags": ["scope:tooling", "type:tooling"]
+}

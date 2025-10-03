@@ -1,0 +1,13 @@
+{
+  "version": "0.0.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Verdaccio server",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/node_modules/.bin/verdaccio",
+      "args": ["--config", "${workspaceFolder}/.verdaccio/config.yml"]
+    }
+  ]
+}

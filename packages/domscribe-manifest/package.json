@@ -1,0 +1,12 @@
+{
+  "name": "@domscribe/manifest",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "devDependencies": {
+    "@domscribe/core": "workspace:*"
+  },
+  "dependencies": {
+    "xxhash-wasm": "^1.0.2"
+  }
+}
