@@ -1,0 +1,49 @@
+{
+  "name": "domscribe-vue",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/domscribe-vue/src",
+  "tags": ["scope:adapter", "type:adapter-lib", "type:test"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{workspaceRoot}/dist/packages/domscribe-vue"],
+      "options": {
+        "rootDir": "packages/domscribe-vue/src",
+        "outputPath": "dist/packages/domscribe-vue",
+        "main": "packages/domscribe-vue/src/index.ts",
+        "tsConfig": "packages/domscribe-vue/tsconfig.lib.json",
+        "generatePackageJson": true,
+        "generateExportsField": true,
+        "assets": ["packages/domscribe-vue/*.md"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "eslintConfig": "eslint.config.mjs",
+        "lintFilePatterns": [
+          "packages/domscribe-vue/**/*.ts",
+          "packages/domscribe-vue/**/*.tsx"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "outputs": ["{projectRoot}/test-output"],
+      "options": {
+        "config": "packages/domscribe-vue/vite.config.ts"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:noop"
+    },
+    "watch-deps": {
+      "executor": "nx:noop"
+    },
+    "build-deps": {
+      "executor": "nx:noop"
+    }
+  }
+}
