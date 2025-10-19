@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: npx nx run-many -t lint test build typecheck
+
+      - run: npx nx fix-ci
+        if: always()
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: checks
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: nx run-many -t build --exclude domscribe-test-fixtures
+
+      - name: Start Verdaccio
+        run: npx verdaccio --config .verdaccio/config.yml --listen 4873 &
+
+      - name: Publish to local registry
+        run: pnpm run registry:publish:only
+
+      - name: Install fixtures
+        run: pnpm run registry:install
+
+      - name: Run integration tests
+        run: nx integration domscribe-test-fixtures
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: checks
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec --filter @domscribe/test-fixtures playwright install --with-deps chromium
+
+      - name: Build packages
+        run: nx run-many -t build --exclude domscribe-test-fixtures
+
+      - name: Start Verdaccio
+        run: npx verdaccio --config .verdaccio/config.yml --listen 4873 &
+
+      - name: Publish to local registry
+        run: pnpm run registry:publish:only
+
+      - name: Install fixtures
+        run: pnpm run registry:install
+
+      - name: Run e2e tests
+        run: SKIP_SETUP=1 nx e2e domscribe-test-fixtures
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
