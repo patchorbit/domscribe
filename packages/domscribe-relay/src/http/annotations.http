@@ -1,0 +1,96 @@
+@baseUrl = http://127.0.0.1:4318
+
+### Create an annotation
+POST {{baseUrl}}/api/v1/annotations
+Content-Type: application/json
+
+{
+  "mode": "element-click",
+  "interaction": {
+    "type": "element-annotation",
+    "selectedElement": {
+      "tagName": "button",
+      "selector": "body > div.app > header > button.primary",
+      "dataDs": "aB3dEf7h",
+      "attributes": {
+        "class": "primary",
+        "type": "submit"
+      },
+      "innerText": "Submit Form"
+    },
+    "boundingRect": {
+      "x": 100,
+      "y": 200,
+      "width": 120,
+      "height": 40,
+      "top": 200,
+      "right": 220,
+      "bottom": 240,
+      "left": 100
+    }
+  },
+  "context": {
+    "pageUrl": "http://localhost:3000/dashboard",
+    "pageTitle": "Dashboard - My App",
+    "viewport": { "width": 1920, "height": 1080 },
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "userMessage": "Make this button larger and change the color to blue"
+  }
+}
+
+### List annotations (all)
+GET {{baseUrl}}/api/v1/annotations
+
+### List annotations (with pagination)
+GET {{baseUrl}}/api/v1/annotations?limit=10&offset=0
+
+### List annotations (filtered by status)
+GET {{baseUrl}}/api/v1/annotations?status=queued,processing
+
+### Get a single annotation
+# Replace <id> with actual annotation ID (e.g., ann_xK3mNp2q_1709312400000)
+GET {{baseUrl}}/api/v1/annotations/<id>
+
+### Delete an annotation
+# Replace <id> with actual annotation ID
+DELETE {{baseUrl}}/api/v1/annotations/<id>
+
+### Search annotations by text
+GET {{baseUrl}}/api/v1/annotations/search?query=button+color
+
+### Search annotations by entry ID
+GET {{baseUrl}}/api/v1/annotations/search?entryId=aB3dEf7h
+
+### Update annotation status (to processing)
+# Replace <id> with actual annotation ID
+PUT {{baseUrl}}/api/v1/annotations/<id>
+Content-Type: application/json
+
+{
+  "status": "processing"
+}
+
+### Update annotation status (to failed with error)
+# Replace <id> with actual annotation ID
+PUT {{baseUrl}}/api/v1/annotations/<id>
+Content-Type: application/json
+
+{
+  "status": "failed",
+  "errorDetails": "Agent timeout after 30 seconds"
+}
+
+### Store agent response
+# Replace <id> with actual annotation ID (must be in 'processing' status)
+PUT {{baseUrl}}/api/v1/annotations/<id>/response
+Content-Type: application/json
+
+{
+  "message": "Changed button styles in Button.tsx. Applied CSS class 'btn-blue-lg' with increased padding and blue background color.",
+}
+
+### Process next annotation (agent claims from queue)
+POST {{baseUrl}}/api/v1/annotations/process
+Content-Type: application/json
+
+{}

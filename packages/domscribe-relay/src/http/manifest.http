@@ -1,0 +1,54 @@
+@baseUrl = http://127.0.0.1:4318
+
+### Resolve a single element ID
+GET {{baseUrl}}/api/v1/manifest/resolve?id=aB3dEf7h
+
+### Batch resolve multiple element IDs
+POST {{baseUrl}}/api/v1/manifest/resolve/batch
+Content-Type: application/json
+
+{
+  "entryIds": ["aB3dEf7h", "xY9zWv2k", "mN5pQr8s"]
+}
+
+### Query entries by file
+GET {{baseUrl}}/api/v1/manifest/query?file=src/components/Button.tsx
+
+### Query entries by component name
+GET {{baseUrl}}/api/v1/manifest/query?componentName=Button
+
+### Query entries by file and tag name
+GET {{baseUrl}}/api/v1/manifest/query?file=src/components/Button.tsx&tagName=button&limit=10
+
+### Get manifest statistics
+GET {{baseUrl}}/api/v1/manifest/stats
+
+### Query by source location (exact line)
+POST {{baseUrl}}/api/v1/manifest/resolve-by-source
+Content-Type: application/json
+
+{
+  "file": "src/components/Button.tsx",
+  "line": 10
+}
+
+### Query by source location (with column and tolerance)
+POST {{baseUrl}}/api/v1/manifest/resolve-by-source
+Content-Type: application/json
+
+{
+  "file": "src/components/Button.tsx",
+  "line": 10,
+  "column": 4,
+  "tolerance": 2
+}
+
+### Query by source location (manifest only, no runtime)
+POST {{baseUrl}}/api/v1/manifest/resolve-by-source
+Content-Type: application/json
+
+{
+  "file": "src/components/Button.tsx",
+  "line": 10,
+  "includeRuntime": false
+}
