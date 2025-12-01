@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "domscribe": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@domscribe/mcp"
+      ]
+    }
+  }
+}

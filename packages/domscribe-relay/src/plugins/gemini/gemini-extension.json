@@ -1,0 +1,16 @@
+{
+  "name": "domscribe",
+  "version": "0.0.1",
+  "mcpServers": {
+    "domscribe": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "domscribe",
+        "mcp"
+      ],
+      "cwd": "${workspacePath}"
+    }
+  }
+}
