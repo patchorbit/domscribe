@@ -1,0 +1,9 @@
+{
+  "generators": {
+    "test-fixture": {
+      "factory": "./index#testFixtureGenerator",
+      "schema": "./schema.json",
+      "description": "Scaffolds a new test fixture"
+    }
+  }
+}

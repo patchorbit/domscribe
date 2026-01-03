@@ -1,0 +1,39 @@
+{
+  "cli": "nx",
+  "title": "Test fixture generator",
+  "description": "Scaffolds a new test fixture for the domscribe-test-fixtures package.",
+  "type": "object",
+  "properties": {
+    "framework": {
+      "type": "string",
+      "description": "UI framework",
+      "enum": ["react", "vue", "next", "nuxt"],
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "Which framework?"
+    },
+    "frameworkVersion": {
+      "type": "number",
+      "description": "Framework major version (e.g. 18, 19, 3)",
+      "x-prompt": "Framework major version?"
+    },
+    "bundler": {
+      "type": "string",
+      "description": "Bundler to use (defaults: vite for react/vue)",
+      "enum": ["vite", "webpack"],
+      "default": "vite"
+    },
+    "bundlerVersion": {
+      "type": "number",
+      "description": "Bundler major version (defaults to latest)",
+      "default": 5
+    },
+    "language": {
+      "type": "string",
+      "description": "Language variant",
+      "enum": ["ts", "js"],
+      "default": "ts"
+    }
+  },
+  "required": ["framework", "frameworkVersion"],
+  "additionalProperties": false
+}
