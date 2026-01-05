@@ -1,0 +1,29 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noImplicitReturns": false,
+    "noUnusedParameters": false,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ES2020",
+    "skipLibCheck": true
+  },
+  "include": [
+    "externals.d.ts",
+    "next/**/*.ts",
+    "next/**/*.tsx",
+    "nuxt/**/*.ts",
+    "nuxt/**/*.vue",
+    "react/**/*.ts",
+    "react/**/*.tsx",
+    "vue/**/*.ts",
+    "vue/**/*.vue"
+  ]
+}
