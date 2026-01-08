@@ -1,0 +1,19 @@
+{
+  "id": "webpack-v5-react-19-ts",
+  "framework": "react",
+  "frameworkVersion": "19",
+  "bundler": "webpack",
+  "bundlerVersion": "5",
+  "language": "ts",
+  "tags": ["full-kitchen-sink", "smoke-test", "capture"],
+  "capabilities": {
+    "runtimeCapture": true,
+    "strategies": ["fiber", "devtools", "best-effort"],
+    "smokeTest": true
+  },
+  "devServer": {
+    "command": "webpack serve --mode development",
+    "port": 0,
+    "readyPattern": "compiled successfully"
+  }
+}

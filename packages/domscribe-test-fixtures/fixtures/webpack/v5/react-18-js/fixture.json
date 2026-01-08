@@ -1,0 +1,19 @@
+{
+  "id": "webpack-v5-react-18-js",
+  "framework": "react",
+  "frameworkVersion": "18",
+  "bundler": "webpack",
+  "bundlerVersion": "5",
+  "language": "js",
+  "tags": ["full-kitchen-sink", "smoke-test", "capture"],
+  "capabilities": {
+    "runtimeCapture": true,
+    "strategies": ["fiber", "devtools", "best-effort"],
+    "smokeTest": true
+  },
+  "devServer": {
+    "command": "webpack serve --mode development",
+    "port": 0,
+    "readyPattern": "compiled successfully"
+  }
+}
