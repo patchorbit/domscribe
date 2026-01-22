@@ -1,0 +1,13 @@
+<svg width="200" height="200" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="ds-logo-mask">
+      <rect width="64" height="64" fill="white" />
+      <g transform="translate(12, 10) scale(1.6)">
+        <path d="M15 15l-2 5L9 9l11 4-5 2z" fill="black" />
+        <path d="M15 15l5 5" stroke="black" stroke-width="2" stroke-linecap="round" />
+        <path d="M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" stroke="black" stroke-width="2" stroke-linecap="round" />
+      </g>
+    </mask>
+  </defs>
+  <path d="M6 4H36C54 4 62 18 62 32C62 46 54 60 36 60H6V4Z" fill="#06b6d4" mask="url(#ds-logo-mask)" />
+</svg>
