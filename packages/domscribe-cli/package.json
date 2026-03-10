@@ -1,0 +1,16 @@
+{
+  "name": "domscribe",
+  "version": "0.0.1-dev.167",
+  "description": "CLI for Domscribe — pixel-to-code development tool",
+  "type": "module",
+  "main": "src/bin/domscribe.ts",
+  "distBin": {
+    "domscribe": "./bin/domscribe.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@domscribe/relay": "workspace:*"
+  }
+}

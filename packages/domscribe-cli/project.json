@@ -1,0 +1,39 @@
+{
+  "name": "domscribe-cli",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/domscribe-cli/src",
+  "tags": ["scope:infra", "type:lib"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{workspaceRoot}/dist/packages/domscribe-cli"],
+      "options": {
+        "rootDir": "packages/domscribe-cli/src",
+        "outputPath": "dist/packages/domscribe-cli",
+        "main": "packages/domscribe-cli/src/bin/domscribe.ts",
+        "tsConfig": "packages/domscribe-cli/tsconfig.lib.json",
+        "generatePackageJson": true,
+        "generateExportsField": true,
+        "assets": ["packages/domscribe-cli/*.md"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "eslintConfig": "eslint.config.mjs",
+        "lintFilePatterns": ["packages/domscribe-cli/**/*.ts"]
+      }
+    },
+    "typecheck": {
+      "executor": "nx:noop"
+    },
+    "watch-deps": {
+      "executor": "nx:noop"
+    },
+    "build-deps": {
+      "executor": "nx:noop"
+    }
+  }
+}
