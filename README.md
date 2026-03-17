@@ -30,10 +30,13 @@ Domscribe bridges both directions: click a DOM element to tell your agent what t
 Your agent is editing `Button.tsx` line 12. It calls `domscribe.query.bySource` and instantly gets back the live DOM snapshot, current props, component state, and rendered attributes — without any human interaction. The agent can verify what an element looks like _before_ changing it and confirm the result _after_.
 
 
-```jsonc
-// Agent asks: "What's rendering at Button.tsx line 12?"
-// → domscribe.query.bySource({ file: "src/components/Button.tsx", line: 12 })
+<p align="center">
+  <img src="./docs/code-to-ui.png" alt="Code → UI: Let the agent see the browser" />
+</p>
 
+Here's an example response that the agent might get back:
+
+```json
 {
   "sourceLocation": {
     "file": "src/components/Button.tsx",
@@ -59,9 +62,13 @@ Your agent is editing `Button.tsx` line 12. It calls `domscribe.query.bySource` 
 
 A developer clicks an element in the browser overlay, types "make this button use the primary color," and submits. Domscribe captures the element's source location, runtime context, and user intent as an annotation. The agent claims it, navigates to the exact file and line, and implements the change.
 
-```jsonc
-// → domscribe.annotation.process (claims next queued annotation)
+<p align="center">
+  <img src="./docs/ui-to-code.png" alt="UI → Code: Point and tell" />
+</p>
 
+The annotation is stored as a JSON file in your repository in the `.domscribe/annotations` directory. Here's an example:
+
+```json
 {
   "found": true,
   "annotationId": "ann_A1B2C3D4_1710500000",
@@ -87,7 +94,7 @@ A developer clicks an element in the browser overlay, types "make this button us
 }
 ```
 
-The agent edits the code, calls `domscribe.annotation.respond` with a description of what it did, and the overlay shows the result in real time via WebSocket.
+Once the agent is done with the edits, it calls `domscribe.annotation.respond` with a description of what it did. The overlay shows the result in real time via WebSocket.
 
 ---
 
