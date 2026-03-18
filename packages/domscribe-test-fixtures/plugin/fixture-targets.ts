@@ -63,7 +63,7 @@ export const createNodes: CreateNodesV2 = [
       targets[`install-fixture--${fixture.id}`] = {
         executor: 'nx:run-commands',
         options: {
-          command: `FIXTURE_ID=${fixture.id} node --import @swc-node/register/esm ${PROJECT_ROOT}/scripts/install-fixture.ts`,
+          command: `FIXTURE_ID=${fixture.id} npx tsx ${PROJECT_ROOT}/scripts/install-fixture.ts`,
         },
         cache: false,
         metadata: {
