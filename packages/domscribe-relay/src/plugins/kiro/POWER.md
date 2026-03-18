@@ -1,12 +1,13 @@
 ---
 name: 'domscribe'
 displayName: 'Domscribe'
-description: 'Work with Domscribe — the pixel-to-code bridge. Use when implementing features from captured UI annotations, querying runtime context for source locations, exploring component structure, or when user mentions annotations, queued tasks, UI changes, or asks about how elements render at runtime.'
+description: 'Work with Domscribe — the pixel-to-code bridge that maps running UI elements to their exact source locations, capturing runtime context (props, state, DOM) for handoff to coding agents. Use when implementing features from captured UI annotations, querying runtime context for source locations, exploring component structure, or when user mentions annotations, queued tasks, UI changes, or asks about how elements render at runtime.'
 keywords:
   [
     'domscribe',
     'annotation',
     'pixel-to-code',
+    'ui-to-code',
     'ui',
     'element',
     'manifest',
@@ -16,6 +17,10 @@ keywords:
     'runtime',
     'source',
     'query',
+    'props',
+    'state',
+    'inspect',
+    'source-location',
   ]
 ---
 
@@ -28,8 +33,8 @@ Domscribe bridges running UI and source code. It maps every rendered element to 
 
 ## Quick Commands (MCP Prompts)
 
-| Command                              | Purpose                        |
-| ------------------------------------ | ------------------------------ |
+| Command             | Purpose                        |
+| ------------------- | ------------------------------ |
 | `process_next`      | Process next queued annotation |
 | `check_status`      | System health and queue counts |
 | `explore_component` | List elements in a component   |

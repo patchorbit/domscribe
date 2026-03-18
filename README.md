@@ -9,6 +9,9 @@
   <a href="https://github.com/patchorbit/domscribe/actions"><img src="https://img.shields.io/github/actions/workflow/status/patchorbit/domscribe/ci.yml?label=CI" alt="CI status" /></a>
   <a href="#"><img src="https://img.shields.io/badge/coverage-80%25+-brightgreen" alt="test coverage" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" /></a>
+  <img src="https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/node-%3E%3D18-417e38?logo=node.js&logoColor=white" alt="Node.js >= 18" />
+  <a href="https://github.com/patchorbit/domscribe/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs welcome" /></a>
 </p>
 
 ---

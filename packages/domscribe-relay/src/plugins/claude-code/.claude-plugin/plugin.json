@@ -1,4 +1,31 @@
 {
   "name": "domscribe",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "description": "Domscribe is a pixel-to-code development tool that maps running UI elements to their exact source locations, capturing runtime context (props, state, DOM) for handoff to coding agents via MCP.",
+  "author": {
+    "name": "Patch Orbit",
+    "email": "kaushik@patchorbit.com"
+  },
+  "homepage": "https://github.com/patchorbit/domscribe",
+  "repository": "https://github.com/patchorbit/domscribe",
+  "license": "MIT",
+  "keywords": [
+    "domscribe",
+    "pixel-to-code",
+    "ui-to-code",
+    "dom-annotation",
+    "annotation",
+    "source-mapping",
+    "runtime-context",
+    "element-inspector",
+    "component-inspector",
+    "mcp",
+    "model-context-protocol",
+    "developer-tools",
+    "devtools",
+    "react",
+    "vue",
+    "nextjs",
+    "nuxt"
+  ]
 }
