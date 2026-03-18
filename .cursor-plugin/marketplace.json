@@ -5,13 +5,12 @@
     "email": "kaushik@patchorbit.com"
   },
   "metadata": {
-    "description": "Domscribe plugin for DOM annotation and resolution.",
-    "version": "0.0.1"
+    "description": "A collection of plugins for Domscribe, a pixel-to-code development tool that bridges the gap between running web applications and their source code."
   },
   "plugins": [
     {
       "name": "domscribe",
-      "description": "Domscribe plugin for DOM annotation and resolution.",
+      "description": "Domscribe is a pixel-to-code development tool that bridges the gap between running web applications and their source code.",
       "source": "./packages/domscribe-relay/src/agent-plugins/cursor"
     }
   ]

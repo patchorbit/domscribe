@@ -1,7 +1,7 @@
 ---
 name: domscribe
 description: Work with Domscribe — the pixel-to-code bridge. Use when implementing features from captured UI annotations, querying runtime context for source locations, exploring component structure, or when user mentions annotations, queued tasks, UI changes, or asks about how elements render at runtime.
-allowed-tools: Read, Edit, Write, mcp__domscribe__*, domscribe.*
+allowed-tools: Read, Edit, Write, mcp__domscribe__*, domscribe.*, mcp.domscribe.*, process_next, check_status, explore_component, find_annotations
 ---
 
 # Domscribe
@@ -15,10 +15,10 @@ Domscribe bridges running UI and source code. It maps every rendered element to 
 
 | Command                              | Purpose                        |
 | ------------------------------------ | ------------------------------ |
-| `/mcp__domscribe__process_next`      | Process next queued annotation |
-| `/mcp__domscribe__check_status`      | System health and queue counts |
-| `/mcp__domscribe__explore_component` | List elements in a component   |
-| `/mcp__domscribe__find_annotations`  | Search annotation history      |
+| `process_next`      | Process next queued annotation |
+| `check_status`      | System health and queue counts |
+| `explore_component` | List elements in a component   |
+| `find_annotations`  | Search annotation history      |
 
 ## All Tools Reference
 

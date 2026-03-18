@@ -1,7 +1,7 @@
 ---
 name: 'domscribe'
 displayName: 'Domscribe'
-description: 'Process UI annotations from Domscribe. Use when implementing features from captured UI interactions, processing the annotation queue, working with pixel-to-code workflows, or when user mentions annotations, queued tasks, or UI changes.'
+description: 'Work with Domscribe — the pixel-to-code bridge. Use when implementing features from captured UI annotations, querying runtime context for source locations, exploring component structure, or when user mentions annotations, queued tasks, UI changes, or asks about how elements render at runtime.'
 keywords:
   [
     'domscribe',
@@ -13,59 +13,81 @@ keywords:
     'component',
     'queued',
     'resolve',
+    'runtime',
+    'source',
+    'query',
   ]
 ---
 
-# Domscribe Annotation Processing
+# Domscribe
 
-Domscribe captures user interactions with UI elements, maps them to source code, and queues them for implementation. Each annotation contains:
+Domscribe bridges running UI and source code. It maps every rendered element to its exact source location and captures live runtime context (props, state, DOM). This works in two directions:
 
-- **userIntent**: What the user wants changed (their actual words)
-- **element**: DOM element details (tag, selector, attributes, text)
-- **sourceLocation**: Exact file, line, and component in source code
-- **runtimeContext**: Component props/state at capture time (React/Vue)
+- **UI → Code**: User clicks an element in the browser, Domscribe captures it as an annotation with source location, runtime context, and user intent. You claim and implement it.
+- **Code → UI**: You're editing a source file and want to know what an element looks like at runtime. Query by file and line to get live props, state, and DOM snapshot.
 
 ## Quick Commands (MCP Prompts)
 
 | Command                              | Purpose                        |
 | ------------------------------------ | ------------------------------ |
-| `/mcp__domscribe__process_next`      | Process next queued annotation |
-| `/mcp__domscribe__check_status`      | System health and queue counts |
-| `/mcp__domscribe__explore_component` | List elements in a component   |
-| `/mcp__domscribe__find_annotations`  | Search annotation history      |
+| `process_next`      | Process next queued annotation |
+| `check_status`      | System health and queue counts |
+| `explore_component` | List elements in a component   |
+| `find_annotations`  | Search annotation history      |
 
 ## All Tools Reference
 
-### Core Workflow
+### Source Query (Code → UI)
 
-| Tool                       | Purpose                               |
-| -------------------------- | ------------------------------------- |
-| `annotations_process`      | Claim next queued annotation (atomic) |
-| `annotations_respond`      | Store your implementation message     |
-| `annotations_updateStatus` | Mark as `processed` or `failed`       |
+| Tool                       | Purpose                                                    |
+| -------------------------- | ---------------------------------------------------------- |
+| `domscribe.query.bySource` | Get runtime context for a source location (file + line)    |
+| `domscribe.manifest.query` | Find all manifest entries by file, component, or tag name  |
+| `domscribe.manifest.stats` | Manifest coverage statistics (entry/file/component counts) |
 
-### Discovery & Search
+### Element Resolution (UI → Code)
 
-| Tool                 | Purpose                          |
-| -------------------- | -------------------------------- |
-| `annotations_list`   | List annotations by status       |
-| `annotations_get`    | Get full annotation details      |
-| `annotations_search` | Search by element, file, or text |
+| Tool                      | Purpose                            |
+| ------------------------- | ---------------------------------- |
+| `domscribe.resolve`       | Get source location for element ID |
+| `domscribe.resolve.batch` | Resolve multiple element IDs       |
 
-### Resolution & Manifest
+### Annotation Workflow
 
-| Tool             | Purpose                             |
-| ---------------- | ----------------------------------- |
-| `resolve`        | Get source location for element ID  |
-| `resolve_batch`  | Resolve multiple elements at once   |
-| `manifest_query` | Find elements by file/component/tag |
-| `manifest_stats` | Manifest coverage statistics        |
+| Tool                                | Purpose                               |
+| ----------------------------------- | ------------------------------------- |
+| `domscribe.annotation.process`      | Claim next queued annotation (atomic) |
+| `domscribe.annotation.respond`      | Store your implementation message     |
+| `domscribe.annotation.updateStatus` | Mark as `processed` or `failed`       |
+| `domscribe.annotation.list`         | List annotations by status            |
+| `domscribe.annotation.get`          | Get full annotation details           |
+| `domscribe.annotation.search`       | Search by element, file, or text      |
 
 ### System
 
-| Tool     | Purpose                              |
-| -------- | ------------------------------------ |
-| `status` | Relay health, manifest, queue counts |
+| Tool               | Purpose                              |
+| ------------------ | ------------------------------------ |
+| `domscribe.status` | Relay health, manifest, queue counts |
+
+## Using `domscribe.query.bySource`
+
+When you're working in a source file and want to understand what an element looks like at runtime, query by file path and line number:
+
+**Input:**
+
+- **`file`** (required): Absolute file path as stored in the manifest. Use `manifest_query` to discover exact paths.
+- **`line`** (required): Line number (1-indexed).
+- **`tolerance`** (optional): Match elements within N lines of the target (default: 0, exact match).
+- **`column`** (optional): Narrow to a specific column (0-indexed).
+- **`includeRuntime`** (optional): Skip the browser query if you only need manifest data (default: true).
+
+**Output:**
+
+- **`sourceLocation`**: Confirmed file, line range, tag name, component name.
+- **`runtime`**: Live data from the browser (if connected) — `componentProps`, `componentState`, `domSnapshot` (tag, attributes, innerText).
+- **`browserConnected`**: Whether a browser client is connected via WebSocket.
+
+Use `domscribe.manifest.query` first if you don't know the exact line — it returns all entries for a file, component, or tag, which you can then target with `domscribe.query.bySource`.
 
 ## Annotation Lifecycle
 
@@ -83,11 +105,7 @@ queued -> processing -> processed
 
 ## Standard Workflow
 
-1. **Claim** an annotation:
-
-   ```
-   mcp__domscribe__annotations_process()
-   ```
+1. **Claim** an annotation via `domscribe.annotation.process`
 
 2. **Understand** the response:
    - `userIntent`: What the user wants (e.g., "Make this button red")
@@ -101,39 +119,27 @@ queued -> processing -> processed
 
 4. **Implement** the change based on `userIntent`
 
-5. **Store** your response:
+5. **Store** your response via `domscribe.annotation.respond` with the annotation ID and a message describing what you did
 
-   ```
-   mcp__domscribe__annotations_respond(
-     annotationId: "...",
-     message: "Changed button color to red by updating className"
-   )
-   ```
-
-6. **Complete** the annotation:
-
-   ```
-   mcp__domscribe__annotations_updateStatus(
-     annotationId: "...",
-     status: "processed"
-   )
-   ```
+6. **Complete** the annotation via `domscribe.annotation.updateStatus` with status `processed` (or `failed` with `errorDetails`)
 
 ## Error Handling
 
-| Situation           | Action                                           |
-| ------------------- | ------------------------------------------------ |
-| `found: false`      | Queue is empty, inform user                      |
-| Source file missing | Mark `failed` with details                       |
-| Ambiguous intent    | Ask user for clarification before implementing   |
-| Partial success     | Mark `processed`, note limitations in response   |
-| Cannot implement    | Mark `failed` with `errorDetails` explaining why |
+| Situation                 | Action                                                 |
+| ------------------------- | ------------------------------------------------------ |
+| `found: false`            | No match — queue empty or no manifest entry            |
+| `browserConnected: false` | Runtime data unavailable; manifest data still returned |
+| Source file missing       | Mark `failed` with details                             |
+| Ambiguous intent          | Ask user for clarification before implementing         |
+| Partial success           | Mark `processed`, note limitations in response         |
+| Cannot implement          | Mark `failed` with `errorDetails` explaining why       |
 
 ## Key Principles
 
-- Read `userIntent` carefully—it's the user's actual words
-- Use `element.innerText` to verify you're changing the right element
+- Read `userIntent` carefully — it's the user's actual words
+- Use `query_bySource` to verify runtime state before and after changes
+- Use `element.innerText` to confirm you're changing the right element
 - Use `runtimeContext` to understand current component state
 - Make minimal, focused changes
-- Provide clear explanation in `annotations_respond`
-- Search with `annotations_search` to check for related prior work
+- Provide clear explanation via `domscribe.annotation.respond`
+- Search with `domscribe.annotation.search` to check for related prior work
