@@ -23,5 +23,10 @@
   "peerDependenciesMeta": {},
   "engines": {
     "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/patchorbit/domscribe.git",
+    "directory": "packages/domscribe-overlay"
   }
 }
