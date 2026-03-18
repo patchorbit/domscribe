@@ -20,5 +20,8 @@
     "happy-dom": "^12.0.0"
   },
   "peerDependencies": {},
-  "peerDependenciesMeta": {}
+  "peerDependenciesMeta": {},
+  "engines": {
+    "node": ">=20"
+  }
 }

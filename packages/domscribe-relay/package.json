@@ -1,6 +1,7 @@
 {
   "name": "@domscribe/relay",
   "version": "0.1.0",
+  "description": "Local relay server and MCP adapter for Domscribe",
   "type": "module",
   "main": "src/index.ts",
   "exports": {
@@ -36,5 +37,8 @@
     "@types/semver": "^7.7.1",
     "@types/ws": "^8.18.1",
     "ws": "^8.19.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

@@ -1,6 +1,7 @@
 {
   "name": "@domscribe/nuxt",
   "version": "0.1.0",
+  "description": "Nuxt module for Domscribe",
   "type": "module",
   "main": "src/index.ts",
   "publishConfig": {
@@ -18,5 +19,8 @@
   },
   "peerDependencies": {
     "nuxt": ">=3.0.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

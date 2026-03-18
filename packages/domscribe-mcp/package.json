@@ -12,5 +12,8 @@
   },
   "dependencies": {
     "@domscribe/relay": "workspace:*"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

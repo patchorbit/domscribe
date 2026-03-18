@@ -1,6 +1,7 @@
 {
   "name": "@domscribe/vue",
   "version": "0.1.0",
+  "description": "Vue adapter for Domscribe",
   "type": "module",
   "main": "src/index.ts",
   "publishConfig": {
@@ -34,5 +35,8 @@
     "webpack": {
       "optional": true
     }
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
