@@ -52,7 +52,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Build packages
-        run: nx run-many -t build --exclude domscribe-test-fixtures
+        run: npx nx run-many -t build --exclude domscribe-test-fixtures
 
       - name: Start Verdaccio
         run: npx verdaccio --config .verdaccio/config.yml --listen 4873 &
@@ -64,7 +64,7 @@ jobs:
         run: pnpm run registry:install
 
       - name: Run integration tests
-        run: nx integration domscribe-test-fixtures
+        run: npx nx integration domscribe-test-fixtures
 
   e2e:
     runs-on: ubuntu-latest
@@ -85,10 +85,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: pnpm exec --filter @domscribe/test-fixtures playwright install --with-deps chromium
+        run: pnpm --filter @domscribe/test-fixtures exec playwright install --with-deps chromium
 
       - name: Build packages
-        run: nx run-many -t build --exclude domscribe-test-fixtures
+        run: npx nx run-many -t build --exclude domscribe-test-fixtures
 
       - name: Start Verdaccio
         run: npx verdaccio --config .verdaccio/config.yml --listen 4873 &
@@ -100,7 +100,7 @@ jobs:
         run: pnpm run registry:install
 
       - name: Run e2e tests
-        run: SKIP_SETUP=1 nx e2e domscribe-test-fixtures
+        run: SKIP_SETUP=1 npx nx e2e domscribe-test-fixtures
 
       - name: Upload Playwright report
         if: failure()
