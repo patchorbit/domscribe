@@ -57,6 +57,9 @@ jobs:
       - name: Wait for Verdaccio
         run: npx wait-on http://localhost:4873 --timeout 30000
 
+      - name: Authenticate to local registry
+        run: npm config set //localhost:4873/:_authToken dummy-token
+
       - name: Publish to local registry
         run: pnpm run registry:publish:only
 
@@ -95,6 +98,9 @@ jobs:
 
       - name: Wait for Verdaccio
         run: npx wait-on http://localhost:4873 --timeout 30000
+
+      - name: Authenticate to local registry
+        run: npm config set //localhost:4873/:_authToken dummy-token
 
       - name: Publish to local registry
         run: pnpm run registry:publish:only
