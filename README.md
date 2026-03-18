@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/search?q=%40domscribe"><img src="https://img.shields.io/npm/v/%40domscribe/core?label=npm&color=cb3837" alt="npm version" /></a>
-  <a href="https://github.com/patchorbit/domscribe/actions"><img src="https://img.shields.io/github/actions/workflow/status/domscribe/domscribe/ci.yml?label=CI" alt="CI status" /></a>
+  <a href="https://github.com/patchorbit/domscribe/actions"><img src="https://img.shields.io/github/actions/workflow/status/patchorbit/domscribe/ci.yml?label=CI" alt="CI status" /></a>
   <a href="#"><img src="https://img.shields.io/badge/coverage-80%25+-brightgreen" alt="test coverage" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" /></a>
 </p>
