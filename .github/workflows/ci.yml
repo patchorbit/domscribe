@@ -57,17 +57,11 @@ jobs:
       - name: Wait for Verdaccio
         run: npx wait-on http://localhost:4873 --timeout 30000
 
-      - name: Authenticate to local registry
-        run: npm config set //localhost:4873/:_authToken dummy-token
-
       - name: Publish to local registry
         run: pnpm run registry:publish:only
 
-      - name: Install fixtures
-        run: pnpm run registry:install
-
       - name: Run integration tests
-        run: npx nx integration domscribe-test-fixtures
+        run: npx nx run domscribe-test-fixtures:integration-all
 
   e2e:
     runs-on: ubuntu-latest
@@ -99,17 +93,11 @@ jobs:
       - name: Wait for Verdaccio
         run: npx wait-on http://localhost:4873 --timeout 30000
 
-      - name: Authenticate to local registry
-        run: npm config set //localhost:4873/:_authToken dummy-token
-
       - name: Publish to local registry
         run: pnpm run registry:publish:only
 
-      - name: Install fixtures
-        run: pnpm run registry:install
-
       - name: Run e2e tests
-        run: SKIP_SETUP=1 npx nx e2e domscribe-test-fixtures
+        run: npx nx run domscribe-test-fixtures:e2e-all
 
       - name: Upload Playwright report
         if: failure()
