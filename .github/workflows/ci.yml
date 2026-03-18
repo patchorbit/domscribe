@@ -28,7 +28,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: npx nx run-many -t lint test build typecheck
+      - run: npx nx run-many -t lint test build typecheck --exclude domscribe-test-fixtures
 
       - run: npx nx fix-ci
         if: always()
