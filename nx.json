@@ -84,9 +84,12 @@
   },
   "release": {
     "projects": ["*", "!domscribe-test-fixtures"],
-    "git": {
-      "commit": false,
-      "tag": false
+    "version": {
+      "git": {
+        "commit": false,
+        "tag": false,
+        "stageChanges": false
+      }
     }
   }
 }
