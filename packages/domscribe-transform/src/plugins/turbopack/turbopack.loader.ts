@@ -156,7 +156,7 @@ function buildClientGlobalsPreamble(options: TurbopackLoaderOptions): string {
       `window.__DOMSCRIBE_CONSOLE_PATCHED__=true;` +
       `var _ce=console.error;` +
       `console.error=function(){` +
-      `if(typeof arguments[0]==='string'&&arguments[0].indexOf('data-ds')!==-1&&arguments[0].indexOf('React.Fragment')!==-1)return;` +
+      `if(typeof arguments[0]==='string'){var _s=Array.prototype.join.call(arguments,' ');if(_s.indexOf('data-ds')!==-1&&_s.indexOf('React.Fragment')!==-1)return}` +
       `return _ce.apply(console,arguments)` +
       `}}`,
   );
