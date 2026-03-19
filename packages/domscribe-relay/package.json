@@ -1,6 +1,6 @@
 {
   "name": "@domscribe/relay",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Local relay server and MCP adapter for Domscribe",
   "type": "module",
   "main": "src/index.ts",

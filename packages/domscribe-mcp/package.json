@@ -1,6 +1,6 @@
 {
   "name": "@domscribe/mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MCP server for Domscribe — connects editors and agents to runtime context",
   "type": "module",
   "main": "src/bin/domscribe-mcp.ts",

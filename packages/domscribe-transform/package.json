@@ -1,6 +1,6 @@
 {
   "name": "@domscribe/transform",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "AST injection of stable element IDs and bundler plugins for Domscribe",
   "type": "module",
   "main": "src/index.ts",

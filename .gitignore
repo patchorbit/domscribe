@@ -66,3 +66,6 @@ packages/domscribe-test-fixtures/fixtures/**/.next
 packages/domscribe-test-fixtures/fixtures/**/next-env.d.ts
 packages/domscribe-test-fixtures/fixtures/**/.nuxt
 packages/domscribe-test-fixtures/fixtures/**/.output
+.nx/polygraph
+.claude/worktrees
+.claude/settings.local.json
