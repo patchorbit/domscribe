@@ -26,7 +26,7 @@ import {
 import { existsSync } from 'fs';
 import path, { join } from 'path';
 import xxhash from 'xxhash-wasm';
-import { generateEntryId, SourcePosition } from '@domscribe/core';
+import { SourcePosition } from '@domscribe/core';
 import {
   SerializedIDCacheSchema,
   type IDGenerator,
@@ -44,6 +44,12 @@ const CACHE_SCHEMA_VERSION = '1.0.0';
 const DEFAULT_CACHE_FILE = 'id-cache.json';
 
 export class IDStabilizer implements IDGenerator, IDCacheControl {
+  /** Alphabet matching core's id-generator.ts (base58, no ambiguous chars) */
+  private static readonly ALPHABET =
+    '0123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz';
+  private static readonly ALPHABET_LEN = BigInt(IDStabilizer.ALPHABET.length); // 58n
+  private static readonly ID_LENGTH = 8;
+
   /** Singleton instances keyed by normalized cache directory path */
   private static instances = new Map<string, IDStabilizer>();
 
@@ -160,7 +166,7 @@ export class IDStabilizer implements IDGenerator, IDCacheControl {
 
     // Case 1: File not in cache OR file hash changed (content changed)
     if (!entry || entry.fileHash !== fileHash) {
-      const newId = generateEntryId();
+      const newId = this.generateDeterministicId(`${fileHash}:${positionKey}`);
       const newEntry: IDCacheEntry = {
         fileHash,
         filePath,
@@ -197,7 +203,9 @@ export class IDStabilizer implements IDGenerator, IDCacheControl {
     }
 
     // Case 3: New position in existing file
-    const newId = generateEntryId();
+    const newId = this.generateDeterministicId(
+      `${entry.fileHash}:${positionKey}`,
+    );
     entry.ids.set(positionKey, newId);
     entry.timestamp = Date.now();
     this.stats.misses++;
@@ -413,5 +421,30 @@ export class IDStabilizer implements IDGenerator, IDCacheControl {
     }
 
     return this.hasher.h64(fileContent).toString(16).padStart(16, '0');
+  }
+
+  /**
+   * Derive a deterministic 8-character ID from a seed string.
+   * Uses xxhash64 to hash the seed, then maps the 64-bit result
+   * to the ID alphabet via repeated modulo division.
+   */
+  private generateDeterministicId(seed: string): string {
+    if (!this.hasher) {
+      throw new Error('Hasher not initialized. Call initialize() first.');
+    }
+    const hash = this.hasher.h64(seed);
+    return IDStabilizer.hashToAlphabetId(hash);
+  }
+
+  private static hashToAlphabetId(hash: bigint): string {
+    const chars: string[] = [];
+    let value = hash < 0n ? -hash : hash;
+    for (let i = 0; i < IDStabilizer.ID_LENGTH; i++) {
+      chars.push(
+        IDStabilizer.ALPHABET[Number(value % IDStabilizer.ALPHABET_LEN)],
+      );
+      value = value / IDStabilizer.ALPHABET_LEN;
+    }
+    return chars.join('');
   }
 }

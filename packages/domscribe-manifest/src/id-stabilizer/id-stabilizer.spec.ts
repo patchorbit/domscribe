@@ -27,10 +27,6 @@ vi.mock('xxhash-wasm', () => ({
   default: vi.fn(),
 }));
 
-vi.mock('@domscribe/core', () => ({
-  generateEntryId: vi.fn(),
-}));
-
 // Import mocked modules to access mock functions
 import {
   existsSync,
@@ -41,7 +37,6 @@ import {
   unlinkSync,
 } from 'fs';
 import xxhashFactory, { XXHashAPI } from 'xxhash-wasm';
-import { generateEntryId } from '@domscribe/core';
 
 const mockMkdirSync = vi.mocked(mkdirSync);
 const mockWriteFileSync = vi.mocked(writeFileSync);
@@ -50,10 +45,9 @@ const mockRenameSync = vi.mocked(renameSync);
 const mockUnlinkSync = vi.mocked(unlinkSync);
 const mockExistsSync = vi.mocked(existsSync);
 const mockXxhashFactory = vi.mocked(xxhashFactory);
-const mockGenerateElementId = vi.mocked(generateEntryId);
 
-// Counter for mock ID generation
-let idCounter = 0;
+/** Matches a valid 8-char base58 ID */
+const ID_FORMAT = /^[0-9A-HJ-NP-Za-hj-np-z]{8}$/;
 
 // Helper functions
 function createFileIdentity(
@@ -72,8 +66,13 @@ function createPosition(
 }
 
 function mockHash(content: string): string {
-  // Create deterministic hash based on content
-  return `hash_${Buffer.from(content).toString('base64').slice(0, 16)}`;
+  // Must match computeFileHash: h64(content).toString(16).padStart(16, '0')
+  // Our h64 mock produces: hash = sum of (char * 31^i) as bigint
+  let hash = 0n;
+  for (let i = 0; i < content.length; i++) {
+    hash = hash * 31n + BigInt(content.charCodeAt(i));
+  }
+  return hash.toString(16).padStart(16, '0');
 }
 
 function createSerializedCache(
@@ -101,21 +100,16 @@ describe('IDStabilizer', () => {
   beforeEach(() => {
     vi.resetAllMocks();
 
-    // Reset counter for ID generation
-    idCounter = 0;
-
-    // Setup mock implementations
-    mockGenerateElementId.mockImplementation(() => {
-      return `id${(idCounter++).toString().padStart(6, '0')}`;
-    });
-
-    // Mock xxhash factory to return a hasher with h64 method
+    // Mock xxhash factory to return a hasher with h64 that produces real bigints
     mockXxhashFactory.mockResolvedValue({
       ...vi.mocked({} as XXHashAPI),
       h64: vi.fn((content: string) => {
-        return {
-          toString: () => mockHash(content),
-        } as unknown as bigint;
+        // Produce a deterministic bigint from content for testing
+        let hash = 0n;
+        for (let i = 0; i < content.length; i++) {
+          hash = hash * 31n + BigInt(content.charCodeAt(i));
+        }
+        return hash;
       }),
     });
 
@@ -222,7 +216,7 @@ describe('IDStabilizer', () => {
         const id = stabilizer.getStableId(fileIdentity, position);
 
         // Assert
-        expect(id).toBe('id000000');
+        expect(id).toMatch(ID_FORMAT);
       });
     });
 
@@ -239,7 +233,7 @@ describe('IDStabilizer', () => {
 
         // Assert
         expect(id2).toBe(id1);
-        expect(id1).toBe('id000000');
+        expect(id1).toMatch(ID_FORMAT);
       });
 
       it('should track cache hit when returning cached ID', async () => {
@@ -294,8 +288,7 @@ describe('IDStabilizer', () => {
         const id = stabilizer.getStableId(fileIdentity, position);
 
         // Assert
-        expect(id).toBe('id000000');
-        expect(mockGenerateElementId).toHaveBeenCalledTimes(1);
+        expect(id).toMatch(ID_FORMAT);
       });
 
       it('should track cache miss for new file', async () => {
@@ -330,8 +323,8 @@ describe('IDStabilizer', () => {
 
         // Assert
         expect(id2).not.toBe(id1);
-        expect(id1).toBe('id000000');
-        expect(id2).toBe('id000001');
+        expect(id1).toMatch(ID_FORMAT);
+        expect(id2).toMatch(ID_FORMAT);
       });
 
       it('should track cache miss when file content changes', async () => {
@@ -488,8 +481,9 @@ describe('IDStabilizer', () => {
         stabilizer.getStableId(fileIdentity, createPosition(4, 0));
         stabilizer.getStableId(fileIdentity, createPosition(5, 0));
 
-        // Assert - hash should only be computed once due to per-file caching
-        expect(h64Spy).toHaveBeenCalledTimes(1);
+        // Assert - file hash computed once (cached), plus 5 h64 calls for deterministic ID generation
+        // Total: 1 file hash + 5 ID hashes = 6
+        expect(h64Spy).toHaveBeenCalledTimes(6);
       });
 
       it('should recompute hash when file content changes', async () => {
@@ -510,8 +504,8 @@ describe('IDStabilizer', () => {
           createPosition(1, 0),
         );
 
-        // Assert - hash should be computed twice (once per content change)
-        expect(h64Spy).toHaveBeenCalledTimes(2);
+        // Assert - 2 file hashes (content changed) + 2 ID hashes = 4
+        expect(h64Spy).toHaveBeenCalledTimes(4);
       });
 
       it('should recompute hash when switching to a different file', async () => {
@@ -532,8 +526,8 @@ describe('IDStabilizer', () => {
           createPosition(1, 0),
         );
 
-        // Assert - hash should be computed twice (once per file)
-        expect(h64Spy).toHaveBeenCalledTimes(2);
+        // Assert - 2 file hashes (different files) + 2 ID hashes = 4
+        expect(h64Spy).toHaveBeenCalledTimes(4);
       });
 
       it('should use cached hash when returning to previously processed file with same content', async () => {
@@ -551,9 +545,11 @@ describe('IDStabilizer', () => {
         stabilizer.getStableId(file2, createPosition(1, 0));
         stabilizer.getStableId(file1, createPosition(2, 0)); // Back to file1
 
-        // Assert - hash computed 3 times (cache only holds most recent file)
-        // This is expected behavior - we only cache the most recent file
-        expect(h64Spy).toHaveBeenCalledTimes(3);
+        // Assert - 3 file hashes (cache only holds most recent file) + 3 ID hashes = 6
+        // file1 pos(1,0): new file → file hash + ID hash
+        // file2 pos(1,0): new file → file hash + ID hash
+        // file1 pos(2,0): file hash recomputed (not cached) + new position → ID hash
+        expect(h64Spy).toHaveBeenCalledTimes(6);
       });
     });
   });
@@ -853,7 +849,7 @@ describe('IDStabilizer', () => {
         expect(stats.misses).toBe(0);
       });
 
-      it('should generate new IDs after clearing cache', async () => {
+      it('should produce same deterministic ID after clearing cache', async () => {
         // Arrange
         await stabilizer.initialize();
         const fileIdentity = createFileIdentity('/test.tsx', 'content');
@@ -864,8 +860,8 @@ describe('IDStabilizer', () => {
         stabilizer.clearCache();
         const id2 = stabilizer.getStableId(fileIdentity, position);
 
-        // Assert
-        expect(id2).not.toBe(id1);
+        // Assert - deterministic: same input → same output
+        expect(id2).toBe(id1);
       });
     });
 
@@ -990,7 +986,7 @@ describe('IDStabilizer', () => {
         createFileIdentity('/test.tsx', 'content'),
         createPosition(10, 10),
       );
-      expect(id).toBe('id000000');
+      expect(id).toMatch(ID_FORMAT);
     });
 
     it('should start fresh after version mismatch', async () => {
@@ -1049,8 +1045,9 @@ describe('IDStabilizer', () => {
       );
 
       // Assert - should continue working
-      expect(id1).toBe('id000000');
-      expect(id2).toBe('id000001');
+      expect(id1).toMatch(ID_FORMAT);
+      expect(id2).toMatch(ID_FORMAT);
+      expect(id2).not.toBe(id1);
     });
   });
 
@@ -1093,6 +1090,60 @@ describe('IDStabilizer', () => {
         expect.stringMatching(/my-custom-cache\.json\.tmp\.\d+$/),
         `${workspaceRoot}/my-custom-cache.json`,
       );
+    });
+  });
+
+  describe('Deterministic ID generation', () => {
+    it('should produce identical IDs from independent instances for same input', async () => {
+      // Arrange
+      const s1 = new IDStabilizer('/workspace1');
+      const s2 = new IDStabilizer('/workspace2');
+      await s1.initialize();
+      await s2.initialize();
+
+      const fileIdentity = createFileIdentity('/test.tsx', 'const x = 1;');
+      const position = createPosition(10, 10);
+
+      // Act & Assert
+      expect(s1.getStableId(fileIdentity, position)).toBe(
+        s2.getStableId(fileIdentity, position),
+      );
+    });
+
+    it('should produce different IDs for different positions', async () => {
+      // Arrange
+      await stabilizer.initialize();
+      const fileIdentity = createFileIdentity('/test.tsx', 'const x = 1;');
+
+      // Act
+      const id1 = stabilizer.getStableId(fileIdentity, createPosition(1, 0));
+      const id2 = stabilizer.getStableId(fileIdentity, createPosition(2, 0));
+
+      // Assert
+      expect(id1).toMatch(ID_FORMAT);
+      expect(id2).toMatch(ID_FORMAT);
+      expect(id1).not.toBe(id2);
+    });
+
+    it('should produce different IDs for same position in different file content', async () => {
+      // Arrange
+      await stabilizer.initialize();
+      const position = createPosition(10, 10);
+
+      // Act
+      const id1 = stabilizer.getStableId(
+        createFileIdentity('/test.tsx', 'version 1'),
+        position,
+      );
+      const id2 = stabilizer.getStableId(
+        createFileIdentity('/test.tsx', 'version 2'),
+        position,
+      );
+
+      // Assert
+      expect(id1).toMatch(ID_FORMAT);
+      expect(id2).toMatch(ID_FORMAT);
+      expect(id1).not.toBe(id2);
     });
   });
 });
