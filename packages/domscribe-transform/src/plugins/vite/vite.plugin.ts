@@ -304,6 +304,23 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
     transformIndexHtml(): IndexHtmlTransformResult | undefined {
       const tags: HtmlTagDescriptor[] = [];
 
+      // Suppress React's "Invalid prop `data-ds` supplied to React.Fragment"
+      // warning.  Fires when a component resolves to Fragment at runtime
+      // (e.g. `const P = hasKey ? dynamic(...) : Fragment`).  Harmless but
+      // clutters the console and triggers error overlays.
+      tags.push({
+        tag: 'script',
+        children:
+          `if(!window.__DOMSCRIBE_CONSOLE_PATCHED__){` +
+          `window.__DOMSCRIBE_CONSOLE_PATCHED__=true;` +
+          `var _ce=console.error;` +
+          `console.error=function(){` +
+          `if(typeof arguments[0]==='string'&&arguments[0].indexOf('data-ds')!==-1&&arguments[0].indexOf('React.Fragment')!==-1)return;` +
+          `return _ce.apply(console,arguments)` +
+          `}}`,
+        injectTo: 'head-prepend',
+      });
+
       // Inject relay port for overlay discovery
       // The overlay (browser UI) needs to know which port to connect to
       if (relayPort && relayHost) {
@@ -338,10 +355,7 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
         });
       }
 
-      if (tags.length > 0) {
-        return { html: '', tags };
-      }
-      return undefined;
+      return { html: '', tags };
     },
   };
 }

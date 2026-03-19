@@ -268,6 +268,21 @@ export class DomscribeWebpackPlugin {
     const headTags: string[] = [];
     const bodyTags: string[] = [];
 
+    // Suppress React's "Invalid prop `data-ds` supplied to React.Fragment"
+    // warning.  Fires when a component resolves to Fragment at runtime
+    // (e.g. `const P = hasKey ? dynamic(...) : Fragment`).
+    headTags.push(
+      `<script>` +
+        `if(!window.__DOMSCRIBE_CONSOLE_PATCHED__){` +
+        `window.__DOMSCRIBE_CONSOLE_PATCHED__=true;` +
+        `var _ce=console.error;` +
+        `console.error=function(){` +
+        `if(typeof arguments[0]==='string'&&arguments[0].indexOf('data-ds')!==-1&&arguments[0].indexOf('React.Fragment')!==-1)return;` +
+        `return _ce.apply(console,arguments)` +
+        `}}` +
+        `</script>`,
+    );
+
     // Add relay script tag to head
     const relayTag = this.getRelayScriptTag();
     if (relayTag) {
