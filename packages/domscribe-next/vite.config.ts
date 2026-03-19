@@ -1,6 +1,17 @@
 import { defineConfig } from 'vitest/config';
+import path from 'path';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      // auto-init dynamically imports @domscribe/overlay which isn't a direct
+      // dependency — help Vite resolve it for tests (vi.mock intercepts at runtime)
+      '@domscribe/overlay': path.resolve(
+        __dirname,
+        '../domscribe-overlay/src/index.ts',
+      ),
+    },
+  },
   test: {
     name: '@domscribe/next',
     watch: false,

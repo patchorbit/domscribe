@@ -45,8 +45,7 @@ const DEFAULT_EXCLUDE = /node_modules|\.test\.|\.spec\./i;
  * Next.js 16+ Turbopack).
  *
  * In production, injects resolve aliases that replace @domscribe/overlay
- * with a no-op stub so DomscribeDevProvider is safe to leave in the
- * component tree without bloating the bundle.
+ * with a no-op stub as a safety net against accidental imports.
  *
  * @example
  * ```js
@@ -96,11 +95,9 @@ function resolveNoopOverlay(): string {
 /**
  * Replace @domscribe/overlay with a no-op stub in production builds.
  *
- * DomscribeDevProvider lives in the component tree unconditionally (so
- * users don't need conditional imports in their layout). In production
- * the provider is inert, but bundlers still trace its dynamic import()
- * and pull in the full overlay package. Aliasing it to a tiny stub
- * keeps the production bundle clean.
+ * Safety net: if any code path accidentally imports @domscribe/overlay
+ * in production, this alias ensures the bundle gets a tiny stub instead
+ * of the full overlay package.
  */
 function applyProductionAliases(nextConfig: NextConfig): NextConfig {
   const noopOverlay = resolveNoopOverlay();
@@ -144,7 +141,7 @@ function applyDevTransforms(
     exclude = DEFAULT_EXCLUDE,
     debug = false,
     relay = {},
-    overlay = false,
+    overlay = true,
   } = options;
 
   return {

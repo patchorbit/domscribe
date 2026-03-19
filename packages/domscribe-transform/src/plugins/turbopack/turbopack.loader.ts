@@ -139,11 +139,27 @@ async function doInit(
  * Injected once into the first transformed file so the client-side
  * provider (DomscribeDevProvider) can discover relay/overlay config
  * without relying on NEXT_PUBLIC_* env vars.
+ *
+ * Also:
+ * - Installs a one-time console.error filter that suppresses React's
+ *   "Invalid prop `data-ds` supplied to `React.Fragment`" warning
+ * - Triggers auto-initialization of runtime + overlay via
+ *   `import('@domscribe/next/auto-init')`, guarded by a
+ *   `__DOMSCRIBE_AUTO_INIT__` flag to run only once per page load
  */
-function buildClientGlobalsPreamble(
-  options: TurbopackLoaderOptions,
-): string | null {
+function buildClientGlobalsPreamble(options: TurbopackLoaderOptions): string {
   const parts: string[] = [];
+
+  // Suppress React Fragment prop warning for data-ds (once per page load).
+  parts.push(
+    `if(!window.__DOMSCRIBE_CONSOLE_PATCHED__){` +
+      `window.__DOMSCRIBE_CONSOLE_PATCHED__=true;` +
+      `var _ce=console.error;` +
+      `console.error=function(){` +
+      `if(typeof arguments[0]==='string'&&arguments[0].indexOf('data-ds')!==-1&&arguments[0].indexOf('React.Fragment')!==-1)return;` +
+      `return _ce.apply(console,arguments)` +
+      `}}`,
+  );
 
   if (initResult.relayPort !== undefined) {
     parts.push(`window.__DOMSCRIBE_RELAY_PORT__=${initResult.relayPort}`);
@@ -162,11 +178,13 @@ function buildClientGlobalsPreamble(
     );
   }
 
-  if (parts.length === 0) {
-    return null;
-  }
-
-  return `if(typeof window!=='undefined'){${parts.join(';')}}\n`;
+  return (
+    `if(typeof window!=='undefined'){${parts.join(';')};` +
+    `if(!window.__DOMSCRIBE_AUTO_INIT__){` +
+    `window.__DOMSCRIBE_AUTO_INIT__=true;` +
+    `import('@domscribe/next/auto-init').catch(function(){})` +
+    `}}\n`
+  );
 }
 
 /**

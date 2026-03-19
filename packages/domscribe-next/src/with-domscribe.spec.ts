@@ -378,7 +378,7 @@ describe('withDomscribe', () => {
         expect(options['debug']).toBe(false);
       });
 
-      it('should default overlay to false', () => {
+      it('should default overlay to true', () => {
         const result = withDomscribe()({});
 
         const turbopack = result.turbopack as Record<string, unknown>;
@@ -386,7 +386,7 @@ describe('withDomscribe', () => {
         const jsxRule = rules['*.jsx'] as Record<string, unknown>;
         const loaders = jsxRule['loaders'] as Array<Record<string, unknown>>;
         const options = loaders[0]['options'] as Record<string, unknown>;
-        expect(options['overlay']).toBe(false);
+        expect(options['overlay']).toBe(true);
       });
 
       it('should default relay to empty object', () => {

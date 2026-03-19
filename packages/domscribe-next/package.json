@@ -8,7 +8,7 @@
     "access": "restricted"
   },
   "distExports": {
-    "./runtime": "./runtime/index.js",
+    "./auto-init": "./auto-init/index.js",
     "./noop/overlay": "./noop/overlay.js"
   },
   "dependencies": {

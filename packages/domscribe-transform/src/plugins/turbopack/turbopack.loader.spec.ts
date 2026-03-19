@@ -346,7 +346,7 @@ describe('Turbopack Loader', () => {
       expect(mockInjector.inject).toHaveBeenCalled();
       expect(asyncCallback).toHaveBeenCalledWith(
         null,
-        'transformed',
+        expect.stringContaining('transformed'),
         expect.objectContaining({ version: 3 }),
       );
     });
@@ -518,6 +518,28 @@ describe('Turbopack Loader', () => {
       const output2 = callback2.mock.calls[0][1] as string;
       expect(output1).toContain('__DOMSCRIBE_RELAY_PORT__');
       expect(output2).toContain('__DOMSCRIBE_RELAY_PORT__');
+    });
+
+    it('should inject auto-init import with dedup guard', async () => {
+      // Arrange
+      const source = 'export function App() { return <div>Hello</div>; }';
+      const context = createLoaderContext('/test/App.tsx');
+      const asyncCallback = vi.fn();
+      context.async = vi.fn(() => asyncCallback);
+      mockInjector.inject.mockReturnValue(
+        createMockInjectorResult('transformed', 1),
+      );
+
+      // Act
+      loaderModule.default.call(context, source);
+      await vi.waitFor(() => expect(asyncCallback).toHaveBeenCalled());
+
+      // Assert
+      const outputCode = asyncCallback.mock.calls[0][1] as string;
+      expect(outputCode).toContain('__DOMSCRIBE_AUTO_INIT__');
+      expect(outputCode).toContain(
+        "import('@domscribe/next/auto-init').catch(function(){})",
+      );
     });
 
     it('should inject overlay options when configured', async () => {
