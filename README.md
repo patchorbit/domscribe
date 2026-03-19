@@ -14,6 +14,11 @@
   <a href="https://github.com/patchorbit/domscribe/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs welcome" /></a>
 </p>
 
+<p align="center">
+  <img src="./docs/demo.gif" alt="Domscribe demo — click an element, capture context, resolve to source" />
+</p>
+
+
 ---
 
 **AI coding agents edit your source files blind — they can't see your running frontend, and your frontend can't tell them where to look.**
