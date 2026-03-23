@@ -82,7 +82,7 @@ export async function createTestServer(
   manifestReader.initialize();
 
   // Build Fastify app with same wiring as http-server.ts
-  const app = Fastify({ logger: false });
+  const app = Fastify({ bodyLimit: 10 * 1024 * 1024, logger: false });
   app.decorate('nonce', 'test-nonce');
   app.decorate('relayVersion', RELAY_VERSION);
   app.decorate('workspaceRoot', tempDir);

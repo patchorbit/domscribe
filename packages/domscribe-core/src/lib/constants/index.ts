@@ -79,6 +79,8 @@ export const DEFAULT_CONFIG = {
   RELAY_HOST: '127.0.0.1',
   /** Port to listen on (default: 0 for dynamic port assignment) */
   RELAY_PORT: 0,
+  /** Maximum request body size in bytes (10 MB) */
+  RELAY_BODY_LIMIT: 10 * 1024 * 1024,
   /** Timeout for health check requests in milliseconds */
   RELAY_HEALTH_TIMEOUT_MS: 500,
   /** Maximum time to wait for relay health check in milliseconds */

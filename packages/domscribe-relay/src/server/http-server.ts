@@ -85,6 +85,7 @@ export async function createRelayServer(
 
   // Create Fastify instance
   const app = Fastify({
+    bodyLimit: DEFAULT_CONFIG.RELAY_BODY_LIMIT,
     logger: debug
       ? {
           level: 'info',
