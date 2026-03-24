@@ -30,26 +30,14 @@ jobs:
 
       - run: npx nx run-many -t lint test build typecheck --exclude domscribe-test-fixtures
 
-      - name: Aggregate coverage
-        id: coverage
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: |
-          npx nx run domscribe:coverage-badge
-          BADGE_JSON=$(cat coverage/shields.json)
-          echo "label=$(echo "$BADGE_JSON" | jq -r .label)" >> "$GITHUB_OUTPUT"
-          echo "message=$(echo "$BADGE_JSON" | jq -r .message)" >> "$GITHUB_OUTPUT"
-          echo "color=$(echo "$BADGE_JSON" | jq -r .color)" >> "$GITHUB_OUTPUT"
-
       - name: Update coverage badge
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: schneegans/dynamic-badges-action@v1.7.0
-        with:
-          auth: ${{ secrets.GIST_SECRET }}
-          gistID: ${{ vars.COVERAGE_GIST_ID }}
-          filename: domscribe-coverage.json
-          label: ${{ steps.coverage.outputs.label }}
-          message: ${{ steps.coverage.outputs.message }}
-          color: ${{ steps.coverage.outputs.color }}
+        env:
+          GH_TOKEN: ${{ secrets.GIST_SECRET }}
+        run: |
+          npx nx run domscribe:coverage-badge
+          gh api --method PATCH "gists/${{ vars.COVERAGE_GIST_ID }}" \
+            -f "files[domscribe-coverage.json][content]=$(cat coverage/shields.json)"
 
   build-registry:
     runs-on: ubuntu-latest
