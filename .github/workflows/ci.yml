@@ -35,7 +35,10 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           npx nx run domscribe:coverage-badge
-          echo "json=$(cat coverage/shields.json)" >> "$GITHUB_OUTPUT"
+          BADGE_JSON=$(cat coverage/shields.json)
+          echo "label=$(echo "$BADGE_JSON" | jq -r .label)" >> "$GITHUB_OUTPUT"
+          echo "message=$(echo "$BADGE_JSON" | jq -r .message)" >> "$GITHUB_OUTPUT"
+          echo "color=$(echo "$BADGE_JSON" | jq -r .color)" >> "$GITHUB_OUTPUT"
 
       - name: Update coverage badge
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -44,9 +47,9 @@ jobs:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: ${{ vars.COVERAGE_GIST_ID }}
           filename: domscribe-coverage.json
-          label: ${{ fromJSON(steps.coverage.outputs.json).label }}
-          message: ${{ fromJSON(steps.coverage.outputs.json).message }}
-          color: ${{ fromJSON(steps.coverage.outputs.json).color }}
+          label: ${{ steps.coverage.outputs.label }}
+          message: ${{ steps.coverage.outputs.message }}
+          color: ${{ steps.coverage.outputs.color }}
 
   build-registry:
     runs-on: ubuntu-latest
