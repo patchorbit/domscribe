@@ -71,6 +71,7 @@ describe('QueryBySourceTool', () => {
         },
         browserConnected: true,
         error: undefined,
+        hint: undefined,
       });
       expect(JSON.parse(getResultText(result))).toEqual(
         result.structuredContent,
@@ -100,6 +101,10 @@ describe('QueryBySourceTool', () => {
         runtime: undefined,
         browserConnected: undefined,
         error: undefined,
+        hint:
+          'No manifest entry found for this source location. ' +
+          'Try domscribe.manifest.query with the file path to discover which lines have entries, ' +
+          'or use tolerance > 0 to widen the search.',
       });
     });
 
@@ -129,6 +134,61 @@ describe('QueryBySourceTool', () => {
       });
     });
 
+    it('should return browser-not-connected hint when browserConnected is false', async () => {
+      // Arrange
+      const mockClient = createMockRelayClient({
+        queryBySource: vi.fn().mockResolvedValue({
+          found: true,
+          entryId: 'aB3dEf7h',
+          sourceLocation: {
+            file: 'src/components/Button.tsx',
+            start: { line: 10, column: 4 },
+          },
+          browserConnected: false,
+        }),
+      });
+      const tool = new QueryBySourceTool(mockClient);
+
+      // Act
+      const result: CallToolResult = await tool.toolCallback({
+        file: 'src/components/Button.tsx',
+        line: 10,
+      });
+
+      // Assert
+      const structured = result.structuredContent as Record<string, unknown>;
+      expect(structured['hint']).toContain('No browser is connected');
+      expect(structured['hint']).toContain('Ask the user');
+    });
+
+    it('should return not-rendered hint when element is not rendered', async () => {
+      // Arrange
+      const mockClient = createMockRelayClient({
+        queryBySource: vi.fn().mockResolvedValue({
+          found: true,
+          entryId: 'aB3dEf7h',
+          sourceLocation: {
+            file: 'src/components/Button.tsx',
+            start: { line: 10, column: 4 },
+          },
+          runtime: { rendered: false },
+          browserConnected: true,
+        }),
+      });
+      const tool = new QueryBySourceTool(mockClient);
+
+      // Act
+      const result: CallToolResult = await tool.toolCallback({
+        file: 'src/components/Button.tsx',
+        line: 10,
+      });
+
+      // Assert
+      const structured = result.structuredContent as Record<string, unknown>;
+      expect(structured['hint']).toContain('not currently rendered');
+      expect(structured['hint']).toContain('Ask the user to navigate');
+    });
+
     it('should return MCP error result on exception', async () => {
       // Arrange
       const mockClient = createMockRelayClient({
@@ -155,7 +215,7 @@ describe('QueryBySourceTool', () => {
     const tool = new QueryBySourceTool(createMockRelayClient());
 
     expect(tool.name).toBe(MCP_TOOLS.QUERY_BY_SOURCE);
-    expect(tool.description).toContain('source file');
+    expect(tool.description).toContain('source location');
     expect(tool.inputSchema).toBeDefined();
     expect(tool.outputSchema).toBeDefined();
   });

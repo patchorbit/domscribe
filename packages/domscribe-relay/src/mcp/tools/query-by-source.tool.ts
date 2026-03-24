@@ -65,6 +65,10 @@ const QueryBySourceToolOutputSchema = McpToolOutputSchema.extend({
     })
     .optional(),
   browserConnected: z.boolean().optional(),
+  hint: z
+    .string()
+    .optional()
+    .describe('Actionable guidance based on the result'),
 });
 
 type QueryBySourceToolOutput = z.infer<typeof QueryBySourceToolOutputSchema>;
@@ -75,14 +79,42 @@ export class QueryBySourceTool implements McpToolDefinition<
 > {
   name = MCP_TOOLS.QUERY_BY_SOURCE;
   description =
-    "Query a live dev server by source file and position to get the element's " +
-    'manifest entry and live runtime context (props, state, DOM info). ' +
-    'Use when you have a source location and want to understand what the element ' +
-    'looks like at runtime. Returns manifest data even if the browser is not connected.';
+    'Get live DOM snapshot, component props, and state for a source location (file + line). ' +
+    'Call this BEFORE editing a UI component to understand its current rendered state, and AFTER editing to verify changes — ' +
+    'replaces the need for curl, Playwright, or browser screenshots. ' +
+    'If browserConnected is false, ask the user to navigate to the page in their browser and retry. ' +
+    'Returns manifest data even when the browser is not connected.';
   inputSchema = QueryBySourceToolInputSchema;
   outputSchema = QueryBySourceToolOutputSchema;
 
   constructor(private readonly relayHttpClient: RelayHttpClient) {}
+
+  private buildHint(result: {
+    found: boolean;
+    browserConnected?: boolean;
+    runtime?: { rendered?: boolean };
+  }): string | undefined {
+    if (!result.found) {
+      return (
+        'No manifest entry found for this source location. ' +
+        'Try domscribe.manifest.query with the file path to discover which lines have entries, ' +
+        'or use tolerance > 0 to widen the search.'
+      );
+    }
+    if (result.browserConnected === false) {
+      return (
+        'No browser is connected — runtime data is unavailable. ' +
+        'Ask the user to open the page containing this component in their browser, then retry to get live props, state, and DOM snapshot.'
+      );
+    }
+    if (result.runtime && !result.runtime.rendered) {
+      return (
+        'The element exists in the manifest but is not currently rendered in the browser. ' +
+        'Ask the user to navigate to a page that renders this component, then retry.'
+      );
+    }
+    return undefined;
+  }
 
   async toolCallback(input: QueryBySourceToolInput) {
     try {
@@ -95,6 +127,7 @@ export class QueryBySourceTool implements McpToolDefinition<
         runtime: result.runtime,
         browserConnected: result.browserConnected,
         error: result.error,
+        hint: this.buildHint(result),
       };
 
       return {

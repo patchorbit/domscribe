@@ -31,18 +31,15 @@ type AnnotationsUpdateStatusToolOutput = z.infer<
   typeof AnnotationsUpdateStatusToolOutputSchema
 >;
 
-export class AnnotationsUpdateStatusTool
-  implements
-    McpToolDefinition<
-      typeof AnnotationsUpdateStatusToolInputSchema,
-      typeof AnnotationsUpdateStatusToolOutputSchema
-    >
-{
+export class AnnotationsUpdateStatusTool implements McpToolDefinition<
+  typeof AnnotationsUpdateStatusToolInputSchema,
+  typeof AnnotationsUpdateStatusToolOutputSchema
+> {
   name = MCP_TOOLS.ANNOTATION_UPDATE_STATUS;
   description =
-    "Update an annotation's status in its lifecycle. " +
+    'Final step in the annotation lifecycle — call this AFTER domscribe.annotation.respond. ' +
     'Valid transitions: queued→processing, processing→processed/failed, any→archived. ' +
-    'Use to mark work as complete (processed), failed with error details, or archived.';
+    'Mark as "processed" when done, "failed" with errorDetails if unable to implement, or "archived" to remove from queue.';
   inputSchema = AnnotationsUpdateStatusToolInputSchema;
   outputSchema = AnnotationsUpdateStatusToolOutputSchema;
 
