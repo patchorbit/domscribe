@@ -71,7 +71,8 @@ export async function runAgentStep(options: InitOptions): Promise<void> {
 
   if (agent.installType === 'manual') {
     if (agent.manualInstructions) {
-      clack.note(agent.manualInstructions, agent.label);
+      clack.log.info(agent.label);
+      process.stdout.write(agent.manualInstructions + '\n\n');
     }
     return;
   }
@@ -93,9 +94,9 @@ export async function runAgentStep(options: InitOptions): Promise<void> {
     clack.log.warn(
       `${binary} is not installed or not on PATH. Showing manual setup instead.`,
     );
-    clack.note(
-      `Install the ${agent.label} CLI, then run:\n\n${agent.commands.map((c) => `  ${c}`).join('\n')}`,
-      agent.label,
+    clack.log.info(`Install the ${agent.label} CLI, then run:\n`);
+    process.stdout.write(
+      agent.commands.map((c) => `  ${c}`).join('\n') + '\n\n',
     );
     return;
   }

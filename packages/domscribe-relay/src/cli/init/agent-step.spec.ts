@@ -79,7 +79,7 @@ describe('runAgentStep', () => {
 
       // Assert
       expect(clack.select).not.toHaveBeenCalled();
-      expect(clack.note).toHaveBeenCalled();
+      expect(clack.log.info).toHaveBeenCalledWith('Amazon Kiro');
     });
   });
 
@@ -87,42 +87,42 @@ describe('runAgentStep', () => {
     it('should show manual instructions for Kiro', async () => {
       // Arrange
       vi.mocked(clack.select).mockResolvedValue('kiro');
+      const writeSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
 
       // Act
       await runAgentStep(baseOptions);
 
       // Assert
-      expect(clack.note).toHaveBeenCalledWith(
+      expect(writeSpy).toHaveBeenCalledWith(
         expect.stringContaining('Powers panel'),
-        'Amazon Kiro',
       );
     });
 
     it('should show MCP config for Cursor', async () => {
       // Arrange
       vi.mocked(clack.select).mockResolvedValue('cursor');
+      const writeSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
 
       // Act
       await runAgentStep(baseOptions);
 
       // Assert
-      expect(clack.note).toHaveBeenCalledWith(
+      expect(writeSpy).toHaveBeenCalledWith(
         expect.stringContaining('coming soon'),
-        'Cursor',
       );
     });
 
     it('should show MCP config for Other', async () => {
       // Arrange
       vi.mocked(clack.select).mockResolvedValue('other');
+      const writeSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
 
       // Act
       await runAgentStep(baseOptions);
 
       // Assert
-      expect(clack.note).toHaveBeenCalledWith(
+      expect(writeSpy).toHaveBeenCalledWith(
         expect.stringContaining('mcpServers'),
-        'Other (manual MCP setup)',
       );
     });
   });
@@ -169,7 +169,9 @@ describe('runAgentStep', () => {
       expect(clack.log.warn).toHaveBeenCalledWith(
         expect.stringContaining('not installed'),
       );
-      expect(clack.note).toHaveBeenCalled();
+      expect(clack.log.info).toHaveBeenCalledWith(
+        expect.stringContaining('Install the GitHub Copilot CLI'),
+      );
     });
 
     it('should warn on command failure and stop', async () => {

@@ -6,7 +6,7 @@ import type { FrameworkId } from './types.js';
 
 /**
  * Config snippet for each framework + bundler combination.
- * Displayed via `clack.note()` after package installation.
+ * Displayed with syntax highlighting after package installation.
  */
 export const CONFIG_SNIPPETS: Record<FrameworkId, string> = {
   next: `import type { NextConfig } from 'next';

@@ -5,11 +5,41 @@
 import { spawnSync } from 'node:child_process';
 
 import * as clack from '@clack/prompts';
+import { highlight } from 'cli-highlight';
 
 import { detectPackageManager } from './detect-package-manager.js';
 import { CONFIG_SNIPPETS } from './snippets.js';
-import type { InitOptions, PackageManagerId } from './types.js';
+import type {
+  FrameworkConfig,
+  InitOptions,
+  PackageManagerId,
+} from './types.js';
 import { FRAMEWORKS, PACKAGE_MANAGERS } from './types.js';
+
+/**
+ * Syntax-highlight a config snippet for terminal display.
+ */
+function highlightSnippet(code: string, configFile: string): string {
+  const language = configFile.endsWith('.ts') ? 'typescript' : 'javascript';
+  try {
+    return highlight(code, { language });
+  } catch {
+    return code;
+  }
+}
+
+/**
+ * Display the config snippet with contextual instructions.
+ */
+function showConfigSnippet(framework: FrameworkConfig): void {
+  const snippet = CONFIG_SNIPPETS[framework.id];
+  const highlighted = highlightSnippet(snippet, framework.configFile);
+
+  clack.log.warn(
+    `Add the following to your ${framework.configFile} to complete setup:\n`,
+  );
+  process.stdout.write(highlighted + '\n\n');
+}
 
 /**
  * Build the install command string for a given package manager and package.
@@ -88,7 +118,7 @@ export async function runFrameworkStep(
 
   if (options.dryRun) {
     clack.log.info(`Would run: ${installCmd}`);
-    clack.note(CONFIG_SNIPPETS[framework.id], framework.configFile);
+    showConfigSnippet(framework);
     return;
   }
 
@@ -111,5 +141,5 @@ export async function runFrameworkStep(
   }
 
   // Always show the config snippet
-  clack.note(CONFIG_SNIPPETS[framework.id], framework.configFile);
+  showConfigSnippet(framework);
 }

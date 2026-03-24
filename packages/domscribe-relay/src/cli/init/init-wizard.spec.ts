@@ -33,7 +33,7 @@ describe('runInitWizard', () => {
     // Assert
     expect(clack.intro).toHaveBeenCalledWith('Domscribe Setup');
     expect(clack.outro).toHaveBeenCalledWith(
-      expect.stringContaining('Start your dev server'),
+      expect.stringContaining('Domscribe will take care of the rest'),
     );
   });
 

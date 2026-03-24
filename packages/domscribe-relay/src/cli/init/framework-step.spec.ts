@@ -178,14 +178,17 @@ describe('runFrameworkStep', () => {
       vi.mocked(clack.select)
         .mockResolvedValueOnce('next')
         .mockResolvedValueOnce('npm');
+      const writeSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
 
       // Act
       await runFrameworkStep(baseOptions, '/project');
 
       // Assert
-      expect(clack.note).toHaveBeenCalledWith(
+      expect(clack.log.warn).toHaveBeenCalledWith(
+        expect.stringContaining('next.config.ts'),
+      );
+      expect(writeSpy).toHaveBeenCalledWith(
         expect.stringContaining('withDomscribe'),
-        'next.config.ts',
       );
     });
 
@@ -194,18 +197,17 @@ describe('runFrameworkStep', () => {
       vi.mocked(clack.select)
         .mockResolvedValueOnce('react-webpack')
         .mockResolvedValueOnce('npm');
+      const writeSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
 
       // Act
       await runFrameworkStep(baseOptions, '/project');
 
       // Assert
-      expect(clack.note).toHaveBeenCalledWith(
+      expect(writeSpy).toHaveBeenCalledWith(
         expect.stringContaining('webpack-loader'),
-        'webpack.config.js',
       );
-      expect(clack.note).toHaveBeenCalledWith(
+      expect(writeSpy).toHaveBeenCalledWith(
         expect.stringContaining('DomscribeWebpackPlugin'),
-        'webpack.config.js',
       );
     });
   });
@@ -226,7 +228,9 @@ describe('runFrameworkStep', () => {
       expect(clack.log.info).toHaveBeenCalledWith(
         expect.stringContaining('npm install -D @domscribe/nuxt'),
       );
-      expect(clack.note).toHaveBeenCalled();
+      expect(clack.log.warn).toHaveBeenCalledWith(
+        expect.stringContaining('to complete setup'),
+      );
     });
   });
 });
