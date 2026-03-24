@@ -100,11 +100,28 @@ Once the agent is done with the edits, it calls `domscribe.annotation.respond` w
 
 ---
 
-## Install
+## Getting Started
+
+```bash
+npx domscribe init
+```
+
+The setup wizard walks you through two steps:
+
+1. **Connect your coding agent** — select your agent (Claude Code, Copilot, Gemini, Kiro, or others) and the wizard installs the plugin automatically.
+2. **Add to your app** — select your framework and bundler, the wizard installs the right package and shows you the config snippet to add.
+
+That's it. Start your dev server and you're ready to go.
+
+> Prefer to set things up manually, or need finer control? See the [manual setup](#manual-setup) instructions below.
+
+---
+
+## Manual Setup
 
 Domscribe has two sides: **app-side** (bundler + framework plugins) and **agent-side** (MCP for your coding agent). Both are needed for the full workflow.
 
-### Step 1 — Add to Your App
+### App-Side — Add to Your Bundler
 
 <details>
 <summary><strong>Next.js (15 + 16)</strong> — <code>npm install -D @domscribe/next</code></summary>
@@ -289,17 +306,15 @@ module.exports = {
 
 > **Working examples:** See [`packages/domscribe-test-fixtures/fixtures/`](./packages/domscribe-test-fixtures/fixtures/) for complete app setups across every supported framework and bundler combination.
 
-### Step 2 — Connect Your Coding Agent
+### Agent-Side — Connect Your Coding Agent
 
-Domscribe exposes its full tool surface (12 tools + 4 prompts) via MCP. Agent plugins bundle the MCP config and a skill file that teaches the agent how to use the tools effectively.
-
-For agents with first-class plugin support, install the plugin and you're done:
+Domscribe exposes 12 tools and 4 prompts via MCP. Agent plugins bundle the MCP config and a skill file that teaches the agent how to use the tools effectively.
 
 #### Claude Code
 
 ```shell
-/plugin marketplace add patchorbit/domscribe
-/plugin install domscribe@domscribe
+claude plugin marketplace add patchorbit/domscribe
+claude plugin install domscribe@domscribe
 ```
 
 #### GitHub Copilot
