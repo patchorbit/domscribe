@@ -19,8 +19,8 @@ const version = rootPkg.version;
 
 /** Plugin manifests that contain a "version" field to keep in sync. */
 const PLUGIN_MANIFESTS = [
+  '.plugin/plugin.json',
   'packages/domscribe-relay/src/plugins/gemini/gemini-extension.json',
-  'packages/domscribe-relay/src/plugins/copilot/plugin.json',
   'packages/domscribe-relay/src/plugins/claude-code/.claude-plugin/plugin.json',
   'packages/domscribe-relay/src/plugins/cursor/.cursor-plugin/plugin.json',
 ];
