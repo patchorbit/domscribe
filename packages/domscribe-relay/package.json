@@ -21,6 +21,7 @@
     "domscribe-mcp": "./cli/bin/mcp.js"
   },
   "dependencies": {
+    "@clack/prompts": "^1.1.0",
     "@domscribe/core": "workspace:*",
     "@domscribe/manifest": "workspace:*",
     "@fastify/cors": "^10.0.0",
