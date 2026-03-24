@@ -1,6 +1,6 @@
 {
   "name": "@domscribe/relay",
-  "version": "0.2.2",
+  "version": "0.2.3-dev.0",
   "description": "Local relay server and MCP adapter for Domscribe",
   "type": "module",
   "main": "src/index.ts",
@@ -27,6 +27,7 @@
     "@fastify/cors": "^10.0.0",
     "@fastify/websocket": "^11.0.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "cli-highlight": "^2.1.11",
     "commander": "^14.0.2",
     "fastify": "^5.0.0",
     "fastify-type-provider-zod": "^6.1.0",
