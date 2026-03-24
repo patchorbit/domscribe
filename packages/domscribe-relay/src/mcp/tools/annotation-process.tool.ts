@@ -63,24 +63,26 @@ const AnnotationsProcessToolOutputSchema = McpToolOutputSchema.extend({
     .unknown()
     .optional()
     .describe('Full annotation for advanced use cases'),
+  nextStep: z
+    .string()
+    .optional()
+    .describe('Workflow hint — what to do after this tool call'),
 });
 
 type AnnotationsProcessToolOutput = z.infer<
   typeof AnnotationsProcessToolOutputSchema
 >;
 
-export class AnnotationsProcessTool
-  implements
-    McpToolDefinition<
-      typeof AnnotationsProcessToolInputSchema,
-      typeof AnnotationsProcessToolOutputSchema
-    >
-{
+export class AnnotationsProcessTool implements McpToolDefinition<
+  typeof AnnotationsProcessToolInputSchema,
+  typeof AnnotationsProcessToolOutputSchema
+> {
   name = MCP_TOOLS.ANNOTATION_PROCESS;
   description =
-    'Atomically claim the next queued annotation for processing. ' +
+    'Claim the next queued annotation for processing (atomic — no annotation ID needed). ' +
+    'This is the correct tool for picking up work. Do NOT use annotation.list to manually pick annotations. ' +
     'Returns the oldest queued annotation with full context including resolved source location. ' +
-    'Use when ready to process the next user request from the queue.';
+    'After implementing the change, call annotation.respond then annotation.updateStatus to complete the lifecycle.';
   inputSchema = AnnotationsProcessToolInputSchema;
   outputSchema = AnnotationsProcessToolOutputSchema;
 
@@ -100,6 +102,11 @@ export class AnnotationsProcessTool
         sourceLocation: response.sourceLocation,
         runtimeContext: response.runtimeContext,
         fullAnnotation: response.fullAnnotation,
+        nextStep: response.found
+          ? 'Implement the change described in userIntent. ' +
+            'Then call domscribe.query.bySource with the same file and line to verify your changes in the live browser. ' +
+            'Then call domscribe.annotation.respond with your summary, then domscribe.annotation.updateStatus with status "processed".'
+          : undefined,
       };
 
       return {

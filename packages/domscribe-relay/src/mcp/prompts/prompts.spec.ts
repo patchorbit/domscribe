@@ -20,10 +20,10 @@ describe('ProcessNextPrompt', () => {
     expect(messages).toHaveLength(1);
     expect(messages[0].role).toBe('user');
     expect(messages[0].content.type).toBe('text');
-    expect(messages[0].content.text).toContain('domscribe.annotations.process');
-    expect(messages[0].content.text).toContain('domscribe.annotations.respond');
+    expect(messages[0].content.text).toContain('domscribe.annotation.process');
+    expect(messages[0].content.text).toContain('domscribe.annotation.respond');
     expect(messages[0].content.text).toContain(
-      'domscribe.annotations.updateStatus',
+      'domscribe.annotation.updateStatus',
     );
   });
 });

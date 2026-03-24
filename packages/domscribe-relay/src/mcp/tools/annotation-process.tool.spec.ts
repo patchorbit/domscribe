@@ -41,7 +41,13 @@ describe('AnnotationsProcessTool', () => {
 
       // Assert
       expect(mockClient.processAnnotation).toHaveBeenCalled();
-      expect(result.structuredContent).toEqual(processResponse);
+      expect(result.structuredContent).toEqual({
+        ...processResponse,
+        nextStep:
+          'Implement the change described in userIntent. ' +
+          'Then call domscribe.query.bySource with the same file and line to verify your changes in the live browser. ' +
+          'Then call domscribe.annotation.respond with your summary, then domscribe.annotation.updateStatus with status "processed".',
+      });
     });
 
     it('should handle empty queue', async () => {

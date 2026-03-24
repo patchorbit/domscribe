@@ -31,6 +31,8 @@ describe('AnnotationsRespondTool', () => {
       expect(result.structuredContent).toEqual({
         success: true,
         annotationId: 'ann_123',
+        nextStep:
+          'Call domscribe.annotation.updateStatus with annotationId "ann_123" and status "processed" to complete the lifecycle.',
       });
     });
 

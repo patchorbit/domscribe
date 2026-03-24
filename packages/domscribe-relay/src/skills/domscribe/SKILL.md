@@ -1,6 +1,6 @@
 ---
 name: domscribe
-description: Work with Domscribe — the pixel-to-code bridge. Use when implementing features from captured UI annotations, querying runtime context for source locations, exploring component structure, or when user mentions annotations, queued tasks, UI changes, or asks about how elements render at runtime.
+description: Work with Domscribe — the pixel-to-code bridge. Use when editing or modifying UI components (React, Vue, Next.js, Nuxt), implementing features from captured UI annotations, querying runtime context for source locations, exploring component structure, or when user mentions annotations, queued tasks, UI changes, props, state, DOM, or asks about how elements render at runtime.
 allowed-tools: Read, Edit, Write, mcp__domscribe__*, domscribe.*, mcp.domscribe.*, process_next, check_status, explore_component, find_annotations
 ---
 
@@ -11,10 +11,24 @@ Domscribe bridges running UI and source code. It maps every rendered element to 
 - **UI → Code**: User clicks an element in the browser, Domscribe captures it as an annotation with source location, runtime context, and user intent. You claim and implement it.
 - **Code → UI**: You're editing a source file and want to know what an element looks like at runtime. Query by file and line to get live props, state, and DOM snapshot.
 
+## Editing Components (Code → UI)
+
+**Whenever you are about to edit a UI component**, use `domscribe.query.bySource` to see its live rendered state before making changes. This gives you the current DOM snapshot, component props, and state — no need for curl, Playwright, or browser screenshots.
+
+**Workflow:**
+
+1. **Before editing**: Call `domscribe.query.bySource` with the file path and line number of the element you're about to change. Inspect `runtime.componentProps`, `runtime.componentState`, and `runtime.domSnapshot` to understand the current state.
+2. **Edit** the component source code.
+3. **After editing**: Call `domscribe.query.bySource` again on the same location to verify your changes took effect in the live browser (HMR will have updated the page).
+
+**When the browser is not connected** (`browserConnected: false`): Ask the user to open the page containing this component in their browser, then retry. You will still receive manifest data (source location, component name), but live runtime data requires a browser connection.
+
+**When the element is not rendered** (`runtime.rendered: false`): The component exists in the codebase but the user hasn't navigated to a page that renders it. Ask them to navigate there and retry.
+
 ## Quick Commands (MCP Prompts)
 
-| Command                              | Purpose                        |
-| ------------------------------------ | ------------------------------ |
+| Command             | Purpose                        |
+| ------------------- | ------------------------------ |
 | `process_next`      | Process next queued annotation |
 | `check_status`      | System health and queue counts |
 | `explore_component` | List elements in a component   |
@@ -106,9 +120,11 @@ queued → processing → processed
 
 4. **Implement** the change based on `userIntent`
 
-5. **Store** your response via `domscribe.annotation.respond` with the annotation ID and a message describing what you did
+5. **Verify** via `domscribe.query.bySource` — call with the same file and line to confirm your changes are reflected in the live browser (HMR will have updated the page)
 
-6. **Complete** the annotation via `domscribe.annotation.updateStatus` with status `processed` (or `failed` with `errorDetails`)
+6. **Store** your response via `domscribe.annotation.respond` with the annotation ID and a message describing what you did
+
+7. **Complete** the annotation via `domscribe.annotation.updateStatus` with status `processed` (or `failed` with `errorDetails`)
 
 ## Error Handling
 

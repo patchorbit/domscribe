@@ -37,18 +37,15 @@ type AnnotationsListToolOutput = z.infer<
   typeof AnnotationsListToolOutputSchema
 >;
 
-export class AnnotationsListTool
-  implements
-    McpToolDefinition<
-      typeof AnnotationsListToolInputSchema,
-      typeof AnnotationsListToolOutputSchema
-    >
-{
+export class AnnotationsListTool implements McpToolDefinition<
+  typeof AnnotationsListToolInputSchema,
+  typeof AnnotationsListToolOutputSchema
+> {
   name = MCP_TOOLS.ANNOTATION_LIST;
   description =
-    'List Domscribe annotations with optional status filtering and pagination. ' +
-    'Annotations are user-captured UI interactions awaiting or completed by agent processing. ' +
-    'Use to see pending work (status: queued), in-progress items, or review completed/failed tasks.';
+    'List Domscribe annotations for monitoring and review purposes. ' +
+    'To process the NEXT queued annotation, use domscribe.annotation.process instead — it atomically claims and returns full context in one call. ' +
+    'Use this tool only to browse queue state, check counts, or review history by status.';
   inputSchema = AnnotationsListToolInputSchema;
   outputSchema = AnnotationsListToolOutputSchema;
 
