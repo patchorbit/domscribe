@@ -151,12 +151,34 @@ export default defineConfig({
 
 Webpack plugin:
 
-```ts
+```js
 // webpack.config.js
 const { DomscribeWebpackPlugin } = require('@domscribe/react/webpack');
 
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 module.exports = {
-  plugins: [new DomscribeWebpackPlugin()],
+  module: {
+    rules: [
+      {
+        test: /\.[jt]sx?$/,
+        exclude: /node_modules/,
+        enforce: 'pre',
+        use: [
+          {
+            loader: '@domscribe/transform/webpack-loader',
+            options: { enabled: isDevelopment },
+          },
+        ],
+      },
+    ],
+  },
+  plugins: [
+    new DomscribeWebpackPlugin({
+      enabled: isDevelopment,
+      overlay: true,
+    }),
+  ],
 };
 ```
 
@@ -180,12 +202,34 @@ export default defineConfig({
 
 Webpack plugin:
 
-```ts
+```js
 // webpack.config.js
 const { DomscribeWebpackPlugin } = require('@domscribe/vue/webpack');
 
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 module.exports = {
-  plugins: [new DomscribeWebpackPlugin()],
+  module: {
+    rules: [
+      {
+        test: /\.[jt]sx?$/,
+        exclude: /node_modules/,
+        enforce: 'pre',
+        use: [
+          {
+            loader: '@domscribe/transform/webpack-loader',
+            options: { enabled: isDevelopment },
+          },
+        ],
+      },
+    ],
+  },
+  plugins: [
+    new DomscribeWebpackPlugin({
+      enabled: isDevelopment,
+      overlay: true,
+    }),
+  ],
 };
 ```
 
@@ -214,8 +258,30 @@ const {
   DomscribeWebpackPlugin,
 } = require('@domscribe/transform/plugins/webpack');
 
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 module.exports = {
-  plugins: [new DomscribeWebpackPlugin()],
+  module: {
+    rules: [
+      {
+        test: /\.[jt]sx?$/,
+        exclude: /node_modules/,
+        enforce: 'pre',
+        use: [
+          {
+            loader: '@domscribe/transform/webpack-loader',
+            options: { enabled: isDevelopment },
+          },
+        ],
+      },
+    ],
+  },
+  plugins: [
+    new DomscribeWebpackPlugin({
+      enabled: isDevelopment,
+      overlay: true,
+    }),
+  ],
 };
 ```
 
