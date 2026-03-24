@@ -27,5 +27,13 @@
     "vue",
     "nextjs",
     "nuxt"
-  ]
+  ],
+  "skills": "./packages/domscribe-relay/src/skills",
+  "mcpServers": {
+    "domscribe": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@domscribe/mcp"]
+    }
+  }
 }
