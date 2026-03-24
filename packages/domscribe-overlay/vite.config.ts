@@ -21,6 +21,7 @@ export default defineConfig({
     coverage: {
       enabled: true,
       provider: 'v8',
+      reporter: ['text', 'json-summary'],
       reportsDirectory: './test-output/vitest/coverage',
       thresholds: {
         lines: 0,

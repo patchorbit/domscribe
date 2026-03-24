@@ -108,6 +108,13 @@
           "command": "node scripts/sync-versions.mjs"
         }
       },
+      "coverage-badge": {
+        "executor": "nx:run-commands",
+        "dependsOn": ["^test"],
+        "options": {
+          "command": "node scripts/aggregate-coverage.mjs"
+        }
+      },
       "local-registry": {
         "executor": "@nx/js:verdaccio",
         "options": {

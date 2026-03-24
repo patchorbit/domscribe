@@ -30,6 +30,24 @@ jobs:
 
       - run: npx nx run-many -t lint test build typecheck --exclude domscribe-test-fixtures
 
+      - name: Aggregate coverage
+        id: coverage
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          npx nx run domscribe:coverage-badge
+          echo "json=$(cat coverage/shields.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Update coverage badge
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: ${{ vars.COVERAGE_GIST_ID }}
+          filename: domscribe-coverage.json
+          label: ${{ fromJSON(steps.coverage.outputs.json).label }}
+          message: ${{ fromJSON(steps.coverage.outputs.json).message }}
+          color: ${{ fromJSON(steps.coverage.outputs.json).color }}
+
   build-registry:
     runs-on: ubuntu-latest
     needs: checks
