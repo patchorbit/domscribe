@@ -1,6 +1,6 @@
 {
   "name": "@domscribe/manifest",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Append-only DOM-to-source manifest for Domscribe",
   "type": "module",
   "main": "src/index.ts",
