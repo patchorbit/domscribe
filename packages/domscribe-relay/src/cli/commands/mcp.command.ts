@@ -5,10 +5,15 @@ import { getWorkspaceRoot } from '../utils.js';
 
 interface McpCommandOptions {
   debug: boolean;
+  bodyLimit?: string;
 }
 
 export const McpCommand = new Command('mcp')
   .description('Start MCP adapter for agent integration (stdio transport)')
+  .option(
+    '--body-limit <bytes>',
+    'Max request body size in bytes (default: 10MB)',
+  )
   .option('--debug', 'Enable debug logging')
   .action(async (options: McpCommandOptions) => {
     try {
@@ -23,13 +28,20 @@ async function mcp(options: McpCommandOptions) {
   const workspaceRoot = getWorkspaceRoot();
 
   if (!workspaceRoot) {
-    throw new Error('No workspace root found. Ensure you are running this command inside a workspace where domscribe is installed.');
+    throw new Error(
+      'No workspace root found. Ensure you are running this command inside a workspace where domscribe is installed.',
+    );
   }
 
   const { debug } = options;
+  const bodyLimit = options.bodyLimit
+    ? parseInt(options.bodyLimit, 10)
+    : undefined;
   const relayControl = new RelayControl(workspaceRoot);
 
-  const { host: relayHost, port: relayPort } = await relayControl.ensureRunning();
+  const { host: relayHost, port: relayPort } = await relayControl.ensureRunning(
+    { bodyLimit },
+  );
 
   console.error(
     `[domscribe-cli] Starting MCP adapter (relay at http://${relayHost}:${relayPort})`,

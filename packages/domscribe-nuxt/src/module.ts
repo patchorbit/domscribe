@@ -55,6 +55,7 @@ export const domscribeModule = defineNuxtModule<DomscribeNuxtOptions>({
         const result = await relayControl.ensureRunning({
           port: options.relay?.port,
           host: options.relay?.host,
+          bodyLimit: options.relay?.bodyLimit,
         });
         relayHost = result.host;
         relayPort = result.port;

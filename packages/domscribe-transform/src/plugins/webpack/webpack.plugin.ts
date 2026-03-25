@@ -190,6 +190,7 @@ export class DomscribeWebpackPlugin {
         await this.relayControl.ensureRunning({
           port: relayOptions.port,
           host: relayOptions.host,
+          bodyLimit: relayOptions.bodyLimit,
         });
 
       this.relayPort = assignedPort;

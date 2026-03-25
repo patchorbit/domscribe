@@ -28,6 +28,8 @@ export interface RelayEnsureOptions {
   port?: number;
   /** Host to use (only if starting). Default: '127.0.0.1' */
   host?: string;
+  /** Max request body size in bytes (only if starting). Default: 10MB */
+  bodyLimit?: number;
 }
 
 export interface RelayStatus {
@@ -63,7 +65,7 @@ export class RelayControl {
   async ensureRunning(
     options: RelayEnsureOptions = {},
   ): Promise<{ host: string; port: number }> {
-    const { host: requestedHost, port: requestedPort } = options;
+    const { host: requestedHost, port: requestedPort, bodyLimit } = options;
 
     const running = await this.validateAndClear();
 
@@ -77,6 +79,7 @@ export class RelayControl {
     const child = this.spawn({
       port: requestedPort,
       host: requestedHost,
+      bodyLimit,
     });
 
     if (!child.pid) {
@@ -125,10 +128,12 @@ export class RelayControl {
   spawn({
     port,
     host,
+    bodyLimit,
     detached = true,
   }: {
     port?: number;
     host?: string;
+    bodyLimit?: number;
     detached?: boolean;
   }): ChildProcess {
     const processEntry = resolveProcessEntryPath();
@@ -145,6 +150,10 @@ export class RelayControl {
 
     if (host) {
       env.DS_RELAY_HOST = host;
+    }
+
+    if (bodyLimit && bodyLimit > 0) {
+      env.DS_RELAY_BODY_LIMIT = String(bodyLimit);
     }
 
     const child = spawn(process.execPath, [processEntry], {
@@ -229,10 +238,7 @@ export class RelayControl {
     };
   }
 
-  private isValid(
-    runData: RelayRunData,
-    lockData: RelayLock,
-  ): boolean {
+  private isValid(runData: RelayRunData, lockData: RelayLock): boolean {
     if (lockData.pid !== runData.pid) {
       return false;
     }

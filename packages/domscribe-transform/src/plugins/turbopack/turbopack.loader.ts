@@ -94,6 +94,7 @@ async function doInit(
       const { host, port } = await relayControl.ensureRunning({
         port: relay.port,
         host: relay.host,
+        bodyLimit: relay.bodyLimit,
       });
       initResult = { relayHost: host, relayPort: port };
 

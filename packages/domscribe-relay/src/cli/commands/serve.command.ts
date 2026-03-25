@@ -6,6 +6,7 @@ interface ServeCommandOptions {
   daemon: boolean;
   port?: string;
   host?: string;
+  bodyLimit?: string;
   debug: boolean;
 }
 
@@ -14,6 +15,10 @@ export const ServeCommand = new Command('serve')
   .option('-d, --daemon', 'Run as background daemon')
   .option('-p, --port <number>', 'Port to listen on (0 for dynamic)')
   .option('--host <string>', 'Host to bind to')
+  .option(
+    '--body-limit <bytes>',
+    'Max request body size in bytes (default: 10MB)',
+  )
   .option('--debug', 'Enable debug logging')
   .action(async (options: ServeCommandOptions) => {
     try {
@@ -32,6 +37,9 @@ async function serve(options: ServeCommandOptions) {
   }
 
   const port = options.port ? parseInt(options.port, 10) : undefined;
+  const bodyLimit = options.bodyLimit
+    ? parseInt(options.bodyLimit, 10)
+    : undefined;
   const { host, debug, daemon } = options;
 
   const relayControl = new RelayControl(workspaceRoot, { debug });
@@ -40,6 +48,7 @@ async function serve(options: ServeCommandOptions) {
     const { port: assignedPort } = await relayControl.ensureRunning({
       port,
       host,
+      bodyLimit,
     });
 
     console.log(`[domscribe-cli] Relay daemon started on port ${assignedPort}`);
@@ -51,7 +60,9 @@ async function serve(options: ServeCommandOptions) {
   const existing = await relayControl.validateAndClear();
 
   if (existing?.host && existing?.port) {
-    console.log(`[domscribe-cli] Relay daemon already running on port ${existing.port}`);
+    console.log(
+      `[domscribe-cli] Relay daemon already running on port ${existing.port}`,
+    );
     console.log(`\nTo check status: domscribe status`);
     console.log(`To stop it: domscribe stop`);
     return;
@@ -60,6 +71,7 @@ async function serve(options: ServeCommandOptions) {
   const child = relayControl.spawn({
     port,
     host,
+    bodyLimit,
     detached: false,
   });
 

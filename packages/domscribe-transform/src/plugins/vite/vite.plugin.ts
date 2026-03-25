@@ -140,6 +140,7 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
             await relayControl.ensureRunning({
               port: relayOptions.port,
               host: relayOptions.host,
+              bodyLimit: relayOptions.bodyLimit,
             });
 
           relayPort = assignedPort;

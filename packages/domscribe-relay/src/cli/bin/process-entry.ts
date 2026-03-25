@@ -24,6 +24,9 @@ async function main(): Promise<void> {
     ? parseInt(process.env.DS_RELAY_PORT, 10)
     : undefined;
   const host = process.env.DS_RELAY_HOST;
+  const bodyLimit = process.env.DS_RELAY_BODY_LIMIT
+    ? parseInt(process.env.DS_RELAY_BODY_LIMIT, 10)
+    : undefined;
   const debug = process.env.DS_DEBUG === '1' || process.env.DS_DEBUG === 'true';
 
   const nonce = randomUUID();
@@ -37,6 +40,7 @@ async function main(): Promise<void> {
     host,
     nonce,
     debug,
+    bodyLimit,
   });
 
   const { port: assignedPort, host: assignedHost } = await relayServer.start();

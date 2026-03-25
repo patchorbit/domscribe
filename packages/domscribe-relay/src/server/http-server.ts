@@ -46,6 +46,8 @@ interface RelayServerOptions {
   debug?: boolean;
   /** Nonce for the server */
   nonce: string;
+  /** Max request body size in bytes (default: 10MB) */
+  bodyLimit?: number;
 }
 
 /**
@@ -78,6 +80,7 @@ export async function createRelayServer(
     host = DEFAULT_CONFIG.RELAY_HOST,
     debug = false,
     nonce,
+    bodyLimit = DEFAULT_CONFIG.RELAY_BODY_LIMIT,
   } = options;
 
   // Track server start time for uptime calculation
@@ -85,7 +88,7 @@ export async function createRelayServer(
 
   // Create Fastify instance
   const app = Fastify({
-    bodyLimit: DEFAULT_CONFIG.RELAY_BODY_LIMIT,
+    bodyLimit,
     logger: debug
       ? {
           level: 'info',
