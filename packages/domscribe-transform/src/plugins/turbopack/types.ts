@@ -42,6 +42,22 @@ export interface TurbopackLoaderOptions {
    * @default false
    */
   overlay?: boolean | OverlayPluginOptions;
+
+  /**
+   * Absolute filesystem path to the auto-init module.
+   *
+   * When provided, the loader computes a relative path from each transformed
+   * file to this module and injects that as the dynamic `import()` specifier.
+   * This avoids bare-specifier resolution issues in pnpm monorepos where the
+   * transformed file may belong to a workspace package that doesn't directly
+   * depend on the auto-init package.
+   *
+   * Meta-framework wrappers (e.g. `withDomscribe` in `@domscribe/next`)
+   * should resolve this via `require.resolve()` and pass it here.
+   *
+   * Falls back to `@domscribe/next/auto-init` when omitted.
+   */
+  autoInitPath?: string;
 }
 
 /**

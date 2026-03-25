@@ -148,7 +148,37 @@ async function doInit(
  *   `import('@domscribe/next/auto-init')`, guarded by a
  *   `__DOMSCRIBE_AUTO_INIT__` flag to run only once per page load
  */
-function buildClientGlobalsPreamble(options: TurbopackLoaderOptions): string {
+/**
+ * Compute the import specifier for the auto-init module.
+ *
+ * When `autoInitPath` is provided (absolute path resolved by the
+ * meta-framework wrapper), returns a relative path from the source file
+ * to the auto-init module. This bypasses bare-specifier resolution, which
+ * fails in pnpm monorepos when the transformed file belongs to a workspace
+ * package that doesn't directly depend on `@domscribe/next`.
+ *
+ * Falls back to the bare specifier when `autoInitPath` is not provided.
+ */
+function resolveAutoInitSpecifier(
+  autoInitPath: string | undefined,
+  sourceFile: string,
+): string {
+  if (!autoInitPath) {
+    return '@domscribe/next/auto-init';
+  }
+
+  const relPath = path
+    .relative(path.dirname(sourceFile), autoInitPath)
+    .split(path.sep)
+    .join('/');
+
+  return relPath.startsWith('.') ? relPath : `./${relPath}`;
+}
+
+function buildClientGlobalsPreamble(
+  options: TurbopackLoaderOptions,
+  sourceFile: string,
+): string {
   const parts: string[] = [];
 
   // Suppress React Fragment prop warning for data-ds (once per page load).
@@ -179,11 +209,16 @@ function buildClientGlobalsPreamble(options: TurbopackLoaderOptions): string {
     );
   }
 
+  const autoInitSpecifier = resolveAutoInitSpecifier(
+    options.autoInitPath,
+    sourceFile,
+  );
+
   return (
     `if(typeof window!=='undefined'){${parts.join(';')};` +
     `if(!window.__DOMSCRIBE_AUTO_INIT__){` +
     `window.__DOMSCRIBE_AUTO_INIT__=true;` +
-    `import('@domscribe/next/auto-init').catch(function(){})` +
+    `import('${autoInitSpecifier}').catch(function(){})` +
     `}}\n`
   );
 }
@@ -375,7 +410,7 @@ async function transformWithInit(
   //     → harmless if executed multiple times on the client
   //   • The snippet is ~100 bytes — negligible for dev mode
   let outputCode = transformedCode;
-  const preamble = buildClientGlobalsPreamble(options);
+  const preamble = buildClientGlobalsPreamble(options, sourceFile);
   if (preamble) {
     // Insert after 'use client'/'use server' directive so we don't
     // violate Next.js/Turbopack's requirement that it be the first expression.

@@ -542,6 +542,30 @@ describe('Turbopack Loader', () => {
       );
     });
 
+    it('should use relative path from autoInitPath when provided', async () => {
+      // Arrange — source file at /test/packages/ui/Button.tsx,
+      // auto-init at /test/node_modules/@domscribe/next/auto-init/index.js
+      const source = 'export function Button() { return <button/>; }';
+      const context = createLoaderContext('/test/packages/ui/Button.tsx', {
+        autoInitPath: '/test/node_modules/@domscribe/next/auto-init/index.js',
+      });
+      const asyncCallback = vi.fn();
+      context.async = vi.fn(() => asyncCallback);
+      mockInjector.inject.mockReturnValue(
+        createMockInjectorResult('transformed', 1),
+      );
+
+      // Act
+      loaderModule.default.call(context, source);
+      await vi.waitFor(() => expect(asyncCallback).toHaveBeenCalled());
+
+      // Assert — relative path from packages/ui/ to node_modules/
+      const outputCode = asyncCallback.mock.calls[0][1] as string;
+      expect(outputCode).toContain(
+        "import('../../node_modules/@domscribe/next/auto-init/index.js').catch(function(){})",
+      );
+    });
+
     it('should inject overlay options when configured', async () => {
       // Arrange
       const source = 'export function App() { return <div>Hello</div>; }';

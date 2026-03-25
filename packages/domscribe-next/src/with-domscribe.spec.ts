@@ -241,6 +241,9 @@ describe('withDomscribe', () => {
         expect(options['enabled']).toBe(true);
         expect(options['relay']).toEqual({ port: 4400 });
         expect(options['overlay']).toBe(true);
+        expect(options['autoInitPath']).toBe(
+          '/resolved/@domscribe/next/auto-init',
+        );
       });
 
       it('should resolve turbopack loader path', () => {
@@ -332,6 +335,7 @@ describe('withDomscribe', () => {
           enabled: true,
           relay: { port: 5000, host: '0.0.0.0' },
           overlay: { initialMode: 'expanded', debug: true },
+          autoInitPath: '/resolved/@domscribe/next/auto-init',
         });
       });
 

@@ -93,6 +93,24 @@ function resolveNoopOverlay(): string {
 }
 
 /**
+ * Resolve the absolute path to the auto-init module.
+ *
+ * The turbopack loader injects a dynamic `import()` of the auto-init module
+ * into every transformed file. In pnpm monorepos the file may belong to a
+ * workspace package that doesn't directly depend on `@domscribe/next`, so a
+ * bare specifier won't resolve. The loader uses this absolute path to compute
+ * a file-relative import for each transformed file, bypassing package-manager
+ * module resolution entirely.
+ */
+function resolveAutoInitPath(): string {
+  try {
+    return esmRequire.resolve('@domscribe/next/auto-init');
+  } catch {
+    return '@domscribe/next/auto-init';
+  }
+}
+
+/**
  * Replace @domscribe/overlay with a no-op stub in production builds.
  *
  * Safety net: if any code path accidentally imports @domscribe/overlay
@@ -179,6 +197,7 @@ function buildTurbopackConfig(
     enabled: true,
     relay: options.relay as JSONValue,
     overlay: options.overlay as JSONValue,
+    autoInitPath: resolveAutoInitPath(),
   };
 
   // Run the loader for ALL compilations (server + client).
@@ -267,6 +286,7 @@ function buildWebpackFn(
     enabled: true,
     relay: options.relay as JSONValue,
     overlay: options.overlay as JSONValue,
+    autoInitPath: resolveAutoInitPath(),
   };
 
   return (config: WebpackConfig, context: WebpackConfigContext) => {
