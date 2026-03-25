@@ -13,17 +13,30 @@ Domscribe bridges running UI and source code. It maps every rendered element to 
 
 ## Editing Components (Code → UI)
 
-**Whenever you are about to edit a UI component**, use `domscribe.query.bySource` to see its live rendered state before making changes. This gives you the current DOM snapshot, component props, and state — no need for curl, Playwright, or browser screenshots.
+**Why query runtime state?** Source code alone doesn't tell you what props a component actually received, whether a conditional branch rendered, what CSS classes were applied, or what text the user sees. `domscribe.query.bySource` gives you the live truth from the browser.
+
+**When to query (these tasks benefit):**
+
+- **Visual/styling bugs** — "the button is the wrong color." Query reveals the actual `className`, inline styles, and computed attributes so you can see what CSS is winning.
+- **Conditional rendering bugs** — "this section doesn't show up." Query tells you `rendered: false` or shows the actual props/state that control the condition.
+- **Prop tracing** — "the title shows 'undefined'." Query shows `componentProps` with the actual values flowing through, revealing where the chain breaks.
+- **Verifying your edit worked** — After editing, query the same location to confirm the DOM, props, and text updated as expected (HMR will have applied your change).
+
+**When NOT to query (save the round-trip):**
+
+- Pure logic changes (utils, hooks with no DOM output, API calls)
+- Creating new files or components from scratch (nothing to query yet)
+- Refactoring (renames, extractions, moves)
+- Type errors or build failures (the compiler already tells you what's wrong)
+
+**Prerequisite:** Runtime queries require the user's dev server to be running and the target component to be rendered in an open browser tab. Before calling `domscribe.query.bySource`, confirm with the user that they have the relevant page open. If you get `browserConnected: false` or `runtime.rendered: false`, ask the user to navigate to the page that renders the component and retry.
 
 **Workflow:**
 
-1. **Before editing**: Call `domscribe.query.bySource` with the file path and line number of the element you're about to change. Inspect `runtime.componentProps`, `runtime.componentState`, and `runtime.domSnapshot` to understand the current state.
-2. **Edit** the component source code.
-3. **After editing**: Call `domscribe.query.bySource` again on the same location to verify your changes took effect in the live browser (HMR will have updated the page).
-
-**When the browser is not connected** (`browserConnected: false`): Ask the user to open the page containing this component in their browser, then retry. You will still receive manifest data (source location, component name), but live runtime data requires a browser connection.
-
-**When the element is not rendered** (`runtime.rendered: false`): The component exists in the codebase but the user hasn't navigated to a page that renders it. Ask them to navigate there and retry.
+1. **Confirm the page is open** — ask the user if they have the page with the target component open in their browser. If not, ask them to navigate there first.
+2. **Before editing** (if the task matches the scenarios above): Call `domscribe.query.bySource` with the file path and line number. Inspect `runtime.componentProps`, `runtime.componentState`, and `runtime.domSnapshot`.
+3. **Edit** the component source code.
+4. **After editing**: Call `domscribe.query.bySource` again to verify your changes took effect in the live browser.
 
 ## Quick Commands (MCP Prompts)
 

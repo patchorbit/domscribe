@@ -80,9 +80,9 @@ export class QueryBySourceTool implements McpToolDefinition<
   name = MCP_TOOLS.QUERY_BY_SOURCE;
   description =
     'Get live DOM snapshot, component props, and state for a source location (file + line). ' +
-    'Call this BEFORE editing a UI component to understand its current rendered state, and AFTER editing to verify changes — ' +
-    'replaces the need for curl, Playwright, or browser screenshots. ' +
-    'If browserConnected is false, ask the user to navigate to the page in their browser and retry. ' +
+    'Call this when fixing visual/styling bugs, debugging conditional rendering, tracing prop values, or verifying UI changes after editing. ' +
+    "Skip for pure logic changes, new files, refactoring, or type fixes — runtime context won't help there. " +
+    'If browserConnected is false, ask the user to open the page in their browser and retry. ' +
     'Returns manifest data even when the browser is not connected.';
   inputSchema = QueryBySourceToolInputSchema;
   outputSchema = QueryBySourceToolOutputSchema;

@@ -309,13 +309,20 @@ Then add this MCP config to your agent:
 
 ### Code → UI: Let the agent see the browser
 
-Your agent is editing `Button.tsx` line 12. It calls `domscribe.query.bySource` and instantly gets back the live DOM snapshot, current props, component state, and rendered attributes — without any human interaction. The agent can verify what an element looks like _before_ changing it and confirm the result _after_.
+Source code alone can't tell an agent what a component actually looks like at runtime. When an agent calls `domscribe.query.bySource` with a file path and line number, it gets back the live DOM snapshot, current props, component state, and rendered attributes — directly from the running browser.
+
+This is most useful for:
+
+- **Visual bugs** — the agent can see the actual CSS classes, inline styles, and attributes to understand why something looks wrong
+- **Conditional rendering issues** — the agent can check whether an element rendered at all, and see the props/state that control the condition
+- **Prop tracing** — the agent can inspect the actual prop values flowing through a component, not just the types
+- **Before/after verification** — the agent queries before editing to understand current state, then queries after to confirm the fix worked (HMR applies changes automatically)
 
 <p align="center">
   <img src="./docs/code-to-ui.png" alt="Code → UI: Let the agent see the browser" />
 </p>
 
-Here's an example response that the agent might get back:
+Here's an example response from `domscribe.query.bySource`:
 
 ```json
 {
@@ -376,6 +383,22 @@ The annotation is stored as a JSON file in your repository in the `.domscribe/an
 ```
 
 Once the agent is done with the edits, it calls `domscribe.annotation.respond` with a description of what it did. The overlay shows the result in real time via WebSocket.
+
+### Prompting your agent to use runtime queries
+
+Agents don't spontaneously query runtime state — they default to reading source code, editing, and running tests. To get the most out of Code → UI, prompt your agent explicitly when the task would benefit from live browser data.
+
+**Prerequisite:** Your dev server must be running and you need to have the page with the target component open in your browser. Runtime queries talk to the live browser via WebSocket — if nothing is open, the agent gets manifest data (source location, component name) but no live props, state, or DOM.
+
+**Effective prompts:**
+
+- _"Fix the button color on the checkout page. Use domscribe to check what CSS classes it currently has before changing anything."_
+- _"The user menu isn't showing up. Query the component's runtime state to see if it's rendering and what props it's receiving."_
+- _"After you make the change, use domscribe to verify the button text updated in the browser."_
+
+**When runtime queries help most:** Visual bugs, conditional rendering issues, prop/state debugging, and verifying edits. The agent gets live DOM snapshots, actual prop values, and component state — things that source code alone can't reveal.
+
+**When they don't add value:** Pure logic changes, new components from scratch, refactoring, and type errors. The agent won't learn anything useful from runtime state in these cases.
 
 ---
 
