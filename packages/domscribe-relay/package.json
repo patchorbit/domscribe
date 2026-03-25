@@ -29,7 +29,7 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "cli-highlight": "^2.1.11",
     "commander": "^14.0.2",
-    "fastify": "^5.0.0",
+    "fastify": "^5.8.3",
     "fastify-type-provider-zod": "^6.1.0",
     "nanoid": "^5.0.0",
     "semver": "^7.7.4",
