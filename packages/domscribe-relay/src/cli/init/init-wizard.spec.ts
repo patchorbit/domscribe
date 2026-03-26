@@ -16,6 +16,10 @@ vi.mock('./framework-step.js', () => ({
   runFrameworkStep: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('./gitignore-step.js', () => ({
+  runGitignoreStep: vi.fn(),
+}));
+
 const baseOptions: InitOptions = {
   force: false,
   dryRun: false,
@@ -37,23 +41,27 @@ describe('runInitWizard', () => {
     );
   });
 
-  it('should call agent step then framework step in order', async () => {
+  it('should call steps in order: agent → framework → gitignore', async () => {
     // Arrange
     const callOrder: string[] = [];
     const { runAgentStep } = await import('./agent-step.js');
     const { runFrameworkStep } = await import('./framework-step.js');
+    const { runGitignoreStep } = await import('./gitignore-step.js');
     vi.mocked(runAgentStep).mockImplementation(async () => {
       callOrder.push('agent');
     });
     vi.mocked(runFrameworkStep).mockImplementation(async () => {
       callOrder.push('framework');
     });
+    vi.mocked(runGitignoreStep).mockImplementation(() => {
+      callOrder.push('gitignore');
+    });
 
     // Act
     await runInitWizard(baseOptions);
 
     // Assert
-    expect(callOrder).toEqual(['agent', 'framework']);
+    expect(callOrder).toEqual(['agent', 'framework', 'gitignore']);
   });
 
   it('should pass options through to both steps', async () => {
@@ -67,6 +75,7 @@ describe('runInitWizard', () => {
     };
     const { runAgentStep } = await import('./agent-step.js');
     const { runFrameworkStep } = await import('./framework-step.js');
+    const { runGitignoreStep } = await import('./gitignore-step.js');
 
     // Act
     await runInitWizard(options);
@@ -74,5 +83,6 @@ describe('runInitWizard', () => {
     // Assert
     expect(runAgentStep).toHaveBeenCalledWith(options);
     expect(runFrameworkStep).toHaveBeenCalledWith(options, process.cwd());
+    expect(runGitignoreStep).toHaveBeenCalledWith(options, process.cwd());
   });
 });

@@ -6,10 +6,11 @@ import * as clack from '@clack/prompts';
 
 import { runAgentStep } from './agent-step.js';
 import { runFrameworkStep } from './framework-step.js';
+import { runGitignoreStep } from './gitignore-step.js';
 import type { InitOptions } from './types.js';
 
 /**
- * Run the full init wizard: agent selection → framework selection.
+ * Run the full init wizard: agent → framework → project setup.
  *
  * @remarks
  * The `.domscribe/` directory is NOT created here — it is created
@@ -21,6 +22,7 @@ export async function runInitWizard(options: InitOptions): Promise<void> {
 
   await runAgentStep(options);
   await runFrameworkStep(options, process.cwd());
+  runGitignoreStep(options, process.cwd());
 
   clack.outro(
     'Add the config above to your project, then start your dev server — Domscribe will take care of the rest.',
