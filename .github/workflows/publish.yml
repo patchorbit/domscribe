@@ -64,7 +64,7 @@ jobs:
         run: |
           mkdir -p tmp/gemini-archive
           cp packages/domscribe-relay/src/plugins/gemini/gemini-extension.json tmp/gemini-archive/
-          cp -r packages/domscribe-relay/src/plugins/gemini/skills tmp/gemini-archive/ 2>/dev/null || true
+          cp -rL packages/domscribe-relay/src/plugins/gemini/skills tmp/gemini-archive/ 2>/dev/null || true
           tar -czf tmp/domscribe-gemini-extension.tar.gz -C tmp/gemini-archive .
 
       - name: Create GitHub Release
