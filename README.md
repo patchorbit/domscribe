@@ -320,7 +320,7 @@ Open the Powers panel → **Add power from GitHub** → enter `https://github.co
 
 #### Cursor
 
-<a href="cursor://anysphere.cursor-deeplink/mcp/install?name=domscribe&config=eyJ0eXBlIjoic3RkaW8iLCJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBkb21zY3JpYmUvbWNwIl19"><img src="https://cursor.directory/assets/badge-dark.svg" alt="Add to Cursor" height="32" /></a>
+<a href="https://cursor.directory/plugins/domscribe"><img src="https://img.shields.io/badge/Add_to_Cursor-000?style=for-the-badge&logo=cursor&logoColor=white" alt="Add to Cursor" /></a>
 
 #### Any agent (Skills and MCP)
 
