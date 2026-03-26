@@ -2,7 +2,7 @@
  * Framework selection, package installation, and config snippet step.
  * @module @domscribe/relay/cli/init/framework-step
  */
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 
 import * as clack from '@clack/prompts';
 import { highlight } from 'cli-highlight';
@@ -47,6 +47,38 @@ function showConfigSnippet(framework: FrameworkConfig): void {
 function buildInstallCommand(pm: PackageManagerId, pkg: string): string {
   const pmConfig = PACKAGE_MANAGERS.find((p) => p.id === pm);
   return `${pmConfig?.installCmd ?? 'npm install -D'} ${pkg}`;
+}
+
+/**
+ * Run a package install command asynchronously, collecting stderr.
+ * Using async spawn (not spawnSync) keeps the event loop free so the
+ * clack spinner can animate during the install.
+ */
+function runInstall(
+  bin: string,
+  args: string[],
+  cwd: string,
+): Promise<{ exitCode: number; stderr: string }> {
+  return new Promise((resolve) => {
+    const child = spawn(bin, args, {
+      stdio: ['ignore', 'ignore', 'pipe'],
+      cwd,
+    });
+    const chunks: Buffer[] = [];
+
+    child.stderr.on('data', (chunk: Buffer) => chunks.push(chunk));
+
+    child.on('close', (code) => {
+      resolve({
+        exitCode: code ?? 1,
+        stderr: Buffer.concat(chunks).toString().trim(),
+      });
+    });
+
+    child.on('error', (err) => {
+      resolve({ exitCode: 1, stderr: err.message });
+    });
+  });
 }
 
 /**
@@ -122,16 +154,15 @@ export async function runFrameworkStep(
     return;
   }
 
-  // Run the install
+  // Run the install asynchronously so the spinner can animate
   const spinner = clack.spinner();
   spinner.start(`Installing ${framework.package}...`);
 
   const [bin, ...args] = installCmd.split(' ');
-  const result = spawnSync(bin, args, { stdio: 'pipe', cwd });
+  const { exitCode, stderr } = await runInstall(bin, args, cwd);
 
-  if (result.status !== 0) {
+  if (exitCode !== 0) {
     spinner.stop(`Failed to install ${framework.package}.`);
-    const stderr = result.stderr?.toString().trim();
     if (stderr) {
       clack.log.warn(stderr);
     }
