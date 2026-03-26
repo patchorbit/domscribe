@@ -10,6 +10,7 @@ import { McpToolDefinition } from './tools/tool.defs.js';
 import { McpPromptDefinition } from './prompts/prompt.defs.js';
 import { RelayHttpClient } from '../client/relay-http-client.js';
 import { RELAY_VERSION } from '../version.js';
+import { DormantStatusTool } from './tools/dormant-status.tool.js';
 
 // Tool classes
 import { ResolveTool } from './tools/resolve.tool.js';
@@ -32,9 +33,10 @@ import { ExploreComponentPrompt } from './prompts/explore-component.prompt.js';
 import { FindAnnotationsPrompt } from './prompts/find-annotations.prompt.js';
 
 /**
- * Options for creating an MCP adapter
+ * Options for active mode — relay is running, full tool set.
  */
-export interface McpAdapterOptions {
+export interface McpAdapterActiveOptions {
+  mode: 'active';
   /** Host where the relay server is running */
   relayHost: string;
   /** Port where the relay server is running */
@@ -42,6 +44,25 @@ export interface McpAdapterOptions {
   /** Enable debug logging */
   debug?: boolean;
 }
+
+/**
+ * Options for dormant mode — no workspace detected, diagnostic tool only.
+ */
+export interface McpAdapterDormantOptions {
+  mode: 'dormant';
+  /** Working directory where the MCP server was started */
+  cwd: string;
+  /** Enable debug logging */
+  debug?: boolean;
+}
+
+/**
+ * Options for creating an MCP adapter.
+ * Discriminated on `mode` to determine which tools are registered.
+ */
+export type McpAdapterOptions =
+  | McpAdapterActiveOptions
+  | McpAdapterDormantOptions;
 
 /**
  * MCP adapter that registers tool and prompt handlers against the MCP server.
@@ -54,26 +75,27 @@ export class McpAdapter {
   constructor(options: McpAdapterOptions) {
     this.debug = options.debug ?? false;
 
-    const relayHttpClient = new RelayHttpClient(
-      options.relayHost,
-      options.relayPort,
-    );
+    const capabilities: Record<string, Record<string, never>> = { tools: {} };
+
+    if (options.mode === 'active') {
+      capabilities['prompts'] = {};
+    }
 
     this.server = new McpServer(
-      {
-        name: 'domscribe',
-        version: RELAY_VERSION,
-      },
-      {
-        capabilities: {
-          tools: {},
-          prompts: {},
-        },
-      },
+      { name: 'domscribe', version: RELAY_VERSION },
+      { capabilities },
     );
 
-    this.registerTools(relayHttpClient);
-    this.registerPrompts();
+    if (options.mode === 'active') {
+      const relayHttpClient = new RelayHttpClient(
+        options.relayHost,
+        options.relayPort,
+      );
+      this.registerTools(relayHttpClient);
+      this.registerPrompts();
+    } else {
+      this.registerDormantTools(options.cwd);
+    }
   }
 
   private registerTools(relayHttpClient: RelayHttpClient): void {
@@ -108,6 +130,23 @@ export class McpAdapter {
         },
       );
     }
+  }
+
+  private registerDormantTools(cwd: string): void {
+    const tool = new DormantStatusTool(cwd);
+    this.server.registerTool(
+      tool.name,
+      {
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      },
+      async (args) => {
+        if (this.debug) {
+          console.error(`[domscribe-mcp] Tool call: ${tool.name}`, args);
+        }
+        return tool.toolCallback(args);
+      },
+    );
   }
 
   private registerPrompts(): void {
