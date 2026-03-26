@@ -93,6 +93,7 @@ Click any element in the browser overlay, describe the change in plain English, 
 - 🔍 **Deep runtime capture** — live props, state, and DOM snapshots via React fiber walking and Vue VNode inspection
 - 🛡️ **Zero production impact** — all instrumentation stripped in production builds, enforced in CI
 - 🔒 **PII redaction** — emails, tokens, and sensitive patterns automatically scrubbed before leaving the browser
+- 📁 **Annotations live in your repo** — stored as JSON files in `.domscribe/annotations/`, exposed via REST APIs that MCP wraps for agent access
 - 📡 **Real-time feedback** — WebSocket relay pushes agent responses to the browser overlay as they happen
 
 ---
