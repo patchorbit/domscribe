@@ -142,8 +142,8 @@ export async function runFrameworkStep(
     return;
   }
 
-  // Detect and confirm package manager
-  const detected = detectPackageManager(cwd);
+  // Detect package manager from the repo root (lockfiles live there, not in app subdirs)
+  const detected = detectPackageManager(process.cwd());
   const pm = await confirmPackageManager(detected, options);
 
   const installCmd = buildInstallCommand(pm, framework.package);

@@ -12,6 +12,10 @@ vi.mock('./agent-step.js', () => ({
   runAgentStep: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('./monorepo-step.js', () => ({
+  runMonorepoStep: vi.fn().mockResolvedValue({ appRoot: '/resolved/app/root' }),
+}));
+
 vi.mock('./framework-step.js', () => ({
   runFrameworkStep: vi.fn().mockResolvedValue(undefined),
 }));
@@ -41,14 +45,19 @@ describe('runInitWizard', () => {
     );
   });
 
-  it('should call steps in order: agent → framework → gitignore', async () => {
+  it('should call steps in order: agent → monorepo → framework → gitignore', async () => {
     // Arrange
     const callOrder: string[] = [];
     const { runAgentStep } = await import('./agent-step.js');
+    const { runMonorepoStep } = await import('./monorepo-step.js');
     const { runFrameworkStep } = await import('./framework-step.js');
     const { runGitignoreStep } = await import('./gitignore-step.js');
     vi.mocked(runAgentStep).mockImplementation(async () => {
       callOrder.push('agent');
+    });
+    vi.mocked(runMonorepoStep).mockImplementation(async () => {
+      callOrder.push('monorepo');
+      return { appRoot: process.cwd() };
     });
     vi.mocked(runFrameworkStep).mockImplementation(async () => {
       callOrder.push('framework');
@@ -61,10 +70,43 @@ describe('runInitWizard', () => {
     await runInitWizard(baseOptions);
 
     // Assert
-    expect(callOrder).toEqual(['agent', 'framework', 'gitignore']);
+    expect(callOrder).toEqual(['agent', 'monorepo', 'framework', 'gitignore']);
   });
 
-  it('should pass options through to both steps', async () => {
+  it('should pass appRoot from monorepo step to framework step', async () => {
+    // Arrange
+    const { runMonorepoStep } = await import('./monorepo-step.js');
+    const { runFrameworkStep } = await import('./framework-step.js');
+    vi.mocked(runMonorepoStep).mockResolvedValue({
+      appRoot: '/monorepo/apps/web',
+    });
+
+    // Act
+    await runInitWizard(baseOptions);
+
+    // Assert
+    expect(runFrameworkStep).toHaveBeenCalledWith(
+      baseOptions,
+      '/monorepo/apps/web',
+    );
+  });
+
+  it('should pass cwd (not appRoot) to gitignore step', async () => {
+    // Arrange
+    const { runMonorepoStep } = await import('./monorepo-step.js');
+    const { runGitignoreStep } = await import('./gitignore-step.js');
+    vi.mocked(runMonorepoStep).mockResolvedValue({
+      appRoot: '/monorepo/apps/web',
+    });
+
+    // Act
+    await runInitWizard(baseOptions);
+
+    // Assert
+    expect(runGitignoreStep).toHaveBeenCalledWith(baseOptions, process.cwd());
+  });
+
+  it('should pass options through to all steps', async () => {
     // Arrange
     const options: InitOptions = {
       force: true,
@@ -72,9 +114,10 @@ describe('runInitWizard', () => {
       agent: 'claude-code',
       framework: 'next',
       pm: 'pnpm',
+      appRoot: 'apps/web',
     };
     const { runAgentStep } = await import('./agent-step.js');
-    const { runFrameworkStep } = await import('./framework-step.js');
+    const { runMonorepoStep } = await import('./monorepo-step.js');
     const { runGitignoreStep } = await import('./gitignore-step.js');
 
     // Act
@@ -82,7 +125,7 @@ describe('runInitWizard', () => {
 
     // Assert
     expect(runAgentStep).toHaveBeenCalledWith(options);
-    expect(runFrameworkStep).toHaveBeenCalledWith(options, process.cwd());
+    expect(runMonorepoStep).toHaveBeenCalledWith(options, process.cwd());
     expect(runGitignoreStep).toHaveBeenCalledWith(options, process.cwd());
   });
 });

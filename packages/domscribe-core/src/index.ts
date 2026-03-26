@@ -5,6 +5,7 @@
 
 // Export all types
 export * from './lib/types/annotation.js';
+export * from './lib/types/config.js';
 export * from './lib/types/manifest.js';
 export * from './lib/types/nullable.js';
 

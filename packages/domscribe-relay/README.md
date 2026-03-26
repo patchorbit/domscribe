@@ -24,6 +24,8 @@ domscribe mcp       # Run as MCP server via stdio
 
 For use in agent MCP configuration, the standalone `domscribe-mcp` binary runs the MCP server directly over stdio without the HTTP/WebSocket relay.
 
+**Monorepo support:** All commands automatically resolve the app root from a `domscribe.config.json` file when run from a monorepo root. Run `domscribe init --app-root <path>` to generate the config, or let the interactive wizard detect it.
+
 ## Annotation Lifecycle
 
 A developer clicks an element in the running app, types an instruction, and submits it. The annotation moves through the following states:

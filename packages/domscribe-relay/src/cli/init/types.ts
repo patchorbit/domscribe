@@ -70,6 +70,7 @@ export interface InitOptions {
   readonly agent?: AgentId;
   readonly framework?: FrameworkId;
   readonly pm?: PackageManagerId;
+  readonly appRoot?: string;
 }
 
 const MCP_CONFIG = `{

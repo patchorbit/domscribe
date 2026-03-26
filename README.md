@@ -292,6 +292,18 @@ module.exports = {
 
 For plugin configuration options, see the [`@domscribe/transform` README](./packages/domscribe-transform/README.md).
 
+#### Monorepos
+
+If your frontend app is in a subdirectory (e.g. `apps/web`), pass `--app-root` during init:
+
+```bash
+npx domscribe init --app-root apps/web
+```
+
+Or run `npx domscribe init` and follow the prompts — the wizard asks if you're in a monorepo.
+
+This creates a `domscribe.config.json` at your repo root that tells all Domscribe tools where your app lives. CLI commands (`serve`, `stop`, `status`) and agent MCP connections automatically resolve the app root from this config — no extra flags needed.
+
 ### Agent-Side — Connect Your Coding Agent
 
 Domscribe exposes 12 tools and 4 prompts via MCP. Agent plugins bundle the MCP config and a skill file that teaches the agent how to use the tools effectively.

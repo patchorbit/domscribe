@@ -7,10 +7,11 @@ import * as clack from '@clack/prompts';
 import { runAgentStep } from './agent-step.js';
 import { runFrameworkStep } from './framework-step.js';
 import { runGitignoreStep } from './gitignore-step.js';
+import { runMonorepoStep } from './monorepo-step.js';
 import type { InitOptions } from './types.js';
 
 /**
- * Run the full init wizard: agent → framework → project setup.
+ * Run the full init wizard: agent → monorepo → framework → project setup.
  *
  * @remarks
  * The `.domscribe/` directory is NOT created here — it is created
@@ -21,7 +22,10 @@ export async function runInitWizard(options: InitOptions): Promise<void> {
   clack.intro('Domscribe Setup');
 
   await runAgentStep(options);
-  await runFrameworkStep(options, process.cwd());
+
+  const { appRoot } = await runMonorepoStep(options, process.cwd());
+
+  await runFrameworkStep(options, appRoot);
   runGitignoreStep(options, process.cwd());
 
   clack.outro(
