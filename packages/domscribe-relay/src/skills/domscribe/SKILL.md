@@ -1,7 +1,7 @@
 ---
 name: domscribe
-description: Work with Domscribe — the pixel-to-code bridge. Use when editing or modifying UI components (React, Vue, Next.js, Nuxt), implementing features from captured UI annotations, querying runtime context for source locations, exploring component structure, or when user mentions annotations, queued tasks, UI changes, props, state, DOM, or asks about how elements render at runtime.
-allowed-tools: Read, Edit, Write, mcp__domscribe__*, domscribe.*, mcp.domscribe.*, process_next, check_status, explore_component, find_annotations
+description: Work with Domscribe — the pixel-to-code bridge. Use when setting up, initializing, or configuring Domscribe for a project, OR when editing or modifying UI components (React, Vue, Next.js, Nuxt), implementing features from captured UI annotations, querying runtime context for source locations, exploring component structure, or when user mentions annotations, queued tasks, UI changes, props, state, DOM, or asks about how elements render at runtime.
+allowed-tools: Read, Edit, Write, Bash, Glob, mcp__domscribe__*, domscribe.*, mcp.domscribe.*, process_next, check_status, explore_component, find_annotations
 ---
 
 # Domscribe
@@ -10,6 +10,71 @@ Domscribe bridges running UI and source code. It maps every rendered element to 
 
 - **UI → Code**: User clicks an element in the browser, Domscribe captures it as an annotation with source location, runtime context, and user intent. You claim and implement it.
 - **Code → UI**: You're editing a source file and want to know what an element looks like at runtime. Query by file and line to get live props, state, and DOM snapshot.
+
+## Setup / Initialization
+
+If `domscribe.status` returns `active: false`, Domscribe is not yet configured in this workspace. The `.domscribe/` directory is created automatically when the dev server starts with the Domscribe bundler plugin configured. Follow this procedure to set it up:
+
+1. **Confirm dormant state** — call `domscribe.status`. If `active: false`, proceed. Note the `cwd` in the response.
+2. **Detect framework** — read `package.json` (at `cwd`, or at the `appRoot` from `domscribe.config.json` if it exists) and match dependencies against the table below.
+3. **Detect package manager** — check which lockfile exists at the project root.
+4. **Install the package** — run the appropriate install command via Bash (e.g., `pnpm add -D @domscribe/next`).
+5. **Edit the bundler config** — read the config file and apply the integration pattern. Load `references/config-patterns.md` for the exact import, transformation, and example for each framework.
+6. **Update `.gitignore`** — if `.domscribe` is not already listed, append a `# Domscribe artifacts` comment and `.domscribe` entry.
+7. **Inform the user** — tell them to start (or restart) their dev server. Domscribe activates automatically on first run.
+
+### Framework Detection
+
+Check `dependencies` and `devDependencies` in `package.json`. Match top-down (first match wins):
+
+| Dependency          | Framework     |
+| ------------------- | ------------- |
+| `next`              | next          |
+| `nuxt`              | nuxt          |
+| `react` + `vite`    | react-vite    |
+| `react` (no `vite`) | react-webpack |
+| `vue` + `vite`      | vue-vite      |
+| `vue` (no `vite`)   | vue-webpack   |
+| `vite` only         | other-vite    |
+| `webpack` only      | other-webpack |
+
+### Package Mapping
+
+| Framework     | Package                | Config file         |
+| ------------- | ---------------------- | ------------------- |
+| next          | `@domscribe/next`      | `next.config.ts`    |
+| nuxt          | `@domscribe/nuxt`      | `nuxt.config.ts`    |
+| react-vite    | `@domscribe/react`     | `vite.config.ts`    |
+| react-webpack | `@domscribe/react`     | `webpack.config.js` |
+| vue-vite      | `@domscribe/vue`       | `vite.config.ts`    |
+| vue-webpack   | `@domscribe/vue`       | `webpack.config.js` |
+| other-vite    | `@domscribe/transform` | `vite.config.ts`    |
+| other-webpack | `@domscribe/transform` | `webpack.config.js` |
+
+### Package Manager Detection
+
+| Lockfile                 | Package manager |
+| ------------------------ | --------------- |
+| `pnpm-lock.yaml`         | pnpm            |
+| `yarn.lock`              | yarn            |
+| `bun.lock` / `bun.lockb` | bun             |
+| (none)                   | npm             |
+
+Install command pattern: `<pm> add -D <package>` (pnpm/yarn/bun) or `npm install -D <package>`.
+
+### Monorepo Projects
+
+If `domscribe.config.json` exists at the project root with an `appRoot` field, the frontend app lives in that subdirectory. Install packages and find the bundler config relative to `appRoot`.
+
+If the project appears to be a monorepo (e.g., `apps/`, `packages/` directories, workspace config in `package.json`) but no `domscribe.config.json` exists, ask the user which directory contains the frontend app. Then write `domscribe.config.json` at the project root:
+
+```json
+{ "appRoot": "apps/web" }
+```
+
+### After Setup
+
+The MCP server starts in dormant mode when no `.domscribe/` directory exists. After the user starts their dev server, the bundler plugin creates `.domscribe/` automatically. The MCP server will need to restart to detect the new workspace and transition to active mode with the full tool suite.
 
 ## Editing Components (Code → UI)
 

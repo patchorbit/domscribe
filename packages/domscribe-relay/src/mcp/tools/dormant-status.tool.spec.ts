@@ -18,7 +18,7 @@ describe('DormantStatusTool', () => {
       expect(structured['cwd']).toBe(cwd);
     });
 
-    it('should return guidance with setup instructions', async () => {
+    it('should return guidance explaining dormant state', async () => {
       // Arrange
       const tool = new DormantStatusTool('/tmp/test');
 
@@ -28,8 +28,21 @@ describe('DormantStatusTool', () => {
       // Assert
       const structured = result.structuredContent as Record<string, unknown>;
       expect(structured['guidance']).toEqual(expect.any(String));
-      expect(structured['guidance']).toContain('npx domscribe init');
       expect(structured['guidance']).toContain('.domscribe');
+    });
+
+    it('should return actionable next steps for the agent', async () => {
+      // Arrange
+      const tool = new DormantStatusTool('/tmp/test');
+
+      // Act
+      const result: CallToolResult = await tool.toolCallback({});
+
+      // Assert
+      const structured = result.structuredContent as Record<string, unknown>;
+      expect(structured['nextSteps']).toEqual(expect.any(String));
+      expect(structured['nextSteps']).toContain('package.json');
+      expect(structured['nextSteps']).toContain('@domscribe');
     });
 
     it('should return text content matching structured content', async () => {
