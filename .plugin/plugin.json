@@ -1,6 +1,6 @@
 {
   "name": "domscribe",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Domscribe is a pixel-to-code development tool that maps running UI elements to their exact source locations, capturing runtime context (props, state, DOM) for handoff to coding agents via MCP.",
   "author": {
     "name": "Patch Orbit",
