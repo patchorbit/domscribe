@@ -32,10 +32,7 @@
     "domscribe": {
       "type": "stdio",
       "command": "npx",
-      "args": [
-        "-y",
-        "@domscribe/mcp"
-      ]
+      "args": ["-y", "@domscribe/mcp"]
     }
   }
 }

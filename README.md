@@ -329,7 +329,7 @@ gemini extensions install https://github.com/patchorbit/domscribe
 
 #### Amazon Kiro
 
-Open the Powers panel → **Add power from GitHub** → enter `https://github.com/patchorbit/domscribe`.
+Open the Powers panel → **Add power from GitHub** → enter `https://github.com/patchorbit/domscribe/tree/main/domscribe-power`.
 
 #### Cursor
 

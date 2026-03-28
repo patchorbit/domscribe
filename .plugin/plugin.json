@@ -28,15 +28,12 @@
     "nextjs",
     "nuxt"
   ],
-  "skills": "./packages/domscribe-relay/src/skills",
+  "skills": "./skills",
   "mcpServers": {
     "domscribe": {
       "type": "stdio",
       "command": "npx",
-      "args": [
-        "-y",
-        "@domscribe/mcp"
-      ]
+      "args": ["-y", "@domscribe/mcp"]
     }
   }
 }
