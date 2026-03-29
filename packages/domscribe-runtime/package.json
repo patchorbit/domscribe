@@ -11,7 +11,7 @@
     "@domscribe/core": "workspace:*"
   },
   "devDependencies": {
-    "happy-dom": "^12.0.0"
+    "happy-dom": "^20.8.9"
   },
   "engines": {
     "node": ">=20"
