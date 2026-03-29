@@ -1,7 +1,8 @@
 ---
 name: 'domscribe'
 displayName: 'Domscribe'
-description: 'Work with Domscribe — the pixel-to-code bridge that maps running UI elements to their exact source locations, capturing runtime context (props, state, DOM) for handoff to coding agents. Use when editing or modifying UI components (React, Vue, Next.js, Nuxt), implementing features from captured UI annotations, querying runtime context for source locations, exploring component structure, or when user mentions annotations, queued tasks, UI changes, props, state, DOM, or asks about how elements render at runtime.'
+author: 'Patch Orbit'
+description: 'Pixel-to-code bridge that maps running UI elements to exact source locations, capturing runtime context (props, state, DOM) for handoff to coding agents via MCP.'
 keywords:
   [
     'domscribe',

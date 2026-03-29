@@ -29,7 +29,7 @@
   <img src="https://img.shields.io/badge/Claude_Code-d97706?style=flat&logo=anthropic&logoColor=white" alt="Claude Code" />
   <img src="https://img.shields.io/badge/GitHub_Copilot-000?style=flat&logo=githubcopilot&logoColor=white" alt="GitHub Copilot" />
   <a href="https://cursor.directory/plugins/domscribe"><img src="https://img.shields.io/badge/Cursor-000?style=flat&logo=cursor&logoColor=white" alt="Cursor" /></a>
-  <img src="https://img.shields.io/badge/Gemini-4285F4?style=flat&logo=googlegemini&logoColor=white" alt="Gemini" />
+  <a href="https://geminicli.com/extensions/?name=patchorbitdomscribe"><img src="https://img.shields.io/badge/Gemini-4285F4?style=flat&logo=googlegemini&logoColor=white" alt="Gemini" /></a>
   <img src="https://img.shields.io/badge/Kiro-a855f7?style=flat&logoColor=white" alt="Kiro" />
 </p>
 
