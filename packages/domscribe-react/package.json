@@ -20,7 +20,7 @@
   "devDependencies": {
     "@types/react": "^18.2.0",
     "@types/webpack": "^5.28.5",
-    "happy-dom": "^12.0.0",
+    "happy-dom": "^20.8.9",
     "react": "^18.2.0",
     "webpack": "^5.102.0"
   },
