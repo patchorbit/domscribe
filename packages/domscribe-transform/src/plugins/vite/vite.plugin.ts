@@ -24,6 +24,71 @@ import {
 import { RelayControl } from '@domscribe/relay';
 
 /**
+ * Build a JS preamble that sets relay + overlay globals on `window`.
+ *
+ * Injected into every transformed file so that SSR frameworks (e.g. React
+ * Router 7 SSR) that bypass Vite's `transformIndexHtml` pipeline still
+ * get the window globals needed for overlay initialization.
+ *
+ * Safe for non-SSR too — window property assignments are idempotent, and
+ * the entire block is guarded by `typeof window !== 'undefined'`.
+ */
+function buildVitePreamble(opts: {
+  relayPort: number | undefined;
+  relayHost: string | undefined;
+  overlayEnabled: boolean;
+  overlayOptions: OverlayPluginOptions;
+  debug: boolean;
+}): string {
+  const parts: string[] = [];
+
+  // Suppress React Fragment prop warning for data-ds (once per page load)
+  parts.push(
+    `if(!window.__DOMSCRIBE_CONSOLE_PATCHED__){` +
+      `window.__DOMSCRIBE_CONSOLE_PATCHED__=true;` +
+      `var _ce=console.error;` +
+      `console.error=function(){` +
+      `if(typeof arguments[0]==='string'){var _s=Array.prototype.join.call(arguments,' ');if(_s.indexOf('data-ds')!==-1&&_s.indexOf('React.Fragment')!==-1)return}` +
+      `return _ce.apply(console,arguments)` +
+      `}}`,
+  );
+
+  if (opts.relayPort !== undefined) {
+    parts.push(`window.__DOMSCRIBE_RELAY_PORT__=${opts.relayPort}`);
+  }
+  if (opts.relayHost !== undefined) {
+    parts.push(
+      `window.__DOMSCRIBE_RELAY_HOST__=${JSON.stringify(opts.relayHost)}`,
+    );
+  }
+
+  if (opts.overlayEnabled && opts.relayPort !== undefined) {
+    const overlayOptionsObj = {
+      initialMode: opts.overlayOptions.initialMode ?? 'collapsed',
+      debug: opts.overlayOptions.debug ?? opts.debug,
+    };
+    parts.push(
+      `window.__DOMSCRIBE_OVERLAY_OPTIONS__=${JSON.stringify(overlayOptionsObj)}`,
+    );
+  }
+
+  // Auto-init overlay (once per page load) for SSR scenarios where
+  // transformIndexHtml never fires
+  let autoInit = '';
+  if (opts.overlayEnabled && opts.relayPort !== undefined) {
+    autoInit =
+      `if(!window.__DOMSCRIBE_AUTO_INIT__){` +
+      `window.__DOMSCRIBE_AUTO_INIT__=true;` +
+      `import('/node_modules/@domscribe/overlay/index.js').then(function(m){return m.initOverlay()}).catch(function(){})` +
+      `}`;
+  }
+
+  return (
+    `if(typeof window!=='undefined'){${parts.join(';')};` + autoInit + `}\n`
+  );
+}
+
+/**
  * Create the Domscribe Vite plugin.
  *
  * @param options - Plugin configuration (file filters, debug, relay, overlay)
@@ -216,7 +281,7 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
           return null;
         }
 
-        const injector = injectorRegistry.getInjector(fileExtension);
+        const injector = await injectorRegistry.getInjector(fileExtension);
 
         // Inject data-ds attributes and generate manifest entries
         const {
@@ -269,8 +334,22 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
         // Schedule transforms settled check after transform settles
         scheduleTransformsSettledCheck();
 
+        // Prepend relay/overlay globals into every transformed file.
+        // This ensures SSR frameworks (e.g. React Router 7) that bypass
+        // Vite's transformIndexHtml pipeline still get the window globals.
+        // The preamble is guarded by `typeof window !== 'undefined'` and
+        // all assignments are idempotent, so it's safe for non-SSR too.
+        const preamble = buildVitePreamble({
+          relayPort,
+          relayHost,
+          overlayEnabled,
+          overlayOptions,
+          debug,
+        });
+        const outputCode = preamble + transformedCode;
+
         return {
-          code: transformedCode,
+          code: outputCode,
           map,
         };
       } catch (error) {

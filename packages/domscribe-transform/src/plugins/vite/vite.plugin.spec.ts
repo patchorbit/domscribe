@@ -568,17 +568,12 @@ describe('domscribe Vite plugin', () => {
         sourceFile,
       );
 
-      // Assert
-      expect(result).toEqual({
-        code: 'transformed code',
-        map: {
-          version: 3,
-          sources: [],
-          names: [],
-          mappings: '',
-          file: 'original.tsx',
-        },
-      });
+      // Assert — preamble is prepended to the transformed code
+      expect(result).not.toBeNull();
+      expect(result).toHaveProperty('code');
+      expect(result).toHaveProperty('map');
+      expect((result as { code: string }).code).toContain('transformed code');
+      expect((result as { code: string }).code).toContain('typeof window');
     });
 
     it('should transform matching TSX files', async () => {
@@ -618,7 +613,7 @@ describe('domscribe Vite plugin', () => {
       expect(result).not.toBeNull();
       expect(result).toHaveProperty('code');
       if (typeof result === 'object') {
-        expect(result?.code).toBe('transformed tsx code');
+        expect(result?.code).toContain('transformed tsx code');
       }
     });
 
@@ -827,11 +822,12 @@ describe('domscribe Vite plugin', () => {
         '/test/App.jsx',
       );
 
-      // Assert
-      expect(result).toEqual({
-        code: 'transformed with map',
-        map: expectedMap,
-      });
+      // Assert — preamble is prepended to code
+      expect(result).not.toBeNull();
+      expect((result as { code: string }).code).toContain(
+        'transformed with map',
+      );
+      expect((result as { map: unknown }).map).toEqual(expectedMap);
     });
   });
 
@@ -1157,15 +1153,14 @@ describe('domscribe Vite plugin', () => {
         },
       );
       expect(mockSourceMapConsumer.destroy).toHaveBeenCalled();
-      expect(result).toEqual({
-        code: 'transformed code',
-        map: {
-          version: 3,
-          sources: ['App.jsx'],
-          names: [],
-          mappings: 'AAAA',
-          file: 'App.jsx',
-        },
+      expect(result).not.toBeNull();
+      expect((result as { code: string }).code).toContain('transformed code');
+      expect((result as { map: unknown }).map).toEqual({
+        version: 3,
+        sources: ['App.jsx'],
+        names: [],
+        mappings: 'AAAA',
+        file: 'App.jsx',
       });
     });
 
@@ -1248,16 +1243,15 @@ describe('domscribe Vite plugin', () => {
         '/test/Empty.jsx',
       );
 
-      // Assert
-      expect(result).toEqual({
-        code: '',
-        map: {
-          version: 3,
-          sources: [],
-          names: [],
-          mappings: '',
-          file: 'Empty.jsx',
-        },
+      // Assert — preamble is still prepended even for empty transformed code
+      expect(result).not.toBeNull();
+      expect((result as { code: string }).code).toContain('typeof window');
+      expect((result as { map: unknown }).map).toEqual({
+        version: 3,
+        sources: [],
+        names: [],
+        mappings: '',
+        file: 'Empty.jsx',
       });
     });
   });

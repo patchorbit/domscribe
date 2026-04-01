@@ -44,6 +44,7 @@ const INIT_MODULE_PATH = '/@domscribe/react-init.js';
 export function domscribe(options?: DomscribeReactPluginOptions): Plugin {
   const basePlugin = baseDomscribe(options);
   const baseTransformIndexHtml = basePlugin.transformIndexHtml;
+  const baseTransform = basePlugin.transform;
   const baseResolveId =
     typeof basePlugin.resolveId === 'function' ? basePlugin.resolveId : null;
   const baseLoad =
@@ -94,6 +95,37 @@ export function domscribe(options?: DomscribeReactPluginOptions): Plugin {
       ].join('\n');
     }
     return baseLoad?.call(this, id, ...args) ?? null;
+  };
+
+  // Wrap the base transform hook to inject a React runtime init preamble.
+  // In SSR frameworks (e.g. React Router 7), transformIndexHtml may not fire,
+  // so we inject `import('/@domscribe/react-init.js')` into every transformed
+  // file, guarded by a `__DOMSCRIBE_REACT_INIT__` flag to run only once.
+  basePlugin.transform = async function (code, sourceFile) {
+    const baseTransformFn =
+      typeof baseTransform === 'function' ? baseTransform : undefined;
+    const baseResult = baseTransformFn
+      ? await baseTransformFn.call(this, code, sourceFile)
+      : null;
+
+    if (
+      !baseResult ||
+      typeof baseResult !== 'object' ||
+      !('code' in baseResult)
+    ) {
+      return baseResult;
+    }
+
+    const reactInitPreamble =
+      `if(typeof window!=='undefined'&&!window.__DOMSCRIBE_REACT_INIT__){` +
+      `window.__DOMSCRIBE_REACT_INIT__=true;` +
+      `import('${INIT_MODULE_PATH}').catch(function(){})` +
+      `}\n`;
+
+    return {
+      ...baseResult,
+      code: reactInitPreamble + baseResult.code,
+    };
   };
 
   basePlugin.transformIndexHtml = (): IndexHtmlTransformResult => {

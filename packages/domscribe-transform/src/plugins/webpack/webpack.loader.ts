@@ -113,7 +113,7 @@ export async function transform(
     timings.sourceMapConsumerMs = performance.now() - smStart;
   }
 
-  const injector = injectorRegistry.getInjector(fileExtension);
+  const injector = await injectorRegistry.getInjector(fileExtension);
 
   // Inject data-ds attributes and generate manifest entries
   let result;

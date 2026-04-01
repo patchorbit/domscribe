@@ -91,7 +91,7 @@ async function measureTransformOverhead(
 
   for (const file of sourceFiles) {
     const ext = file.extension as InjectorFileExtension;
-    const injector = registry.getInjector(ext);
+    const injector = await registry.getInjector(ext);
 
     const start = performance.now();
     injector.inject(file.content, { sourceFile: file.path });

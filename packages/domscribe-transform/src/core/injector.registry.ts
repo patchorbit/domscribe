@@ -4,6 +4,10 @@
  * Maps file extensions (jsx, tsx, vue) to their corresponding parser/injector
  * pairs. Singleton per workspace to share ID caches across transforms.
  *
+ * Parsers are created lazily on first access via `getInjector()` to avoid
+ * importing unnecessary parser dependencies (e.g. `vue/compiler-sfc` in
+ * React-only projects).
+ *
  * @module @domscribe/transform/core/injector-registry
  */
 import { createInjector, DomscribeInjector } from './injector.js';
@@ -35,18 +39,24 @@ export type InjectorFileExtension = keyof InjectorRegistryMap;
 /**
  * Registry of file-type-specific injectors.
  * Manages lifecycle (initialize, saveCache, close) for all injectors as a unit.
+ *
+ * Parsers are instantiated lazily — only when `getInjector()` is first called
+ * for a given file type. This avoids importing `vue/compiler-sfc` (or other
+ * framework-specific parsers) in projects that don't use them.
  */
 export class InjectorRegistry {
   private static instances: Map<string, InjectorRegistry> = new Map();
-  private registry: InjectorRegistryMap;
+  private readonly registry: Map<
+    InjectorFileExtension,
+    JSXInjector | TSXInjector | VueInjector
+  > = new Map();
   private isClosed = false;
+  private readonly workspaceRoot: string;
+  private readonly options: InjectorOptions | undefined;
 
   constructor(workspaceRoot: string, options?: InjectorOptions) {
-    this.registry = {
-      jsx: createInjector(new AcornParser(), workspaceRoot, options),
-      tsx: createInjector(new BabelParser(), workspaceRoot, options),
-      vue: createInjector(new VueSFCParser(), workspaceRoot, options),
-    };
+    this.workspaceRoot = workspaceRoot;
+    this.options = options;
   }
 
   /**
@@ -72,19 +82,24 @@ export class InjectorRegistry {
     return instance;
   }
 
-  /** Initialize all injectors in the registry. Safe to call multiple times. */
+  /**
+   * No-op — kept for API compatibility.
+   *
+   * @remarks
+   * Parsers are now initialized lazily in `getInjector()`. Existing call
+   * sites that await `initialize()` continue to work without changes.
+   */
   async initialize(): Promise<void> {
-    for (const injector of Object.values(this.registry)) {
-      await injector.initialize();
-    }
+    // Lazy initialization happens in getInjector()
   }
 
   /**
    * Persist all injector ID caches to disk without closing the registry.
    * Safe to call after every transform — only writes when dirty.
+   * Only operates on parsers that were actually created.
    */
   saveCache(): void {
-    for (const injector of Object.values(this.registry)) {
+    for (const injector of this.registry.values()) {
       injector.saveCache();
     }
   }
@@ -93,16 +108,55 @@ export class InjectorRegistry {
     // Mark as closed FIRST so getInstance() creates a fresh instance
     // even if an injector's close() throws.
     this.isClosed = true;
-    for (const injector of Object.values(this.registry)) {
+    for (const injector of this.registry.values()) {
       injector.close();
     }
   }
 
-  /** Get the injector for a specific file extension. */
-  getInjector(
+  /**
+   * Get the injector for a specific file extension.
+   * Creates and initializes the parser on first access for each type.
+   */
+  async getInjector(
+    type: InjectorFileExtension,
+  ): Promise<JSXInjector | TSXInjector | VueInjector> {
+    const existing = this.registry.get(type);
+    if (existing) {
+      return existing;
+    }
+
+    const injector = this.createInjector(type);
+    await injector.initialize();
+    this.registry.set(type, injector);
+    return injector;
+  }
+
+  /** Create an injector for the given file type using stored workspace config. */
+  private createInjector(
     type: InjectorFileExtension,
   ): JSXInjector | TSXInjector | VueInjector {
-    return this.registry[type];
+    // Use the factory pattern but with the actual workspace root and options
+    const factories = {
+      jsx: () =>
+        createInjector(
+          new AcornParser(),
+          this.workspaceRoot,
+          this.options,
+        ) as JSXInjector,
+      tsx: () =>
+        createInjector(
+          new BabelParser(),
+          this.workspaceRoot,
+          this.options,
+        ) as TSXInjector,
+      vue: () =>
+        createInjector(
+          new VueSFCParser(),
+          this.workspaceRoot,
+          this.options,
+        ) as VueInjector,
+    };
+    return factories[type]();
   }
 }
 

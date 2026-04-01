@@ -7,6 +7,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import os from 'os';
+import path from 'path';
 import { DomscribeInjector, createInjector } from './injector.js';
 import {
   InjectorRegistry,
@@ -720,39 +722,39 @@ describe('Factory & Registry', () => {
   });
 
   describe('InjectorRegistry', () => {
-    it('should create jsx and tsx injectors via getInjector()', () => {
+    it('should create jsx and tsx injectors via getInjector()', async () => {
       // Arrange
-      const workspaceRoot = '/workspace/registry-test-1';
+      const workspaceRoot = path.join(os.tmpdir(), 'ds-registry-test-1');
 
       // Act
       const registry = InjectorRegistry.getInstance(workspaceRoot);
 
       // Assert
       expect(registry).toBeDefined();
-      expect(registry.getInjector('jsx')).toBeDefined();
-      expect(registry.getInjector('tsx')).toBeDefined();
+      expect(await registry.getInjector('jsx')).toBeDefined();
+      expect(await registry.getInjector('tsx')).toBeDefined();
     });
 
-    it('should use AcornParser for jsx', () => {
+    it('should use AcornParser for jsx', async () => {
       // Arrange
-      const workspaceRoot = '/workspace/registry-test-2';
+      const workspaceRoot = path.join(os.tmpdir(), 'ds-registry-test-2');
 
       // Act
       const registry = InjectorRegistry.getInstance(workspaceRoot);
-      const jsxInjector = registry.getInjector('jsx');
+      const jsxInjector = await registry.getInjector('jsx');
 
       // Assert
       expect(jsxInjector.getParser()).toBeDefined();
       expect(jsxInjector.getParser().constructor.name).toBe('AcornParser');
     });
 
-    it('should use BabelParser for tsx', () => {
+    it('should use BabelParser for tsx', async () => {
       // Arrange
-      const workspaceRoot = '/workspace/registry-test-3';
+      const workspaceRoot = path.join(os.tmpdir(), 'ds-registry-test-3');
 
       // Act
       const registry = InjectorRegistry.getInstance(workspaceRoot);
-      const tsxInjector = registry.getInjector('tsx');
+      const tsxInjector = await registry.getInjector('tsx');
 
       // Assert
       expect(tsxInjector.getParser()).toBeDefined();
@@ -761,7 +763,7 @@ describe('Factory & Registry', () => {
 
     it('should return same instance for same workspaceRoot', () => {
       // Arrange
-      const workspaceRoot = '/workspace/registry-test-4';
+      const workspaceRoot = path.join(os.tmpdir(), 'ds-registry-test-4');
 
       // Act
       const registry1 = InjectorRegistry.getInstance(workspaceRoot);

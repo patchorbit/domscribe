@@ -317,7 +317,7 @@ async function transformWithInit(
     timings.sourceMapConsumerMs = performance.now() - smStart;
   }
 
-  const injector = injectorRegistry.getInjector(fileExtension);
+  const injector = await injectorRegistry.getInjector(fileExtension);
 
   let result;
   try {
