@@ -9,8 +9,8 @@
  * (e.g. "conditional" → "conditional-rendering").
  *
  * Next-specific expectations cover the 8 framework-specific components.
- * These use React's Fiber-based hook state (hook_0, hook_1, ...) just like
- * the inherited React components.
+ * These use React's classified hook state (state_0, ref_0, memo_0, ...)
+ * just like the inherited React components.
  *
  * IMPORTANT: ServerComponent, LayoutPattern, ImageOptimization, and Metadata
  * are stateless — they have no hooks and render static content. In a real
@@ -40,16 +40,16 @@ const next15SpecificExpectations: PageExpectation[] = [
     elements: [
       {
         // ClientComponent hooks:
-        //   hook_0: count = 0
-        //   hook_1: mounted = false (set to true in useEffect)
+        //   state_0: count = 0
+        //   state_1: mounted = false (set to true in useEffect)
         selector: '.component-section .capture-widget',
         label: 'Client component counter widget',
         componentName: 'ClientComponent',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0', 'hook_1'],
+        expectedStateKeys: ['state_0', 'state_1'],
         expectedState: {
-          hook_0: 0, // count
+          state_0: 0, // count
         },
       },
     ],
@@ -94,13 +94,13 @@ const next15SpecificExpectations: PageExpectation[] = [
     elements: [
       {
         // ServerActions hooks:
-        //   hook_0: { message: '', status: 'idle' } (useState<FormState>)
+        //   state_0: { message: '', status: 'idle' } (useState<FormState>)
         selector: '.component-section .capture-widget',
         label: 'Server actions form widget',
         componentName: 'ServerActions',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0'],
+        expectedStateKeys: ['state_0'],
       },
     ],
   },
@@ -111,13 +111,13 @@ const next15SpecificExpectations: PageExpectation[] = [
     elements: [
       {
         // DynamicRoutes hooks:
-        //   hook_0: activeRoute = routes[0] (useState<Route>)
+        //   state_0: activeRoute = routes[0] (useState<Route>)
         selector: '.component-section .capture-widget',
         label: 'Dynamic routes widget',
         componentName: 'DynamicRoutes',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0'],
+        expectedStateKeys: ['state_0'],
       },
     ],
   },

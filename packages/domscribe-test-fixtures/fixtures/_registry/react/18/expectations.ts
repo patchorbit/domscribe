@@ -43,9 +43,12 @@ export interface PageExpectation {
 }
 
 /**
- * React Fiber exposes hook state as positional indices (hook_0, hook_1, ...),
- * NOT as named variables. The order matches the order of useState/useReducer
- * calls in the component source.
+ * React hooks are classified by type and given semantic names:
+ *   state_0, state_1 ... for useState/useReducer
+ *   ref_0, ref_1 ...     for useRef
+ *   memo_0, memo_1 ...   for useMemo/useCallback
+ * Effect hooks (useEffect/useLayoutEffect) are excluded from captured state.
+ * Indices are per-type, matching declaration order within each type.
  *
  * Values in expectedState are compared against the overlay's formatted display.
  * The overlay uses ds-context-panel.formatValue():
@@ -157,18 +160,18 @@ export const react18Expectations: PageExpectation[] = [
     elements: [
       {
         // ConditionalRendering hooks:
-        //   hook_0: showContent = true
-        //   hook_1: mode = 'light'
+        //   state_0: showContent = true
+        //   state_1: mode = 'light'
         selector:
           '.conditional-rendering section:nth-of-type(1) .capture-widget',
         label: 'Logical AND widget',
         componentName: 'ConditionalRendering',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0', 'hook_1'],
+        expectedStateKeys: ['state_0', 'state_1'],
         expectedState: {
-          hook_0: true, // showContent
-          hook_1: 'light', // mode
+          state_0: true, // showContent
+          state_1: 'light', // mode
         },
       },
       {
@@ -178,7 +181,7 @@ export const react18Expectations: PageExpectation[] = [
         componentName: 'ConditionalRendering',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0', 'hook_1'],
+        expectedStateKeys: ['state_0', 'state_1'],
       },
     ],
   },
@@ -204,19 +207,19 @@ export const react18Expectations: PageExpectation[] = [
     elements: [
       {
         // EventHandlers hooks:
-        //   hook_0: clicks = 0
-        //   hook_1: inputValue = ''
-        //   hook_2: submitted = false
+        //   state_0: clicks = 0
+        //   state_1: inputValue = ''
+        //   state_2: submitted = false
         selector: '.event-handlers section:nth-of-type(1) .capture-widget',
         label: 'onClick handler widget',
         componentName: 'EventHandlers',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0', 'hook_1', 'hook_2'],
+        expectedStateKeys: ['state_0', 'state_1', 'state_2'],
         expectedState: {
-          hook_0: 0, // clicks
-          hook_1: '', // inputValue
-          hook_2: false, // submitted
+          state_0: 0, // clicks
+          state_1: '', // inputValue
+          state_2: false, // submitted
         },
       },
       {
@@ -225,7 +228,7 @@ export const react18Expectations: PageExpectation[] = [
         componentName: 'EventHandlers',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0', 'hook_1', 'hook_2'],
+        expectedStateKeys: ['state_0', 'state_1', 'state_2'],
       },
     ],
   },
@@ -251,18 +254,18 @@ export const react18Expectations: PageExpectation[] = [
     elements: [
       {
         // DynamicContent hooks:
-        //   hook_0: count = 0
-        //   hook_1: items = ['Dynamic Item 1', 'Dynamic Item 2', 'Dynamic Item 3']
-        //   hook_2: loading = true (useEffect sets true before async completes)
+        //   state_0: count = 0
+        //   state_1: items = ['Dynamic Item 1', 'Dynamic Item 2', 'Dynamic Item 3']
+        //   state_2: loading = true (useEffect sets true before async completes)
         selector: '.dynamic-content section:nth-of-type(1) .capture-widget',
         label: 'DynamicContent counter widget',
         componentName: 'DynamicContent',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0', 'hook_1', 'hook_2'],
+        expectedStateKeys: ['state_0', 'state_1', 'state_2'],
         expectedState: {
-          hook_0: 0, // count
-          hook_2: true, // loading (captured during useEffect)
+          state_0: 0, // count
+          state_2: true, // loading (captured during useEffect)
         },
       },
     ],
@@ -301,15 +304,15 @@ export const react18Expectations: PageExpectation[] = [
     elements: [
       {
         // SVGElements hooks:
-        //   hook_0: radius = 30
+        //   state_0: radius = 30
         selector: '.svg-elements section:nth-of-type(1) .capture-widget',
         label: 'Basic SVG shapes widget',
         componentName: 'SVGElements',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0'],
+        expectedStateKeys: ['state_0'],
         expectedState: {
-          hook_0: 30, // radius
+          state_0: 30, // radius
         },
       },
       {
@@ -328,17 +331,17 @@ export const react18Expectations: PageExpectation[] = [
     elements: [
       {
         // Styling hooks:
-        //   hook_0: color = 'blue'
-        //   hook_1: size = 16
+        //   state_0: color = 'blue'
+        //   state_1: size = 16
         selector: '.styling section:nth-of-type(1) .capture-widget',
         label: 'Dynamic inline styles widget',
         componentName: 'Styling',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0', 'hook_1'],
+        expectedStateKeys: ['state_0', 'state_1'],
         expectedState: {
-          hook_0: 'blue', // color
-          hook_1: 16, // size
+          state_0: 'blue', // color
+          state_1: 16, // size
         },
       },
     ],
@@ -351,15 +354,15 @@ export const react18Expectations: PageExpectation[] = [
       {
         // CallbackParent is the sub-component rendered in section 1
         // CallbackParent hooks:
-        //   hook_0: count = 0
+        //   state_0: count = 0
         selector: '.memo section:nth-of-type(1) .capture-widget',
         label: 'React.memo with useCallback widget',
         componentName: 'CallbackParent',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0'],
+        expectedStateKeys: ['state_0'],
         expectedState: {
-          hook_0: 0, // count
+          state_0: 0, // count
         },
       },
     ],
@@ -404,13 +407,13 @@ export const react18Expectations: PageExpectation[] = [
     elements: [
       {
         // ReducerExample is a sub-component — Fiber walker finds it
-        // useReducer exposes state as hook_0
+        // useReducer exposes state as state_0
         selector: '.advanced-hooks section:nth-of-type(1) .capture-widget',
         label: 'useReducer widget',
         componentName: 'ReducerExample',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0'],
+        expectedStateKeys: ['state_0'],
       },
       {
         // CustomHookExample is a sub-component
@@ -420,9 +423,9 @@ export const react18Expectations: PageExpectation[] = [
         componentName: 'CustomHookExample',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0'],
+        expectedStateKeys: ['state_0'],
         expectedState: {
-          hook_0: 5, // useCounter initial value
+          state_0: 5, // useCounter initial value
         },
       },
     ],
@@ -434,16 +437,16 @@ export const react18Expectations: PageExpectation[] = [
     elements: [
       {
         // UseRefExample is a sub-component
-        // Hooks: hook_0=useRef (inputRef), hook_1=useRef (divRef), hook_2=useState('')
+        // Hooks: ref_0=useRef (inputRef), ref_1=useRef (divRef), state_0=useState('')
         // useRef shows as {current} in the overlay
         selector: '.ref-patterns section:nth-of-type(1) .capture-widget',
         label: 'useRef widget',
         componentName: 'UseRefExample',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0', 'hook_2'],
+        expectedStateKeys: ['ref_0', 'state_0'],
         expectedState: {
-          hook_2: '', // input value (useState)
+          state_0: '', // input value (useState)
         },
       },
       {
@@ -454,9 +457,9 @@ export const react18Expectations: PageExpectation[] = [
         componentName: 'CallbackRefExample',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0'],
+        expectedStateKeys: ['state_0'],
         expectedState: {
-          hook_0: 0, // count
+          state_0: 0, // count
         },
       },
     ],
@@ -489,17 +492,17 @@ export const react18Expectations: PageExpectation[] = [
     elements: [
       {
         // Portals hooks:
-        //   hook_0: isModalOpen = false
-        //   hook_1: isDirectPortalOpen = false
+        //   state_0: isModalOpen = false
+        //   state_1: isDirectPortalOpen = false
         selector: '.portals section:nth-of-type(1) .capture-widget',
         label: 'Modal portal widget',
         componentName: 'Portals',
         expectDataDs: true,
         expectedPropsKeys: [],
-        expectedStateKeys: ['hook_0', 'hook_1'],
+        expectedStateKeys: ['state_0', 'state_1'],
         expectedState: {
-          hook_0: false, // isModalOpen
-          hook_1: false, // isDirectPortalOpen
+          state_0: false, // isModalOpen
+          state_1: false, // isDirectPortalOpen
         },
       },
     ],
@@ -515,38 +518,38 @@ export const react18Expectations: PageExpectation[] = [
     elements: [
       {
         // SmokeTest hooks:
-        //   hook_0: counterLabel = 'Items'
-        //   hook_1: counterStep = 5
-        //   hook_2: counterCount = 10
-        //   hook_3: userName = 'Alice'
-        //   hook_4: userEmail = 'alice@example.com' (redacted)
-        //   hook_5: userRole = 'admin'
-        //   hook_6: isExpanded = false
-        //   hook_7: notes = ''
+        //   state_0: counterLabel = 'Items'
+        //   state_1: counterStep = 5
+        //   state_2: counterCount = 10
+        //   state_3: userName = 'Alice'
+        //   state_4: userEmail = 'alice@example.com' (redacted)
+        //   state_5: userRole = 'admin'
+        //   state_6: isExpanded = false
+        //   state_7: notes = ''
         selector: '.capture-widget[data-testid="counter"]',
         label: 'SmokeTest counter widget (Fiber strategy)',
         componentName: 'SmokeTest',
         expectDataDs: true,
         expectedPropsKeys: [],
         expectedStateKeys: [
-          'hook_0',
-          'hook_1',
-          'hook_2',
-          'hook_3',
-          'hook_4',
-          'hook_5',
-          'hook_6',
-          'hook_7',
+          'state_0',
+          'state_1',
+          'state_2',
+          'state_3',
+          'state_4',
+          'state_5',
+          'state_6',
+          'state_7',
         ],
         expectedState: {
-          hook_0: 'Items', // counterLabel
-          hook_1: 5, // counterStep
-          hook_2: 10, // counterCount
-          hook_3: 'Alice', // userName
-          hook_4: '[REDACTED]', // userEmail (PII redacted by overlay)
-          hook_5: 'admin', // userRole
-          hook_6: false, // isExpanded
-          hook_7: '', // notes
+          state_0: 'Items', // counterLabel
+          state_1: 5, // counterStep
+          state_2: 10, // counterCount
+          state_3: 'Alice', // userName
+          state_4: '[REDACTED]', // userEmail (PII redacted by overlay)
+          state_5: 'admin', // userRole
+          state_6: false, // isExpanded
+          state_7: '', // notes
         },
       },
       {
@@ -556,20 +559,20 @@ export const react18Expectations: PageExpectation[] = [
         expectDataDs: true,
         expectedPropsKeys: [],
         expectedStateKeys: [
-          'hook_0',
-          'hook_1',
-          'hook_2',
-          'hook_3',
-          'hook_4',
-          'hook_5',
-          'hook_6',
-          'hook_7',
+          'state_0',
+          'state_1',
+          'state_2',
+          'state_3',
+          'state_4',
+          'state_5',
+          'state_6',
+          'state_7',
         ],
         expectedState: {
-          hook_3: 'Alice', // userName
-          hook_4: '[REDACTED]', // userEmail (PII redacted by overlay)
-          hook_5: 'admin', // userRole
-          hook_6: false, // isExpanded
+          state_3: 'Alice', // userName
+          state_4: '[REDACTED]', // userEmail (PII redacted by overlay)
+          state_5: 'admin', // userRole
+          state_6: false, // isExpanded
         },
       },
     ],

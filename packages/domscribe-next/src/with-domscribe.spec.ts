@@ -316,7 +316,7 @@ describe('withDomscribe', () => {
       it('should pass loader options including debug, relay, overlay', () => {
         const result = withDomscribe({
           debug: true,
-          relay: { port: 5000, host: '0.0.0.0' },
+          relay: { port: 5000, host: '0.0.0.0', bodyLimit: 5242880 },
           overlay: { initialMode: 'expanded', debug: true },
         })({});
         const webpackFn = result.webpack as (
@@ -333,7 +333,7 @@ describe('withDomscribe', () => {
         expect(loaderEntry.options).toEqual({
           debug: true,
           enabled: true,
-          relay: { port: 5000, host: '0.0.0.0' },
+          relay: { port: 5000, host: '0.0.0.0', bodyLimit: 5242880 },
           overlay: { initialMode: 'expanded', debug: true },
           autoInitPath: '/resolved/@domscribe/next/auto-init',
         });

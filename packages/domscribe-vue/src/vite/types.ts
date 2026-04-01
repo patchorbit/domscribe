@@ -8,17 +8,9 @@
  * @module @domscribe/vue/vite/types
  */
 
-/**
- * RuntimeManager configuration (minus adapter, which is framework-specific).
- */
-export interface DomscribeRuntimeOptions {
-  /** Capture phase. @default 1 */
-  phase?: 1 | 2;
-  /** Redact PII from captured data. @default true */
-  redactPII?: boolean;
-  /** CSS selectors to block from capture. @default [] */
-  blockSelectors?: string[];
-}
+import type { DomscribeRuntimeOptions } from '@domscribe/runtime';
+
+export type { DomscribeRuntimeOptions };
 
 /**
  * Vue adapter capture configuration.
@@ -36,6 +28,12 @@ export interface DomscribeVuePluginOptions {
     autoStart?: boolean;
     port?: number;
     host?: string;
+    /**
+     * Max request body size in bytes (only used if starting).
+     *
+     * @default 10485760 (10 MB)
+     */
+    bodyLimit?: number;
   };
   overlay?:
     | boolean
