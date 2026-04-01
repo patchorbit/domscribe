@@ -72,7 +72,9 @@ export function domscribe(options?: DomscribeReactPluginOptions): Plugin {
         : `const _resolvers = new Map();`;
 
       // Bare specifiers here get rewritten by Vite's transform pipeline
-      // to pre-bundled paths, matching what the overlay resolves internally
+      // to pre-bundled paths, matching what the overlay resolves internally.
+      // This module also handles overlay init as a fallback for SSR setups
+      // where transformIndexHtml doesn't fire (e.g. React Router 7).
       return [
         `import { RuntimeManager } from '@domscribe/runtime';`,
         `import { createReactAdapter } from '@domscribe/react';`,
@@ -92,6 +94,13 @@ export function domscribe(options?: DomscribeReactPluginOptions): Plugin {
         `    hookNameResolvers: _resolvers,`,
         `  }),`,
         `}).catch(e => console.warn('[domscribe] Failed to init React runtime:', e.message));`,
+        ``,
+        `// Init overlay if configured (SSR fallback — transformIndexHtml may not fire).`,
+        `// Uses bare specifier so Vite resolves to the same pre-bundled module instance`,
+        `// that RuntimeManager uses, ensuring singleton sharing.`,
+        `if (typeof window !== 'undefined' && window.__DOMSCRIBE_OVERLAY_OPTIONS__) {`,
+        `  import('@domscribe/overlay').then(m => m.initOverlay()).catch(() => {});`,
+        `}`,
       ].join('\n');
     }
     return baseLoad?.call(this, id, ...args) ?? null;

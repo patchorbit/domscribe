@@ -72,20 +72,14 @@ function buildVitePreamble(opts: {
     );
   }
 
-  // Auto-init overlay (once per page load) for SSR scenarios where
-  // transformIndexHtml never fires
-  let autoInit = '';
-  if (opts.overlayEnabled && opts.relayPort !== undefined) {
-    autoInit =
-      `if(!window.__DOMSCRIBE_AUTO_INIT__){` +
-      `window.__DOMSCRIBE_AUTO_INIT__=true;` +
-      `import('/node_modules/@domscribe/overlay/index.js').then(function(m){return m.initOverlay()}).catch(function(){})` +
-      `}`;
-  }
+  // Overlay auto-init is NOT done here — it's handled by:
+  //   • transformIndexHtml (SPA setups)
+  //   • Framework adapter virtual modules (SSR setups, e.g. react-init.js)
+  // Importing the overlay from the preamble via /node_modules/ path creates
+  // a separate module instance from Vite's pre-bundled version, which breaks
+  // RuntimeManager singleton sharing with the adapter.
 
-  return (
-    `if(typeof window!=='undefined'){${parts.join(';')};` + autoInit + `}\n`
-  );
+  return `if(typeof window!=='undefined'){${parts.join(';')}}\n`;
 }
 
 /**
