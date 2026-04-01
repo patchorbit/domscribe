@@ -9,7 +9,7 @@
  * @module @domscribe/vue/adapter/vue-adapter
  */
 
-import type { ComponentTreeNode } from '@domscribe/runtime';
+import type { ComponentTreeNode, SerializationHints } from '@domscribe/runtime';
 import type {
   VueAdapterOptions,
   VueAdapterState,
@@ -234,6 +234,19 @@ export class VueAdapter implements VueFrameworkAdapter {
       }
       return null;
     }
+  }
+
+  /**
+   * Return Vue-specific serialization hints.
+   *
+   * Tells the runtime serializer which keys are Vue internals that should
+   * be omitted. This prevents Vue reactivity markers and internal state
+   * from consuming the serialization byte budget.
+   */
+  getSerializationHints(): SerializationHints {
+    return {
+      skipKeyPrefixes: ['__v_'],
+    };
   }
 
   // ============================================================================

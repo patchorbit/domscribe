@@ -6,6 +6,28 @@
 import type { ComponentTreeNode, Nullable } from './types.js';
 
 /**
+ * Framework-specific hints for the serializer.
+ *
+ * Adapters use this to tell the runtime which object keys are framework
+ * internals that should be omitted during serialization. This keeps
+ * framework-specific knowledge in the adapter rather than hardcoding
+ * it in the generic runtime.
+ */
+export interface SerializationHints {
+  /**
+   * Exact keys to skip (e.g., '_owner', '_store').
+   * Properties with these keys are omitted at any depth.
+   */
+  skipKeys?: Set<string>;
+
+  /**
+   * Key prefixes to skip (e.g., '__react' catches '__reactFiber$xyz').
+   * Any property whose key starts with one of these prefixes is omitted.
+   */
+  skipKeyPrefixes?: string[];
+}
+
+/**
  * Framework adapter interface
  *
  * Provides hooks for runtime context capture from framework-specific
@@ -65,4 +87,16 @@ export interface FrameworkAdapter {
    * @returns Component tree node or null
    */
   getComponentTree?(component: unknown): Nullable<ComponentTreeNode>;
+
+  /**
+   * Return framework-specific serialization hints (optional).
+   *
+   * Called once during capturer initialization. The runtime uses these hints
+   * to skip framework-internal keys during serialization, preventing useless
+   * data (e.g., React Fiber trees, Vue reactivity markers) from consuming
+   * the serialization byte budget.
+   *
+   * @returns Serialization hints or undefined
+   */
+  getSerializationHints?(): SerializationHints;
 }

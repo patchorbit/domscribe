@@ -5,21 +5,34 @@
 
 import type { ManifestEntryId, RuntimeContext } from '@domscribe/core';
 import type { FrameworkAdapter } from '../adapters/adapter.interface.js';
+import type { SerializationConstraints } from '../capture/types.js';
 
 /**
- * Configuration options for RuntimeManager
+ * User-facing runtime configuration options (minus adapter, which is framework-specific).
+ *
+ * Shared across all framework adapters (React, Vue, Next, Nuxt).
+ * Each adapter re-exports this type in its own plugin options.
  */
-export interface RuntimeOptions {
-  /**
-   * Feature phase gate (Phase 1 or Phase 2)
-   * - Phase 1: Props and state capture
-   * - Phase 2: Event flow and performance metrics
-   */
+export interface DomscribeRuntimeOptions {
+  /** Capture phase. @default 1 */
   phase?: 1 | 2;
+  /** Redact PII from captured data. @default true */
+  redactPII?: boolean;
+  /** CSS selectors to block from capture. @default [] */
+  blockSelectors?: string[];
+  /** Serialization constraints for captured props and state. */
+  serialization?: SerializationConstraints;
+}
 
+/**
+ * Internal configuration options for RuntimeManager.
+ *
+ * Extends user-facing options with the framework adapter.
+ */
+export interface RuntimeOptions extends DomscribeRuntimeOptions {
   /**
-   * Framework adapter for runtime context capture
-   * If not provided, a noop adapter will be used
+   * Framework adapter for runtime context capture.
+   * If not provided, a noop adapter will be used.
    */
   adapter?: FrameworkAdapter;
 
@@ -27,18 +40,6 @@ export interface RuntimeOptions {
    * Enable debug logging
    */
   debug?: boolean;
-
-  /**
-   * Enable PII redaction in captured data
-   * @default true
-   */
-  redactPII?: boolean;
-
-  /**
-   * CSS selectors for elements to skip during capture
-   * @default []
-   */
-  blockSelectors?: string[];
 }
 
 /**

@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { RelayControl } from '../../lifecycle/relay-control.js';
-import { createMcpAdapter } from '../../mcp/mcp-adapter.js';
+import { createMcpAdapter, McpAdapter } from '../../mcp/mcp-adapter.js';
 import { getWorkspaceRoot } from '../utils.js';
 
 interface McpCommandOptions {
@@ -24,16 +24,39 @@ export const McpCommand = new Command('mcp')
     }
   });
 
+function setupShutdownHandlers(adapter: McpAdapter): void {
+  const shutdown = async (signal: string): Promise<void> => {
+    console.error(`\n[domscribe-cli] Received ${signal}, shutting down MCP...`);
+    await adapter.close();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
+
 async function mcp(options: McpCommandOptions) {
+  const { debug } = options;
   const workspaceRoot = getWorkspaceRoot();
 
   if (!workspaceRoot) {
-    throw new Error(
-      'No workspace root found. Ensure you are running this command inside a workspace where domscribe is installed.',
-    );
+    if (debug) {
+      console.error(
+        '[domscribe-cli] No workspace found, starting in dormant mode',
+      );
+    }
+
+    const adapter = createMcpAdapter({
+      mode: 'dormant',
+      cwd: process.cwd(),
+      debug,
+    });
+
+    await adapter.start();
+    setupShutdownHandlers(adapter);
+    return;
   }
 
-  const { debug } = options;
   const bodyLimit = options.bodyLimit
     ? parseInt(options.bodyLimit, 10)
     : undefined;
@@ -47,22 +70,13 @@ async function mcp(options: McpCommandOptions) {
     `[domscribe-cli] Starting MCP adapter (relay at http://${relayHost}:${relayPort})`,
   );
 
-  // Create and start MCP adapter
   const adapter = createMcpAdapter({
+    mode: 'active',
     relayHost,
     relayPort,
     debug,
   });
 
   await adapter.start();
-
-  // Handle shutdown
-  const shutdown = async (signal: string): Promise<void> => {
-    console.error(`\n[domscribe-cli] Received ${signal}, shutting down MCP...`);
-    await adapter.close();
-    process.exit(0);
-  };
-
-  process.on('SIGINT', () => shutdown('SIGINT'));
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  setupShutdownHandlers(adapter);
 }

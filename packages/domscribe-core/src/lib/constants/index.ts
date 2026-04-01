@@ -119,6 +119,7 @@ export const PATHS = {
   AGENT_INSTRUCTIONS: '.domscribe/agent-instructions',
 
   // Config files
+  CONFIG_JSON_FILE: 'domscribe.config.json',
   CONFIG_FILE: 'domscribe.config.ts',
   CONFIG_JS_FILE: 'domscribe.config.js',
   VALIDATION_RECIPE: 'domscribe.validation.yaml',

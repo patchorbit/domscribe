@@ -14,6 +14,7 @@ interface InitCommandOptions {
   agent?: string;
   framework?: string;
   pm?: string;
+  appRoot?: string;
 }
 
 export const InitCommand = new Command('init')
@@ -26,6 +27,7 @@ export const InitCommand = new Command('init')
     `Framework + bundler (${FRAMEWORK_IDS.join(', ')})`,
   )
   .option('--pm <name>', `Package manager (${PACKAGE_MANAGER_IDS.join(', ')})`)
+  .option('--app-root <path>', 'Path to frontend app root (for monorepos)')
   .action(async (options: InitCommandOptions) => {
     try {
       if (options.agent && !AGENT_IDS.includes(options.agent as never)) {
@@ -58,6 +60,7 @@ export const InitCommand = new Command('init')
         agent: options.agent as InitOptions['agent'],
         framework: options.framework as InitOptions['framework'],
         pm: options.pm as InitOptions['pm'],
+        appRoot: options.appRoot,
       };
 
       await runInitWizard(initOptions);

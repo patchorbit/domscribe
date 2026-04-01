@@ -1,0 +1,12 @@
+{
+  "name": "domscribe",
+  "version": "0.5.0",
+  "description": "Domscribe is a pixel-to-code development tool that maps running UI elements to their exact source locations, capturing runtime context (props, state, DOM) for handoff to coding agents via MCP.",
+  "mcpServers": {
+    "domscribe": {
+      "command": "npx",
+      "args": ["-y", "domscribe", "mcp"],
+      "cwd": "${workspacePath}"
+    }
+  }
+}

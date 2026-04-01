@@ -317,6 +317,22 @@ describe('domscribe Vite plugin', () => {
       }).not.toThrow();
     });
 
+    it('should use rootDir option over config.root when provided', async () => {
+      // Arrange — Nuxt sets config.root to srcDir, but rootDir points to project root
+      const plugin = domscribe({ rootDir: '/project/root' });
+      const config = createMockResolvedConfig({ root: '/project/root/app' });
+
+      // Act
+      callHook(plugin.configResolved, {}, config);
+      await callHook(plugin.buildStart);
+
+      // Assert — ManifestWriter should be initialized with the project root
+      expect(mockWriterGetInstance).toHaveBeenCalledWith(
+        '/project/root',
+        expect.any(Object),
+      );
+    });
+
     it('should handle being called multiple times', () => {
       // Arrange
       const plugin = domscribe();

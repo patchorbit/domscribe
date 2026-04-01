@@ -1,6 +1,6 @@
 {
   "name": "@domscribe/runtime",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "description": "Browser-side runtime context capture for Domscribe",
   "type": "module",
   "main": "src/index.ts",

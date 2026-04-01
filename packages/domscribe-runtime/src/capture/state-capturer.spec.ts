@@ -184,13 +184,16 @@ describe('StateCapturer', () => {
       capturer.capture(component);
 
       // Assert
-      expect(mockSerializeValue).toHaveBeenCalledWith(rawState, {
-        maxDepth: 5,
-        includeFunctions: false,
-      });
+      expect(mockSerializeValue).toHaveBeenCalledWith(
+        rawState,
+        expect.objectContaining({
+          maxDepth: 5,
+          includeFunctions: false,
+        }),
+      );
     });
 
-    it('should use default maxDepth of 10 when not specified', () => {
+    it('should use default maxDepth of 4 when not specified', () => {
       // Arrange
       const rawState = { count: 0 };
       adapter = createMockAdapter();
@@ -204,10 +207,13 @@ describe('StateCapturer', () => {
       capturer.capture(component);
 
       // Assert
-      expect(mockSerializeValue).toHaveBeenCalledWith(rawState, {
-        maxDepth: 10,
-        includeFunctions: false,
-      });
+      expect(mockSerializeValue).toHaveBeenCalledWith(
+        rawState,
+        expect.objectContaining({
+          maxDepth: 4,
+          includeFunctions: false,
+        }),
+      );
     });
 
     it('should always set includeFunctions to false', () => {
@@ -228,10 +234,13 @@ describe('StateCapturer', () => {
       capturer.capture(component);
 
       // Assert
-      expect(mockSerializeValue).toHaveBeenCalledWith(rawState, {
-        maxDepth: 10,
-        includeFunctions: false,
-      });
+      expect(mockSerializeValue).toHaveBeenCalledWith(
+        rawState,
+        expect.objectContaining({
+          maxDepth: 4,
+          includeFunctions: false,
+        }),
+      );
     });
   });
 
@@ -715,10 +724,13 @@ describe('StateCapturer', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.data).toEqual(afterFields);
-      expect(mockSerializeValue).toHaveBeenCalledWith(rawState, {
-        maxDepth: 8,
-        includeFunctions: false,
-      });
+      expect(mockSerializeValue).toHaveBeenCalledWith(
+        rawState,
+        expect.objectContaining({
+          maxDepth: 8,
+          includeFunctions: false,
+        }),
+      );
       expect(mockRedactPII).toHaveBeenCalledWith(serialized);
       expect(mockRedactSensitiveFields).toHaveBeenCalledWith(afterPII);
     });
@@ -772,10 +784,13 @@ describe('StateCapturer', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.data).toEqual(deepState);
-      expect(mockSerializeValue).toHaveBeenCalledWith(deepState, {
-        maxDepth: 20,
-        includeFunctions: false,
-      });
+      expect(mockSerializeValue).toHaveBeenCalledWith(
+        deepState,
+        expect.objectContaining({
+          maxDepth: 20,
+          includeFunctions: false,
+        }),
+      );
     });
 
     it('should handle multiple capture calls with same capturer', () => {
@@ -851,10 +866,13 @@ describe('StateCapturer', () => {
       capturer.capture(component);
 
       // Assert
-      expect(mockSerializeValue).toHaveBeenCalledWith(rawState, {
-        maxDepth: 2,
-        includeFunctions: false,
-      });
+      expect(mockSerializeValue).toHaveBeenCalledWith(
+        rawState,
+        expect.objectContaining({
+          maxDepth: 2,
+          includeFunctions: false,
+        }),
+      );
     });
 
     it('should respect redactPII option when true', () => {
@@ -900,10 +918,13 @@ describe('StateCapturer', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(mockSerializeValue).toHaveBeenCalledWith(rawState, {
-        maxDepth: 10,
-        includeFunctions: false,
-      });
+      expect(mockSerializeValue).toHaveBeenCalledWith(
+        rawState,
+        expect.objectContaining({
+          maxDepth: 10,
+          includeFunctions: false,
+        }),
+      );
       expect(mockRedactPII).toHaveBeenCalled();
     });
   });

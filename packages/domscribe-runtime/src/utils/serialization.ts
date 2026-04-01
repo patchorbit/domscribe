@@ -100,7 +100,17 @@ export function serializeValue(
   value: unknown,
   options: SerializationOptions = {},
 ): unknown {
-  const { maxDepth = 10, includeFunctions = false, replacer } = options;
+  const {
+    maxDepth = 6,
+    maxArrayLength = 20,
+    maxStringLength = 2048,
+    maxProperties = 50,
+    maxTotalBytes = 262144,
+    includeFunctions = false,
+    replacer,
+    skipKeys,
+    skipKeyPrefixes,
+  } = options;
 
   /*
    * Track visited objects to detect circular references. WeakSets are
@@ -108,9 +118,37 @@ export function serializeValue(
    */
   const seen = new WeakSet<object>();
 
+  /*
+   * Byte budget tracker. Shared across the entire serialization tree.
+   * This is an approximation — we count string lengths and number
+   * representation sizes as they are serialized.
+   */
+  const budget = { bytesUsed: 0 };
+
+  function trackBytes(val: unknown): void {
+    if (typeof val === 'string') {
+      budget.bytesUsed += val.length;
+    } else if (typeof val === 'number') {
+      budget.bytesUsed += 8;
+    } else if (typeof val === 'boolean') {
+      budget.bytesUsed += 5;
+    }
+  }
+
+  function isBudgetExceeded(): boolean {
+    return budget.bytesUsed > maxTotalBytes;
+  }
+
   function serialize(val: unknown, depth: number): unknown {
+    // Check byte budget
+    if (isBudgetExceeded()) {
+      trackBytes(SENTINEL_REF.TRUNCATED);
+      return SENTINEL_REF.TRUNCATED;
+    }
+
     // Check depth limit
     if (depth > maxDepth) {
+      trackBytes(SENTINEL_REF.MAX_DEPTH);
       return SENTINEL_REF.MAX_DEPTH;
     }
 
@@ -120,7 +158,19 @@ export function serializeValue(
 
     const type = typeof val;
 
-    if (type === 'string' || type === 'number' || type === 'boolean') {
+    if (type === 'string') {
+      const str = val as string;
+      if (str.length > maxStringLength) {
+        const truncated = str.slice(0, maxStringLength) + '... [truncated]';
+        trackBytes(truncated);
+        return truncated;
+      }
+      trackBytes(str);
+      return str;
+    }
+
+    if (type === 'number' || type === 'boolean') {
+      trackBytes(val);
       return val;
     }
 
@@ -134,7 +184,9 @@ export function serializeValue(
 
     // Handle special objects
     if (type === 'bigint') {
-      return `[BigInt: ${val.toString()}]`;
+      const result = `[BigInt: ${val.toString()}]`;
+      trackBytes(result);
+      return result;
     }
 
     // Handle objects and arrays
@@ -149,12 +201,16 @@ export function serializeValue(
       try {
         // Handle Date
         if (val instanceof Date) {
-          return val.toISOString();
+          const result = val.toISOString();
+          trackBytes(result);
+          return result;
         }
 
         // Handle RegExp
         if (val instanceof RegExp) {
-          return `[RegExp: ${val.toString()}]`;
+          const result = `[RegExp: ${val.toString()}]`;
+          trackBytes(result);
+          return result;
         }
 
         // Handle Error
@@ -166,90 +222,73 @@ export function serializeValue(
           };
         }
 
-        /*
-         * Handle Map.
-
-         * Example:
-         * ```
-         * {
-         *   foo: 'bar',
-         *   baz: 'qux',
-         *   quux: {
-         *     quuz: 'corge',
-         *     grault: 'garply',
-         *     waldo: 'fred',
-         *   }
-         * }
-         * 
-         * depth = 0
-         * ```
-         */
+        // Handle Map
         if (val instanceof Map) {
           const entries: Array<[unknown, unknown]> = [];
-          /*
-           * keys and values per iteration
-           * - ['foo', 'bar']
-           * - ['baz', 'qux']
-           * - ['quux', { quuz: 'corge', grault: 'garply', waldo: 'fred' }]
-           */
+          let count = 0;
           for (const [k, v] of val.entries()) {
-            /*
-             * [[serialize('foo', 1), serialize('bar'), 1],
-             *  [serialize('baz', 1), serialize('qux'), 1],
-             *  [serialize('quux', 1), serialize({ quuz: 'corge', grault: 'garply', waldo: 'fred' }), 1]
-             */
+            if (count >= maxArrayLength) break;
             entries.push([serialize(k, depth + 1), serialize(v, depth + 1)]);
+            count++;
           }
-          /*
-           * {
-           *   __type: 'Map',
-           *   entries: [
-           *     ['foo', 'bar'],
-           *     ['baz', 'qux'],
-           *     ['quux', {
-           *       __type: 'Map',
-           *       entries: [
-           *         ['quuz', 'corge'],
-           *         ['grault', 'garply'],
-           *         ['waldo', 'fred']
-           *       ]
-           *     }]
-           *   ]
-           * }
-           */
-          return { __type: 'Map', entries };
+          const result: Record<string, unknown> = {
+            __type: 'Map',
+            entries,
+          };
+          if (val.size > maxArrayLength) {
+            result.__truncated = true;
+            result.originalSize = val.size;
+          }
+          return result;
         }
 
         // Handle Set
         if (val instanceof Set) {
           const values: unknown[] = [];
+          let count = 0;
           for (const v of val.values()) {
+            if (count >= maxArrayLength) break;
             values.push(serialize(v, depth + 1));
+            count++;
           }
-          return { __type: 'Set', values };
+          const result: Record<string, unknown> = {
+            __type: 'Set',
+            values,
+          };
+          if (val.size > maxArrayLength) {
+            result.__truncated = true;
+            result.originalSize = val.size;
+          }
+          return result;
         }
 
         // Handle Array
         if (Array.isArray(val)) {
-          /*
-           * Example:
-           * ```
-           * [1, 2, Map([['foo', 'bar']])]
-           * ```
-           *
-           * Serialized:
-           * ```
-           * [1, 2, { __type: 'Map', entries: [['foo', 'bar']] }]
-           * ```
-           */
-          return val.map((item) => serialize(item, depth + 1));
+          const items = val.slice(0, maxArrayLength);
+          const serialized = items.map((item) => serialize(item, depth + 1));
+          if (val.length > maxArrayLength) {
+            serialized.push({
+              __truncated: true,
+              originalLength: val.length,
+            });
+          }
+          return serialized;
         }
 
         // Handle plain objects
         if (isRecord(val)) {
           const serialized: Record<string, unknown> = {};
-          for (const key in val) {
+          const keys = Object.keys(val);
+          let propCount = 0;
+
+          for (const key of keys) {
+            if (propCount >= maxProperties) break;
+
             if (Object.prototype.hasOwnProperty.call(val, key)) {
+              // Skip framework-internal keys by exact match or prefix
+              if (skipKeys?.has(key)) continue;
+              if (skipKeyPrefixes?.some((p) => key.startsWith(p))) continue;
+
               const propValue = val[key];
               const serializedValue = replacer
                 ? replacer(key, propValue)
@@ -257,8 +296,14 @@ export function serializeValue(
 
               if (serializedValue !== undefined) {
                 serialized[key] = serializedValue;
+                propCount++;
               }
             }
+          }
+
+          if (keys.length > maxProperties && propCount >= maxProperties) {
+            serialized.__truncated = true;
+            serialized.__originalKeyCount = keys.length;
           }
 
           return serialized;
@@ -315,6 +360,10 @@ export function deserializeValue(value: unknown): unknown {
 
   if (value === SENTINEL_REF.MAX_DEPTH) {
     return '[Max Depth]';
+  }
+
+  if (value === SENTINEL_REF.TRUNCATED) {
+    return '[Truncated]';
   }
 
   const type = typeof value;

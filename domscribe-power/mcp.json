@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "domscribe": {
+      "command": "npx",
+      "args": ["-y", "@domscribe/mcp"]
+    }
+  }
+}

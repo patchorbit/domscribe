@@ -1,12 +1,31 @@
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import { EventEmitter } from 'node:events';
 
 import * as clack from '@clack/prompts';
 
 import { runFrameworkStep } from './framework-step.js';
 import type { InitOptions } from './types.js';
 
+/**
+ * Create a fake ChildProcess that emits 'close' on the next tick.
+ */
+function createFakeChild(exitCode = 0, stderrData = ''): EventEmitter {
+  const child = new EventEmitter();
+  const stderr = new EventEmitter();
+  (child as unknown as Record<string, unknown>).stderr = stderr;
+
+  process.nextTick(() => {
+    if (stderrData) {
+      stderr.emit('data', Buffer.from(stderrData));
+    }
+    child.emit('close', exitCode);
+  });
+
+  return child;
+}
+
 vi.mock('node:child_process', () => ({
-  spawnSync: vi.fn().mockReturnValue({ status: 0 }),
+  spawn: vi.fn(() => createFakeChild(0)),
 }));
 
 vi.mock('@clack/prompts', () => ({
@@ -40,9 +59,9 @@ describe('runFrameworkStep', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(clack.isCancel).mockReturnValue(false);
-    vi.mocked(spawnSync).mockReturnValue({ status: 0 } as ReturnType<
-      typeof spawnSync
-    >);
+    vi.mocked(spawn).mockImplementation(
+      () => createFakeChild(0) as ReturnType<typeof spawn>,
+    );
   });
 
   describe('interactive mode', () => {
@@ -109,7 +128,7 @@ describe('runFrameworkStep', () => {
 
       // Assert
       expect(clack.select).not.toHaveBeenCalled();
-      expect(spawnSync).toHaveBeenCalledWith(
+      expect(spawn).toHaveBeenCalledWith(
         'pnpm',
         ['add', '-D', '@domscribe/nuxt'],
         expect.objectContaining({ cwd: '/project' }),
@@ -128,7 +147,7 @@ describe('runFrameworkStep', () => {
       await runFrameworkStep(baseOptions, '/project');
 
       // Assert
-      expect(spawnSync).toHaveBeenCalledWith(
+      expect(spawn).toHaveBeenCalledWith(
         'npm',
         ['install', '-D', '@domscribe/next'],
         expect.objectContaining({ cwd: '/project' }),
@@ -145,7 +164,7 @@ describe('runFrameworkStep', () => {
       await runFrameworkStep(baseOptions, '/project');
 
       // Assert
-      expect(spawnSync).toHaveBeenCalledWith(
+      expect(spawn).toHaveBeenCalledWith(
         'pnpm',
         ['add', '-D', '@domscribe/react'],
         expect.objectContaining({ cwd: '/project' }),
@@ -157,10 +176,9 @@ describe('runFrameworkStep', () => {
       vi.mocked(clack.select)
         .mockResolvedValueOnce('nuxt')
         .mockResolvedValueOnce('npm');
-      vi.mocked(spawnSync).mockReturnValue({
-        status: 1,
-        stderr: Buffer.from('ERR'),
-      } as unknown as ReturnType<typeof spawnSync>);
+      vi.mocked(spawn).mockImplementation(
+        () => createFakeChild(1, 'ERR') as ReturnType<typeof spawn>,
+      );
 
       // Act
       await runFrameworkStep(baseOptions, '/project');
@@ -224,7 +242,7 @@ describe('runFrameworkStep', () => {
       await runFrameworkStep(options, '/project');
 
       // Assert
-      expect(spawnSync).not.toHaveBeenCalled();
+      expect(spawn).not.toHaveBeenCalled();
       expect(clack.log.info).toHaveBeenCalledWith(
         expect.stringContaining('npm install -D @domscribe/nuxt'),
       );

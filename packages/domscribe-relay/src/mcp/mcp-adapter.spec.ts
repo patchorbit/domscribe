@@ -37,89 +37,157 @@ vi.mock('../client/relay-http-client.js', () => ({
   },
 }));
 
+function getServer(adapter: McpAdapter) {
+  return (
+    adapter as unknown as {
+      server: {
+        registeredTools: Map<string, unknown>;
+        registeredPrompts: Map<string, unknown>;
+      };
+    }
+  ).server;
+}
+
 describe('McpAdapter', () => {
-  it('should register all 12 tools', () => {
-    // Act
-    const adapter = new McpAdapter({
-      relayHost: 'localhost',
-      relayPort: 9876,
+  describe('active mode', () => {
+    it('should register all 12 tools', () => {
+      // Act
+      const adapter = new McpAdapter({
+        mode: 'active',
+        relayHost: 'localhost',
+        relayPort: 9876,
+      });
+
+      // Assert
+      const server = getServer(adapter);
+      expect(server.registeredTools.size).toBe(12);
+      expect(server.registeredTools.has('domscribe.resolve')).toBe(true);
+      expect(server.registeredTools.has('domscribe.resolve.batch')).toBe(true);
+      expect(server.registeredTools.has('domscribe.manifest.stats')).toBe(true);
+      expect(server.registeredTools.has('domscribe.manifest.query')).toBe(true);
+      expect(server.registeredTools.has('domscribe.annotation.get')).toBe(true);
+      expect(server.registeredTools.has('domscribe.annotation.list')).toBe(
+        true,
+      );
+      expect(server.registeredTools.has('domscribe.annotation.process')).toBe(
+        true,
+      );
+      expect(
+        server.registeredTools.has('domscribe.annotation.updateStatus'),
+      ).toBe(true);
+      expect(server.registeredTools.has('domscribe.annotation.respond')).toBe(
+        true,
+      );
+      expect(server.registeredTools.has('domscribe.annotation.search')).toBe(
+        true,
+      );
+      expect(server.registeredTools.has('domscribe.status')).toBe(true);
+      expect(server.registeredTools.has('domscribe.query.bySource')).toBe(true);
     });
 
-    // Assert — access internal server to verify registration
-    const server = (
-      adapter as unknown as {
-        server: { registeredTools: Map<string, unknown> };
-      }
-    ).server;
-    expect(server.registeredTools.size).toBe(12);
-    expect(server.registeredTools.has('domscribe.resolve')).toBe(true);
-    expect(server.registeredTools.has('domscribe.resolve.batch')).toBe(true);
-    expect(server.registeredTools.has('domscribe.manifest.stats')).toBe(true);
-    expect(server.registeredTools.has('domscribe.manifest.query')).toBe(true);
-    expect(server.registeredTools.has('domscribe.annotation.get')).toBe(true);
-    expect(server.registeredTools.has('domscribe.annotation.list')).toBe(true);
-    expect(server.registeredTools.has('domscribe.annotation.process')).toBe(
-      true,
-    );
-    expect(
-      server.registeredTools.has('domscribe.annotation.updateStatus'),
-    ).toBe(true);
-    expect(server.registeredTools.has('domscribe.annotation.respond')).toBe(
-      true,
-    );
-    expect(server.registeredTools.has('domscribe.annotation.search')).toBe(
-      true,
-    );
-    expect(server.registeredTools.has('domscribe.status')).toBe(true);
-    expect(server.registeredTools.has('domscribe.query.bySource')).toBe(true);
+    it('should register all 4 prompts', () => {
+      // Act
+      const adapter = new McpAdapter({
+        mode: 'active',
+        relayHost: 'localhost',
+        relayPort: 9876,
+      });
+
+      // Assert
+      const server = getServer(adapter);
+      expect(server.registeredPrompts.size).toBe(4);
+      expect(server.registeredPrompts.has('process_next')).toBe(true);
+      expect(server.registeredPrompts.has('check_status')).toBe(true);
+      expect(server.registeredPrompts.has('explore_component')).toBe(true);
+      expect(server.registeredPrompts.has('find_annotations')).toBe(true);
+    });
+
+    it('should start and connect transport', async () => {
+      const adapter = new McpAdapter({
+        mode: 'active',
+        relayHost: 'localhost',
+        relayPort: 9876,
+      });
+
+      // Should not throw
+      await adapter.start();
+    });
+
+    it('should close gracefully', async () => {
+      const adapter = new McpAdapter({
+        mode: 'active',
+        relayHost: 'localhost',
+        relayPort: 9876,
+      });
+
+      // Should not throw
+      await adapter.close();
+    });
   });
 
-  it('should register all 4 prompts', () => {
-    // Act
-    const adapter = new McpAdapter({
-      relayHost: 'localhost',
-      relayPort: 9876,
+  describe('dormant mode', () => {
+    it('should register only the status tool', () => {
+      // Act
+      const adapter = new McpAdapter({
+        mode: 'dormant',
+        cwd: '/home/user/some-project',
+      });
+
+      // Assert
+      const server = getServer(adapter);
+      expect(server.registeredTools.size).toBe(1);
+      expect(server.registeredTools.has('domscribe.status')).toBe(true);
     });
 
-    // Assert
-    const server = (
-      adapter as unknown as {
-        server: { registeredPrompts: Map<string, unknown> };
-      }
-    ).server;
-    expect(server.registeredPrompts.size).toBe(4);
-    expect(server.registeredPrompts.has('process_next')).toBe(true);
-    expect(server.registeredPrompts.has('check_status')).toBe(true);
-    expect(server.registeredPrompts.has('explore_component')).toBe(true);
-    expect(server.registeredPrompts.has('find_annotations')).toBe(true);
-  });
+    it('should register no prompts', () => {
+      // Act
+      const adapter = new McpAdapter({
+        mode: 'dormant',
+        cwd: '/home/user/some-project',
+      });
 
-  it('should start and connect transport', async () => {
-    const adapter = new McpAdapter({
-      relayHost: 'localhost',
-      relayPort: 9876,
+      // Assert
+      const server = getServer(adapter);
+      expect(server.registeredPrompts.size).toBe(0);
     });
 
-    // Should not throw
-    await adapter.start();
-  });
+    it('should start and connect transport', async () => {
+      const adapter = new McpAdapter({
+        mode: 'dormant',
+        cwd: '/home/user/some-project',
+      });
 
-  it('should close gracefully', async () => {
-    const adapter = new McpAdapter({
-      relayHost: 'localhost',
-      relayPort: 9876,
+      // Should not throw
+      await adapter.start();
     });
 
-    // Should not throw
-    await adapter.close();
+    it('should close gracefully', async () => {
+      const adapter = new McpAdapter({
+        mode: 'dormant',
+        cwd: '/home/user/some-project',
+      });
+
+      // Should not throw
+      await adapter.close();
+    });
   });
 });
 
 describe('createMcpAdapter', () => {
-  it('should return an McpAdapter instance', () => {
+  it('should return an McpAdapter instance for active mode', () => {
     const adapter = createMcpAdapter({
+      mode: 'active',
       relayHost: 'localhost',
       relayPort: 9876,
+    });
+
+    expect(adapter).toBeInstanceOf(McpAdapter);
+  });
+
+  it('should return an McpAdapter instance for dormant mode', () => {
+    const adapter = createMcpAdapter({
+      mode: 'dormant',
+      cwd: '/tmp/test',
     });
 
     expect(adapter).toBeInstanceOf(McpAdapter);

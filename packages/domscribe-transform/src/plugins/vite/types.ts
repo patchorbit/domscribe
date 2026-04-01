@@ -45,4 +45,13 @@ export interface VitePluginOptions {
    * @default true
    */
   overlay?: boolean | OverlayPluginOptions;
+
+  /**
+   * Override the root directory for `.domscribe/` artifacts (manifest,
+   * transform cache, relay lock).
+   *
+   * When omitted, defaults to Vite's `config.root`. Needed when the Vite
+   * root differs from the project root (e.g., Nuxt with a custom `srcDir`).
+   */
+  rootDir?: string;
 }

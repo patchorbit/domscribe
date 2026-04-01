@@ -342,6 +342,7 @@ describe('domscribeModule', () => {
           expect.objectContaining({
             debug: true,
             overlay: true,
+            rootDir: '/test/project',
             relay: { port: 3001, autoStart: false },
           }),
         );

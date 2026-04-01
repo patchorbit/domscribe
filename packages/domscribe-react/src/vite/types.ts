@@ -8,17 +8,9 @@
  * @module @domscribe/react/vite/types
  */
 
-/**
- * RuntimeManager configuration (minus adapter, which is framework-specific).
- */
-export interface DomscribeRuntimeOptions {
-  /** Capture phase. @default 1 */
-  phase?: 1 | 2;
-  /** Redact PII from captured data. @default true */
-  redactPII?: boolean;
-  /** CSS selectors to block from capture. @default [] */
-  blockSelectors?: string[];
-}
+import type { DomscribeRuntimeOptions } from '@domscribe/runtime';
+
+export type { DomscribeRuntimeOptions };
 
 /**
  * React adapter capture configuration.

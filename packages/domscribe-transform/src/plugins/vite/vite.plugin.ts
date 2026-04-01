@@ -36,6 +36,7 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
     debug = false,
     relay: relayOptions = {},
     overlay: overlayOption = true,
+    rootDir,
   } = options;
   const filter = createFilter(include, exclude);
 
@@ -106,7 +107,7 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
     apply: 'serve', // Only run in development mode
 
     configResolved(config) {
-      rootContext = config.root;
+      rootContext = rootDir ?? config.root;
     },
 
     async buildStart() {

@@ -3,16 +3,16 @@
  * @module @domscribe/runtime/utils/serialization-utils
  */
 
-/**
- * Options for serialization
- */
-export interface SerializationOptions {
-  /**
-   * Maximum depth for object traversal
-   * @default 10
-   */
-  maxDepth?: number;
+import type { SerializationConstraints } from '../capture/types.js';
 
+/**
+ * Full serialization options for the internal `serializeValue()` function.
+ *
+ * Extends user-facing `SerializationConstraints` (sizing limits) with
+ * internal-only options (replacer, skip keys, function handling) that
+ * are set by the capture layer, not by end users.
+ */
+export interface SerializationOptions extends SerializationConstraints {
   /**
    * Whether to include function references
    * @default false
@@ -20,9 +20,23 @@ export interface SerializationOptions {
   includeFunctions?: boolean;
 
   /**
-   * Custom replacer for special values
+   * Custom replacer for special values.
+   * Return value is used directly as the serialized output.
+   * Return `undefined` to skip the property entirely.
    */
   replacer?: (key: string, value: unknown) => unknown;
+
+  /**
+   * Set of property keys to skip during serialization.
+   * Properties with these keys are omitted from the output at any depth.
+   */
+  skipKeys?: Set<string>;
+
+  /**
+   * Key prefixes to skip during serialization.
+   * Any property whose key starts with one of these prefixes is omitted.
+   */
+  skipKeyPrefixes?: string[];
 }
 
 /**
@@ -50,6 +64,10 @@ export const SENTINEL_REF = {
    * Sentinel value for max depth exceeded
    */
   MAX_DEPTH: '[Max Depth Exceeded]',
+  /**
+   * Sentinel value for truncated output (byte budget exceeded)
+   */
+  TRUNCATED: '[Truncated: size limit]',
 } as const;
 
 /**

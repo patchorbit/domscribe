@@ -113,6 +113,7 @@ export const domscribeModule = defineNuxtModule<DomscribeNuxtOptions>({
       () => {
         const plugin = domscribe({
           ...options,
+          rootDir: nuxt.options.rootDir,
           relay: { ...options.relay, autoStart: false },
         });
         // The Vite plugin defaults to `apply: 'serve'` (dev-only). During
