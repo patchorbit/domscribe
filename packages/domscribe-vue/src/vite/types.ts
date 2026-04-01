@@ -28,6 +28,12 @@ export interface DomscribeVuePluginOptions {
     autoStart?: boolean;
     port?: number;
     host?: string;
+    /**
+     * Max request body size in bytes (only used if starting).
+     *
+     * @default 10485760 (10 MB)
+     */
+    bodyLimit?: number;
   };
   overlay?:
     | boolean

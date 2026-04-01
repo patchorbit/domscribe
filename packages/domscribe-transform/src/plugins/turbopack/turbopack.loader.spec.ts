@@ -288,7 +288,7 @@ describe('Turbopack Loader', () => {
       // Arrange
       const source = 'export function App() { return <div>Hello</div>; }';
       const context = createLoaderContext('/test/App.tsx', {
-        relay: { port: 5000 },
+        relay: { port: 5000, bodyLimit: 5242880 },
       });
       const asyncCallback = vi.fn();
       context.async = vi.fn(() => asyncCallback);
@@ -304,6 +304,7 @@ describe('Turbopack Loader', () => {
       expect(mockRelayControl.ensureRunning).toHaveBeenCalledWith({
         port: 5000,
         host: undefined,
+        bodyLimit: 5242880,
       });
     });
 

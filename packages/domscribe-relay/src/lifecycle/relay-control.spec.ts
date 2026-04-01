@@ -199,7 +199,7 @@ describe('RelayControl', () => {
     it('should call child_process.spawn with correct arguments', () => {
       const control = new RelayControl('/test/workspace', { debug: true });
 
-      control.spawn({ port: 8080, host: '0.0.0.0' });
+      control.spawn({ port: 8080, host: '0.0.0.0', bodyLimit: 5242880 });
 
       expect(spawn).toHaveBeenCalledWith(
         process.execPath,
@@ -212,6 +212,7 @@ describe('RelayControl', () => {
             DS_WORKSPACE_ROOT: '/test/workspace',
             DS_RELAY_PORT: '8080',
             DS_RELAY_HOST: '0.0.0.0',
+            DS_RELAY_BODY_LIMIT: '5242880',
             DS_DEBUG: '1',
           }),
         }),

@@ -193,7 +193,10 @@ describe('domscribeModule', () => {
         const nuxt = createMockNuxt();
 
         await callSetup(
-          { debug: false, relay: { port: 3001, host: '0.0.0.0' } },
+          {
+            debug: false,
+            relay: { port: 3001, host: '0.0.0.0', bodyLimit: 5242880 },
+          },
           nuxt,
         );
 
@@ -201,6 +204,7 @@ describe('domscribeModule', () => {
         expect(mockEnsureRunning).toHaveBeenCalledWith({
           port: 3001,
           host: '0.0.0.0',
+          bodyLimit: 5242880,
         });
       });
 

@@ -62,6 +62,13 @@ export interface DomscribeNextOptions {
      * @default '127.0.0.1'
      */
     host?: string;
+
+    /**
+     * Max request body size in bytes (only used if starting).
+     *
+     * @default 10485760 (10 MB)
+     */
+    bodyLimit?: number;
   };
 
   /**
