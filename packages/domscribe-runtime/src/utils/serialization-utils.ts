@@ -9,9 +9,34 @@
 export interface SerializationOptions {
   /**
    * Maximum depth for object traversal
-   * @default 10
+   * @default 6
    */
   maxDepth?: number;
+
+  /**
+   * Maximum number of elements to serialize in arrays
+   * @default 20
+   */
+  maxArrayLength?: number;
+
+  /**
+   * Maximum string length before truncation
+   * @default 2048
+   */
+  maxStringLength?: number;
+
+  /**
+   * Maximum number of properties to serialize per object
+   * @default 50
+   */
+  maxProperties?: number;
+
+  /**
+   * Maximum total bytes of serialized output (approximate).
+   * Once exceeded, remaining values are replaced with a truncation sentinel.
+   * @default 262144 (256 KB)
+   */
+  maxTotalBytes?: number;
 
   /**
    * Whether to include function references
@@ -20,9 +45,23 @@ export interface SerializationOptions {
   includeFunctions?: boolean;
 
   /**
-   * Custom replacer for special values
+   * Custom replacer for special values.
+   * Return value is used directly as the serialized output.
+   * Return `undefined` to skip the property entirely.
    */
   replacer?: (key: string, value: unknown) => unknown;
+
+  /**
+   * Set of property keys to skip during serialization.
+   * Properties with these keys are omitted from the output at any depth.
+   */
+  skipKeys?: Set<string>;
+
+  /**
+   * Key prefixes to skip during serialization.
+   * Any property whose key starts with one of these prefixes is omitted.
+   */
+  skipKeyPrefixes?: string[];
 }
 
 /**
@@ -50,6 +89,10 @@ export const SENTINEL_REF = {
    * Sentinel value for max depth exceeded
    */
   MAX_DEPTH: '[Max Depth Exceeded]',
+  /**
+   * Sentinel value for truncated output (byte budget exceeded)
+   */
+  TRUNCATED: '[Truncated: size limit]',
 } as const;
 
 /**

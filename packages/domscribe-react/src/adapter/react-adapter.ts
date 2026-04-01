@@ -10,7 +10,7 @@
  * @module @domscribe/react/adapter/react-adapter
  */
 
-import type { ComponentTreeNode } from '@domscribe/runtime';
+import type { ComponentTreeNode, SerializationHints } from '@domscribe/runtime';
 import type { ExtendedReactFiber } from '../fiber/types.js';
 import type {
   ReactAdapterOptions,
@@ -323,6 +323,20 @@ export class ReactAdapter implements ReactFrameworkAdapter {
       }
       return null;
     }
+  }
+
+  /**
+   * Return React-specific serialization hints.
+   *
+   * Tells the runtime serializer which keys are React internals that should
+   * be omitted. This prevents Fiber trees, element owner chains, and other
+   * framework plumbing from consuming the serialization byte budget.
+   */
+  getSerializationHints(): SerializationHints {
+    return {
+      skipKeys: new Set(['_owner', '_store', '__self', '__source']),
+      skipKeyPrefixes: ['__react'],
+    };
   }
 
   // ============================================================================

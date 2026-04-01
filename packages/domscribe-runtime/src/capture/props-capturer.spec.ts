@@ -188,13 +188,16 @@ describe('PropsCapturer', () => {
       capturer.capture(component);
 
       // Assert
-      expect(mockSerializeValue).toHaveBeenCalledWith(rawProps, {
-        maxDepth: 5,
-        includeFunctions: false,
-      });
+      expect(mockSerializeValue).toHaveBeenCalledWith(
+        rawProps,
+        expect.objectContaining({
+          maxDepth: 5,
+          includeFunctions: false,
+        }),
+      );
     });
 
-    it('should use default maxDepth of 10 when not specified', () => {
+    it('should use default maxDepth of 6 when not specified', () => {
       // Arrange
       const rawProps = { name: 'test' };
       adapter = createMockAdapter();
@@ -209,10 +212,13 @@ describe('PropsCapturer', () => {
       capturer.capture(component);
 
       // Assert
-      expect(mockSerializeValue).toHaveBeenCalledWith(rawProps, {
-        maxDepth: 10,
-        includeFunctions: false,
-      });
+      expect(mockSerializeValue).toHaveBeenCalledWith(
+        rawProps,
+        expect.objectContaining({
+          maxDepth: 6,
+          includeFunctions: false,
+        }),
+      );
     });
 
     it('should always set includeFunctions to false', () => {
@@ -234,10 +240,13 @@ describe('PropsCapturer', () => {
       capturer.capture(component);
 
       // Assert
-      expect(mockSerializeValue).toHaveBeenCalledWith(rawProps, {
-        maxDepth: 10,
-        includeFunctions: false,
-      });
+      expect(mockSerializeValue).toHaveBeenCalledWith(
+        rawProps,
+        expect.objectContaining({
+          maxDepth: 6,
+          includeFunctions: false,
+        }),
+      );
     });
   });
 
@@ -892,10 +901,13 @@ describe('PropsCapturer', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(mockSerializeValue).toHaveBeenCalledWith(rawProps, {
-        maxDepth: 10,
-        includeFunctions: false,
-      });
+      expect(mockSerializeValue).toHaveBeenCalledWith(
+        rawProps,
+        expect.objectContaining({
+          maxDepth: 10,
+          includeFunctions: false,
+        }),
+      );
       expect(mockRedactPII).toHaveBeenCalled();
     });
   });

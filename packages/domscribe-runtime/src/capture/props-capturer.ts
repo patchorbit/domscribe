@@ -38,10 +38,18 @@ export class PropsCapturer {
         };
       }
 
-      // Serialize props safely
+      // Serialize props safely.
+      // skipKeys and skipKeyPrefixes come from the adapter's serialization
+      // hints (e.g., React skips _owner, __reactFiber$*, etc.)
       const serialized = serializeValue(rawProps, {
-        maxDepth: this.options.maxDepth ?? 10,
+        maxDepth: this.options.maxDepth ?? 6,
+        maxArrayLength: this.options.maxArrayLength,
+        maxStringLength: this.options.maxStringLength,
+        maxProperties: this.options.maxProperties,
+        maxTotalBytes: this.options.maxTotalBytes,
         includeFunctions: false,
+        skipKeys: this.options.skipKeys,
+        skipKeyPrefixes: this.options.skipKeyPrefixes,
       });
 
       // Apply redaction if enabled

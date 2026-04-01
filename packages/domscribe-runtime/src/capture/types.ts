@@ -44,15 +44,44 @@ export interface CaptureOptions {
 }
 
 /**
- * Options for props capture
+ * Shared serialization constraint options for capturers.
  */
-export interface PropsCaptureOptions {
+export interface SerializationConstraints {
   /**
    * Maximum depth for object serialization
-   * @default 10
+   * @default 6 for props, 4 for state
    */
   maxDepth?: number;
 
+  /**
+   * Maximum array elements to serialize
+   * @default 20
+   */
+  maxArrayLength?: number;
+
+  /**
+   * Maximum string length before truncation
+   * @default 2048
+   */
+  maxStringLength?: number;
+
+  /**
+   * Maximum properties per object
+   * @default 50
+   */
+  maxProperties?: number;
+
+  /**
+   * Maximum total serialized bytes (approximate)
+   * @default 262144 (256 KB)
+   */
+  maxTotalBytes?: number;
+}
+
+/**
+ * Options for props capture
+ */
+export interface PropsCaptureOptions extends SerializationConstraints {
   /**
    * Enable PII redaction
    * @default true
@@ -64,18 +93,24 @@ export interface PropsCaptureOptions {
    * @default false
    */
   debug?: boolean;
+
+  /**
+   * Exact keys to skip during serialization.
+   * Provided by the framework adapter via getSerializationHints().
+   */
+  skipKeys?: Set<string>;
+
+  /**
+   * Key prefixes to skip during serialization.
+   * Provided by the framework adapter via getSerializationHints().
+   */
+  skipKeyPrefixes?: string[];
 }
 
 /**
  * Options for state capture
  */
-export interface StateCaptureOptions {
-  /**
-   * Maximum depth for object serialization
-   * @default 10
-   */
-  maxDepth?: number;
-
+export interface StateCaptureOptions extends SerializationConstraints {
   /**
    * Enable PII redaction
    * @default true
@@ -87,4 +122,16 @@ export interface StateCaptureOptions {
    * @default false
    */
   debug?: boolean;
+
+  /**
+   * Exact keys to skip during serialization.
+   * Provided by the framework adapter via getSerializationHints().
+   */
+  skipKeys?: Set<string>;
+
+  /**
+   * Key prefixes to skip during serialization.
+   * Provided by the framework adapter via getSerializationHints().
+   */
+  skipKeyPrefixes?: string[];
 }

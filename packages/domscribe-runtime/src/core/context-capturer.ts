@@ -8,7 +8,10 @@
 
 import type { RuntimeContext } from '@domscribe/core';
 import type { FrameworkAdapter } from '../adapters/adapter.interface.js';
-import type { CaptureOptions } from '../capture/types.js';
+import type {
+  CaptureOptions,
+  SerializationConstraints,
+} from '../capture/types.js';
 import { PropsCapturer } from '../capture/props-capturer.js';
 import { StateCapturer } from '../capture/state-capturer.js';
 import { ContextCaptureError } from '../errors/index.js';
@@ -30,9 +33,10 @@ export interface ContextCapturerOptions {
   phase?: 1 | 2;
 
   /**
-   * Maximum depth for serialization
+   * Serialization constraints for captured props and state.
+   * Individual fields fall back to sensible defaults in the serializer.
    */
-  maxDepth?: number;
+  serialization?: SerializationConstraints;
 
   /**
    * Enable PII redaction
@@ -54,32 +58,38 @@ export interface ContextCapturerOptions {
 export class ContextCapturer {
   private propsCapturer: PropsCapturer;
   private stateCapturer: StateCapturer;
-  private options: Required<ContextCapturerOptions>;
+  private options: Required<Omit<ContextCapturerOptions, 'serialization'>> &
+    Pick<ContextCapturerOptions, 'serialization'>;
 
   constructor(options: ContextCapturerOptions) {
     this.options = {
       adapter: options.adapter,
       phase: options.phase ?? 1,
-      maxDepth: options.maxDepth ?? 10,
+      serialization: options.serialization,
       redactPII: options.redactPII ?? true,
       debug: options.debug ?? false,
     };
 
-    // Initialize capturers
-    const captureOptions = {
-      maxDepth: this.options.maxDepth,
+    const s = this.options.serialization;
+
+    // Ask the adapter which keys are framework internals
+    const hints = this.options.adapter.getSerializationHints?.();
+
+    // Initialize capturers with serialization constraints + adapter hints
+    this.propsCapturer = new PropsCapturer(this.options.adapter, {
+      ...s,
+      skipKeys: hints?.skipKeys,
+      skipKeyPrefixes: hints?.skipKeyPrefixes,
       redactPII: this.options.redactPII,
       debug: this.options.debug,
-    };
-
-    this.propsCapturer = new PropsCapturer(
-      this.options.adapter,
-      captureOptions,
-    );
-    this.stateCapturer = new StateCapturer(
-      this.options.adapter,
-      captureOptions,
-    );
+    });
+    this.stateCapturer = new StateCapturer(this.options.adapter, {
+      ...s,
+      skipKeys: hints?.skipKeys,
+      skipKeyPrefixes: hints?.skipKeyPrefixes,
+      redactPII: this.options.redactPII,
+      debug: this.options.debug,
+    });
   }
 
   /**

@@ -3,7 +3,8 @@
  *
  * Handles extraction of component state for both class and function components.
  * For class components, extracts from memoizedState. For function components,
- * extracts useState/useReducer state from the hook chain.
+ * classifies hooks by type and extracts only meaningful state — skipping
+ * effect hooks and discarding memo dependency arrays.
  *
  * @module @domscribe/react/component/state-extractor
  */
@@ -15,6 +16,28 @@ import type {
 } from './types.js';
 import { REACT_FIBER_TAGS } from '../utils/constants.js';
 import { StateExtractionError } from '../errors/index.js';
+
+/**
+ * Hook classification based on structure of memoizedState.
+ *
+ * React doesn't tag hooks explicitly, so we infer by structure:
+ * - Effect: memoizedState is `{tag, create, deps, ...}` (useEffect/useLayoutEffect)
+ * - Ref: memoizedState is `{current}` with no other own keys
+ * - Memo: memoizedState is Array[2] where [1] is array or null (useMemo/useCallback)
+ * - State: hook node has a `queue` property (useState/useReducer)
+ * - Unknown: anything else
+ */
+type HookType = 'effect' | 'ref' | 'memo' | 'state' | 'unknown';
+
+/**
+ * Counters for generating semantic hook key names (state_0, ref_0, memo_0).
+ */
+interface HookCounters {
+  state: number;
+  ref: number;
+  memo: number;
+  unknown: number;
+}
 
 /**
  * StateExtractor class for extracting state from Fiber nodes
@@ -134,10 +157,18 @@ export class StateExtractor {
   }
 
   /**
-   * Extract state values from hook chain
+   * Extract state values from hook chain.
+   *
+   * Classifies each hook by type and extracts only meaningful data:
+   * - Effect hooks are skipped entirely (internal implementation detail)
+   * - Memo/callback hooks return only the cached value (deps discarded)
+   * - State/reducer hooks return memoizedState as-is
+   * - Ref hooks return {current: value}
+   *
+   * Keys use semantic names: state_0, ref_0, memo_0, unknown_0
    *
    * @param fiber - Fiber node with hooks
-   * @returns Record mapping hook indices to state values
+   * @returns Record mapping semantic hook names to state values
    */
   private extractStateFromHooks(
     fiber: ExtendedReactFiber,
@@ -145,14 +176,23 @@ export class StateExtractor {
     const stateRecord: Record<string, unknown> = {};
     let current: unknown = fiber.memoizedState;
     let hookIndex = 0;
+    const counters: HookCounters = { state: 0, ref: 0, memo: 0, unknown: 0 };
 
     while (current && hookIndex < 100) {
       // Safety limit
       if (this.isHookNode(current)) {
-        // Check if this is a state hook (useState or useReducer)
-        // State hooks have memoizedState property
         if ('memoizedState' in current) {
-          stateRecord[`hook_${hookIndex}`] = current.memoizedState;
+          const hookType = this.classifyHook(current);
+
+          // Skip effect hooks — they contain only internal data
+          // (tag, create, destroy, deps, inst, next)
+          if (hookType !== 'effect') {
+            const key = `${hookType}_${counters[hookType]++}`;
+            stateRecord[key] = this.extractHookValue(
+              hookType,
+              current.memoizedState,
+            );
+          }
         }
 
         current = current.next;
@@ -167,6 +207,108 @@ export class StateExtractor {
   }
 
   /**
+   * Classify a hook node by examining its memoizedState structure.
+   *
+   * @param hookNode - A hook linked-list node
+   * @returns The inferred hook type
+   */
+  private classifyHook(hookNode: {
+    memoizedState: unknown;
+    next: unknown;
+    [key: string]: unknown;
+  }): HookType {
+    const ms = hookNode.memoizedState;
+
+    // Effect hooks: memoizedState is {tag, create, deps, ...}
+    if (this.isEffectState(ms)) {
+      return 'effect';
+    }
+
+    // State/reducer hooks: hook node has a `queue` property
+    if ('queue' in hookNode && hookNode.queue !== null) {
+      return 'state';
+    }
+
+    // Ref hooks: memoizedState is {current: any} with no other own keys
+    if (this.isRefState(ms)) {
+      return 'ref';
+    }
+
+    // Memo/callback hooks: memoizedState is [value, deps]
+    if (this.isMemoState(ms)) {
+      return 'memo';
+    }
+
+    return 'unknown';
+  }
+
+  /**
+   * Extract the meaningful value from a hook based on its type.
+   *
+   * @param hookType - The classified hook type
+   * @param memoizedState - The hook's memoizedState
+   * @returns The extracted value
+   */
+  private extractHookValue(
+    hookType: HookType,
+    memoizedState: unknown,
+  ): unknown {
+    switch (hookType) {
+      case 'memo':
+        // Memo/callback: return only the cached value, discard deps
+        if (Array.isArray(memoizedState) && memoizedState.length === 2) {
+          return memoizedState[0];
+        }
+        return memoizedState;
+
+      case 'ref':
+      case 'state':
+      case 'unknown':
+      default:
+        return memoizedState;
+    }
+  }
+
+  /**
+   * Check if memoizedState looks like an effect hook's state.
+   * Effect state has the shape: {tag: number, create: fn, deps: array|null, ...}
+   */
+  private isEffectState(ms: unknown): boolean {
+    return (
+      typeof ms === 'object' &&
+      ms !== null &&
+      !Array.isArray(ms) &&
+      'tag' in ms &&
+      'create' in ms &&
+      'deps' in ms
+    );
+  }
+
+  /**
+   * Check if memoizedState looks like a ref hook's state.
+   * Ref state has the shape: {current: any} with no other own keys.
+   */
+  private isRefState(ms: unknown): boolean {
+    if (typeof ms !== 'object' || ms === null || Array.isArray(ms)) {
+      return false;
+    }
+    const keys = Object.keys(ms);
+    return keys.length === 1 && keys[0] === 'current';
+  }
+
+  /**
+   * Check if memoizedState looks like a memo/callback hook's state.
+   * Memo state has the shape: [cachedValue, deps] where deps is array|null.
+   */
+  private isMemoState(ms: unknown): boolean {
+    return (
+      Array.isArray(ms) &&
+      ms.length === 2 &&
+      (Array.isArray(ms[1]) || ms[1] === null)
+    );
+  }
+
+  /**
    * Check if a value is a hook node
    *
    * @param value - Value to check
@@ -175,6 +317,7 @@ export class StateExtractor {
   private isHookNode(value: unknown): value is {
     memoizedState: unknown;
     next: unknown;
+    [key: string]: unknown;
   } {
     return (
       typeof value === 'object' &&

@@ -71,6 +71,7 @@ All imports use `.js` extension (ESM compiled output).
 - **Dependency injection**: Constructor-based, not container-based. Classes receive dependencies, don't reach for globals.
 - **Append-only**: Manifest uses JSONL with hash-based staleness — entries are added, never deleted
 - **Migrate on read**: Schema migrations run sequentially on deserialization without re-validating through Zod (preserves pre-existing data)
+- **Adapter hints**: Framework-specific knowledge (which keys are internals, which hooks to skip) is declared by the adapter via optional interface methods (`getSerializationHints()`), not hardcoded in the generic runtime. The runtime provides the mechanism; the adapter provides the policy.
 
 ## Comments & Documentation
 
