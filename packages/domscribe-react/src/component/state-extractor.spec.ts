@@ -105,11 +105,14 @@ describe('StateExtractor', () => {
     });
 
     describe('function components', () => {
-      it('should extract state from hook chain', () => {
+      it('should extract state from hook chain with semantic names', () => {
+        // Arrange - useState hooks have a `queue` property
         const hookChain = {
           memoizedState: 'hello',
+          queue: {},
           next: {
             memoizedState: 42,
+            queue: {},
             next: null,
           },
         };
@@ -118,13 +121,15 @@ describe('StateExtractor', () => {
           memoizedState: hookChain,
         });
 
+        // Act
         const result = extractor.extract(fiber);
 
+        // Assert
         expect(result.success).toBe(true);
         expect(result.stateType).toBe('hooks');
         expect(result.state).toEqual({
-          hook_0: 'hello',
-          hook_1: 42,
+          state_0: 'hello',
+          state_1: 42,
         });
       });
 
@@ -155,7 +160,7 @@ describe('StateExtractor', () => {
         expect(result.state).toBeUndefined();
       });
 
-      it('should recognize hook nodes with queue property', () => {
+      it('should recognize hook nodes with queue property as state hooks', () => {
         const hookChain = {
           queue: {},
           memoizedState: 'value',
@@ -169,7 +174,7 @@ describe('StateExtractor', () => {
         const result = extractor.extract(fiber);
 
         expect(result.success).toBe(true);
-        expect(result.state).toEqual({ hook_0: 'value' });
+        expect(result.state).toEqual({ state_0: 'value' });
       });
 
       it('should recognize hook nodes with baseState property', () => {
@@ -186,19 +191,21 @@ describe('StateExtractor', () => {
         const result = extractor.extract(fiber);
 
         expect(result.success).toBe(true);
-        expect(result.state).toEqual({ hook_0: 'current' });
+        expect(result.state).toEqual({ unknown_0: 'current' });
       });
 
       it('should respect the 100-hook safety limit', () => {
-        // Build a circular hook chain
+        // Build a long hook chain (all state hooks with queue)
         const first: Record<string, unknown> = {
           memoizedState: 0,
+          queue: {},
           next: null,
         };
         let current = first;
         for (let i = 1; i < 150; i++) {
           const next: Record<string, unknown> = {
             memoizedState: i,
+            queue: {},
             next: null,
           };
           current.next = next;
@@ -219,6 +226,7 @@ describe('StateExtractor', () => {
       it('should extract from MemoComponent fibers', () => {
         const hookChain = {
           memoizedState: 'memo-state',
+          queue: {},
           next: null,
         };
         const fiber = createFiber({
@@ -230,12 +238,13 @@ describe('StateExtractor', () => {
 
         expect(result.success).toBe(true);
         expect(result.stateType).toBe('hooks');
-        expect(result.state).toEqual({ hook_0: 'memo-state' });
+        expect(result.state).toEqual({ state_0: 'memo-state' });
       });
 
       it('should extract from SimpleMemoComponent fibers', () => {
         const hookChain = {
           memoizedState: 'simple-memo',
+          queue: {},
           next: null,
         };
         const fiber = createFiber({
@@ -252,6 +261,7 @@ describe('StateExtractor', () => {
       it('should extract from ForwardRef fibers', () => {
         const hookChain = {
           memoizedState: 'fwd-ref',
+          queue: {},
           next: null,
         };
         const fiber = createFiber({
@@ -263,6 +273,128 @@ describe('StateExtractor', () => {
 
         expect(result.success).toBe(true);
         expect(result.stateType).toBe('hooks');
+      });
+    });
+
+    describe('hook classification', () => {
+      it('should skip effect hooks entirely', () => {
+        const hookChain = {
+          memoizedState: {
+            tag: 5,
+            create: () => undefined,
+            deps: [1, 2],
+            inst: {},
+            next: null,
+          },
+          next: {
+            memoizedState: 'actual-state',
+            queue: {},
+            next: null,
+          },
+        };
+        const fiber = createFiber({
+          tag: REACT_FIBER_TAGS.FunctionComponent,
+          memoizedState: hookChain,
+        });
+
+        const result = extractor.extract(fiber);
+
+        expect(result.success).toBe(true);
+        // Effect hook should be skipped, only state hook remains
+        expect(result.state).toEqual({ state_0: 'actual-state' });
+      });
+
+      it('should extract only cached value from memo hooks (discard deps)', () => {
+        const hookChain = {
+          memoizedState: ['cachedValue', ['dep1', 'dep2']],
+          next: null,
+        };
+        const fiber = createFiber({
+          tag: REACT_FIBER_TAGS.FunctionComponent,
+          memoizedState: hookChain,
+        });
+
+        const result = extractor.extract(fiber);
+
+        expect(result.success).toBe(true);
+        expect(result.state).toEqual({ memo_0: 'cachedValue' });
+      });
+
+      it('should keep ref hooks as {current: value}', () => {
+        const hookChain = {
+          memoizedState: { current: 'ref-value' },
+          next: null,
+        };
+        const fiber = createFiber({
+          tag: REACT_FIBER_TAGS.FunctionComponent,
+          memoizedState: hookChain,
+        });
+
+        const result = extractor.extract(fiber);
+
+        expect(result.success).toBe(true);
+        expect(result.state).toEqual({ ref_0: { current: 'ref-value' } });
+      });
+
+      it('should handle mixed hook types with correct naming', () => {
+        // Build a chain: useState → useEffect → useRef → useMemo → useEffect
+        const hookChain = {
+          memoizedState: 'count',
+          queue: {},
+          next: {
+            memoizedState: {
+              tag: 5,
+              create: () => undefined,
+              deps: null,
+              inst: {},
+            },
+            next: {
+              memoizedState: { current: null },
+              next: {
+                memoizedState: ['computed', [1, 2]],
+                next: {
+                  memoizedState: {
+                    tag: 3,
+                    create: () => undefined,
+                    deps: ['a'],
+                    inst: {},
+                  },
+                  next: null,
+                },
+              },
+            },
+          },
+        };
+        const fiber = createFiber({
+          tag: REACT_FIBER_TAGS.FunctionComponent,
+          memoizedState: hookChain,
+        });
+
+        const result = extractor.extract(fiber);
+
+        expect(result.success).toBe(true);
+        // Effects skipped, remaining hooks get semantic names
+        expect(result.state).toEqual({
+          state_0: 'count',
+          ref_0: { current: null },
+          memo_0: 'computed',
+        });
+      });
+
+      it('should handle memo hooks with null deps (useCallback)', () => {
+        const hookChain = {
+          memoizedState: ['callback-fn', null],
+          next: null,
+        };
+        const fiber = createFiber({
+          tag: REACT_FIBER_TAGS.FunctionComponent,
+          memoizedState: hookChain,
+        });
+
+        const result = extractor.extract(fiber);
+
+        expect(result.success).toBe(true);
+        expect(result.state).toEqual({ memo_0: 'callback-fn' });
       });
     });
 

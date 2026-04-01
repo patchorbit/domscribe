@@ -52,11 +52,12 @@ interface DomscribeVuePluginOptions {
 
 ### Runtime Options
 
-| Option           | Type       | Default | Description                                                     |
-| ---------------- | ---------- | ------- | --------------------------------------------------------------- |
-| `phase`          | `1 \| 2`   | `1`     | Feature phase gate (Phase 1: props/state, Phase 2: events/perf) |
-| `redactPII`      | `boolean`  | `true`  | Redact sensitive values in captured data                        |
-| `blockSelectors` | `string[]` | `[]`    | CSS selectors to exclude from capture                           |
+| Option           | Type                       | Default     | Description                                                                                            |
+| ---------------- | -------------------------- | ----------- | ------------------------------------------------------------------------------------------------------ |
+| `phase`          | `1 \| 2`                   | `1`         | Feature phase gate (Phase 1: props/state, Phase 2: events/perf)                                        |
+| `redactPII`      | `boolean`                  | `true`      | Redact sensitive values in captured data                                                               |
+| `blockSelectors` | `string[]`                 | `[]`        | CSS selectors to exclude from capture                                                                  |
+| `serialization`  | `SerializationConstraints` | `undefined` | Serialization bounds (maxDepth, maxArrayLength, maxTotalBytes, etc.) — see `@domscribe/runtime` README |
 
 ### Capture Options
 

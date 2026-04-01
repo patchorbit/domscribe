@@ -936,7 +936,7 @@ describe('serializeValue', () => {
   });
 
   describe('Depth Limiting', () => {
-    it('should respect default maxDepth of 10', () => {
+    it('should respect default maxDepth of 6', () => {
       // Arrange
       const value: Record<string, unknown> = { level: 0 };
       let current = value;
@@ -956,7 +956,7 @@ describe('serializeValue', () => {
         depth++;
         node = node.child as Record<string, unknown>;
       }
-      expect(depth).toBe(10);
+      expect(depth).toBe(6);
       expect(node.child).toBe(SENTINEL_REF.MAX_DEPTH);
     });
 
@@ -2051,6 +2051,323 @@ describe('Round-trip Serialization', () => {
     expect(deserialized).toEqual({
       name: 'test',
       self: '[Circular]',
+    });
+  });
+});
+
+describe('serializeValue - bounded constraints', () => {
+  describe('maxArrayLength', () => {
+    it('should truncate arrays exceeding maxArrayLength', () => {
+      // Arrange
+      const value = Array.from({ length: 50 }, (_, i) => i);
+
+      // Act
+      const result = serializeValue(value, { maxArrayLength: 5 });
+
+      // Assert
+      expect(result).toHaveLength(6); // 5 items + truncation metadata
+      const arr = result as unknown[];
+      expect(arr[0]).toBe(0);
+      expect(arr[4]).toBe(4);
+      expect(arr[5]).toEqual({ __truncated: true, originalLength: 50 });
+    });
+
+    it('should not truncate arrays within maxArrayLength', () => {
+      // Arrange
+      const value = [1, 2, 3];
+
+      // Act
+      const result = serializeValue(value, { maxArrayLength: 10 });
+
+      // Assert
+      expect(result).toEqual([1, 2, 3]);
+    });
+
+    it('should truncate Map entries exceeding maxArrayLength', () => {
+      // Arrange
+      const value = new Map(
+        Array.from({ length: 30 }, (_, i) => [`key${i}`, i]),
+      );
+
+      // Act
+      const result = serializeValue(value, { maxArrayLength: 5 }) as Record<
+        string,
+        unknown
+      >;
+
+      // Assert
+      expect(result.__type).toBe('Map');
+      expect(result.__truncated).toBe(true);
+      expect(result.originalSize).toBe(30);
+      expect((result.entries as unknown[]).length).toBe(5);
+    });
+
+    it('should truncate Set values exceeding maxArrayLength', () => {
+      // Arrange
+      const value = new Set(Array.from({ length: 25 }, (_, i) => i));
+
+      // Act
+      const result = serializeValue(value, { maxArrayLength: 5 }) as Record<
+        string,
+        unknown
+      >;
+
+      // Assert
+      expect(result.__type).toBe('Set');
+      expect(result.__truncated).toBe(true);
+      expect(result.originalSize).toBe(25);
+      expect((result.values as unknown[]).length).toBe(5);
+    });
+  });
+
+  describe('maxStringLength', () => {
+    it('should truncate strings exceeding maxStringLength', () => {
+      // Arrange
+      const value = 'a'.repeat(5000);
+
+      // Act
+      const result = serializeValue(value, { maxStringLength: 100 });
+
+      // Assert
+      expect(result).toBe('a'.repeat(100) + '... [truncated]');
+    });
+
+    it('should not truncate strings within maxStringLength', () => {
+      // Arrange
+      const value = 'hello world';
+
+      // Act
+      const result = serializeValue(value, { maxStringLength: 100 });
+
+      // Assert
+      expect(result).toBe('hello world');
+    });
+
+    it('should truncate strings in nested objects', () => {
+      // Arrange
+      const value = { data: 'x'.repeat(3000) };
+
+      // Act
+      const result = serializeValue(value, { maxStringLength: 50 }) as Record<
+        string,
+        unknown
+      >;
+
+      // Assert
+      expect(result.data).toBe('x'.repeat(50) + '... [truncated]');
+    });
+  });
+
+  describe('maxProperties', () => {
+    it('should limit properties per object', () => {
+      // Arrange
+      const value: Record<string, number> = {};
+      for (let i = 0; i < 100; i++) {
+        value[`key${i}`] = i;
+      }
+
+      // Act
+      const result = serializeValue(value, { maxProperties: 10 }) as Record<
+        string,
+        unknown
+      >;
+
+      // Assert
+      const keys = Object.keys(result).filter((k) => !k.startsWith('__'));
+      expect(keys.length).toBe(10);
+      expect(result.__truncated).toBe(true);
+      expect(result.__originalKeyCount).toBe(100);
+    });
+
+    it('should not add truncation metadata when within limit', () => {
+      // Arrange
+      const value = { a: 1, b: 2, c: 3 };
+
+      // Act
+      const result = serializeValue(value, { maxProperties: 10 }) as Record<
+        string,
+        unknown
+      >;
+
+      // Assert
+      expect(result).toEqual({ a: 1, b: 2, c: 3 });
+      expect(result.__truncated).toBeUndefined();
+    });
+  });
+
+  describe('maxTotalBytes', () => {
+    it('should stop serializing when byte budget is exceeded', () => {
+      // Arrange — create an object with many string values that collectively
+      // exceed the byte budget. Each value is 200 chars, budget is 500 bytes.
+      const value: Record<string, string> = {};
+      for (let i = 0; i < 20; i++) {
+        value[`key${i}`] = 'x'.repeat(200);
+      }
+
+      // Act — with a tiny byte budget
+      const result = serializeValue(value, {
+        maxTotalBytes: 500,
+        maxStringLength: 10000, // Don't let string truncation interfere
+      }) as Record<string, unknown>;
+
+      // Assert — later values should be truncated sentinels
+      const values = Object.values(result);
+      const truncatedCount = values.filter(
+        (v) => v === SENTINEL_REF.TRUNCATED,
+      ).length;
+      expect(truncatedCount).toBeGreaterThan(0);
+
+      // Early values should still be serialized
+      const serializedCount = values.filter(
+        (v) => typeof v === 'string' && v.startsWith('x'),
+      ).length;
+      expect(serializedCount).toBeGreaterThan(0);
+    });
+
+    it('should not truncate when within byte budget', () => {
+      // Arrange
+      const value = { a: 'hello', b: 42, c: true };
+
+      // Act
+      const result = serializeValue(value, { maxTotalBytes: 262144 });
+
+      // Assert
+      expect(result).toEqual({ a: 'hello', b: 42, c: true });
+    });
+  });
+
+  describe('skipKeys', () => {
+    it('should omit properties in skipKeys set', () => {
+      // Arrange
+      const value = {
+        name: 'test',
+        _owner: { huge: 'fiber tree' },
+        _store: { internal: true },
+        visible: 'data',
+      };
+
+      // Act
+      const result = serializeValue(value, {
+        skipKeys: new Set(['_owner', '_store']),
+      }) as Record<string, unknown>;
+
+      // Assert
+      expect(result).toEqual({ name: 'test', visible: 'data' });
+      expect(result._owner).toBeUndefined();
+      expect(result._store).toBeUndefined();
+    });
+
+    it('should skip keys at nested depths', () => {
+      // Arrange
+      const value = {
+        child: {
+          _owner: { nested: 'fiber' },
+          name: 'inner',
+        },
+      };
+
+      // Act
+      const result = serializeValue(value, {
+        skipKeys: new Set(['_owner']),
+      }) as Record<string, unknown>;
+
+      // Assert
+      expect(result).toEqual({ child: { name: 'inner' } });
+    });
+  });
+
+  describe('skipKeyPrefixes', () => {
+    it('should skip keys matching any prefix', () => {
+      // Arrange — simulate React Fiber keys attached to a DOM node
+      const value = {
+        tagName: 'div',
+        __reactFiber$abc123: { tag: 5, stateNode: 'massive fiber tree' },
+        __reactProps$abc123: { onClick: 'handler' },
+        __reactEvents$abc123: ['click'],
+        className: 'container',
+      };
+
+      // Act
+      const result = serializeValue(value, {
+        skipKeyPrefixes: ['__react'],
+      }) as Record<string, unknown>;
+
+      // Assert
+      expect(result.tagName).toBe('div');
+      expect(result.className).toBe('container');
+      expect(result.__reactFiber$abc123).toBeUndefined();
+      expect(result.__reactProps$abc123).toBeUndefined();
+      expect(result.__reactEvents$abc123).toBeUndefined();
+    });
+
+    it('should skip prefixed keys at nested depths', () => {
+      // Arrange
+      const value = {
+        child: {
+          __reactFiber$xyz: { huge: 'tree' },
+          name: 'inner',
+        },
+      };
+
+      // Act
+      const result = serializeValue(value, {
+        skipKeyPrefixes: ['__react'],
+      }) as Record<string, unknown>;
+
+      // Assert
+      expect(result).toEqual({ child: { name: 'inner' } });
+    });
+
+    it('should work together with skipKeys', () => {
+      // Arrange
+      const value = {
+        _owner: { fiberChain: 'data' },
+        __reactFiber$hash: { tag: 5 },
+        name: 'test',
+      };
+
+      // Act
+      const result = serializeValue(value, {
+        skipKeys: new Set(['_owner']),
+        skipKeyPrefixes: ['__react'],
+      }) as Record<string, unknown>;
+
+      // Assert
+      expect(result).toEqual({ name: 'test' });
+    });
+  });
+
+  describe('combined constraints', () => {
+    it('should apply all constraints together', () => {
+      // Arrange — simulate a React component capture scenario
+      const value = {
+        _owner: { fiberChain: 'massive data' },
+        _store: {},
+        __reactFiber$hash: { tag: 5, stateNode: 'fiber tree' },
+        props: { className: 'btn' },
+        items: Array.from({ length: 100 }, (_, i) => ({
+          id: i,
+          label: 'x'.repeat(5000),
+        })),
+      };
+
+      // Act
+      const result = serializeValue(value, {
+        maxDepth: 4,
+        maxArrayLength: 5,
+        maxStringLength: 100,
+        maxProperties: 20,
+        skipKeys: new Set(['_owner', '_store']),
+        skipKeyPrefixes: ['__react'],
+      }) as Record<string, unknown>;
+
+      // Assert
+      expect(result._owner).toBeUndefined();
+      expect(result._store).toBeUndefined();
+      expect(result.__reactFiber$hash).toBeUndefined();
+      expect(result.props).toEqual({ className: 'btn' });
+      const items = result.items as unknown[];
+      expect(items.length).toBe(6); // 5 items + truncation metadata
     });
   });
 });

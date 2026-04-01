@@ -52,11 +52,12 @@ interface DomscribeReactPluginOptions {
 
 ### Runtime Options
 
-| Option           | Type       | Default | Description                                                     |
-| ---------------- | ---------- | ------- | --------------------------------------------------------------- |
-| `phase`          | `1 \| 2`   | `1`     | Feature phase gate (Phase 1: props/state, Phase 2: events/perf) |
-| `redactPII`      | `boolean`  | `true`  | Redact sensitive values in captured data                        |
-| `blockSelectors` | `string[]` | `[]`    | CSS selectors to exclude from capture                           |
+| Option           | Type                       | Default     | Description                                                                                            |
+| ---------------- | -------------------------- | ----------- | ------------------------------------------------------------------------------------------------------ |
+| `phase`          | `1 \| 2`                   | `1`         | Feature phase gate (Phase 1: props/state, Phase 2: events/perf)                                        |
+| `redactPII`      | `boolean`                  | `true`      | Redact sensitive values in captured data                                                               |
+| `blockSelectors` | `string[]`                 | `[]`        | CSS selectors to exclude from capture                                                                  |
+| `serialization`  | `SerializationConstraints` | `undefined` | Serialization bounds (maxDepth, maxArrayLength, maxTotalBytes, etc.) — see `@domscribe/runtime` README |
 
 ### Capture Options
 
@@ -66,6 +67,17 @@ interface DomscribeReactPluginOptions {
 | `maxTreeDepth`      | `number`                                 | `50`            | Maximum component tree depth to traverse                                                                                                                                          |
 | `includeWrappers`   | `boolean`                                | `true`          | Include HOC/memo/forwardRef wrapper components                                                                                                                                    |
 | `hookNameResolvers` | `Record<string, Record<number, string>>` | `undefined`     | Map component names to hook index to semantic name mappings. Keys are component names, values map hook index to name. Converted to `Map<string, Map<number, string>>` at runtime. |
+
+### Hook State Extraction
+
+The React adapter classifies hooks by inspecting the structure of each hook's `memoizedState` and applies smart extraction:
+
+- **Effect hooks** (`useEffect`, `useLayoutEffect`) are **excluded** from captured state — they contain only internal scheduling data (`{tag, create, destroy, deps}`), not application state.
+- **Memo/callback hooks** (`useMemo`, `useCallback`) return only the **cached value** — the dependency array is discarded.
+- **Ref hooks** (`useRef`) are captured as `{current: value}`.
+- **State/reducer hooks** (`useState`, `useReducer`) are captured as-is.
+
+Hooks use semantic names based on their inferred type: `state_0`, `ref_0`, `memo_0`, `unknown_0`.
 
 ## Subpath Exports
 

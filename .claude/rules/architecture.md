@@ -102,3 +102,5 @@ These are resolved by `scripts/resolve-workspace-deps.mjs` during `sync-dist`. D
 - **Zero production impact**: All instrumentation is dev-only. Production builds strip `data-ds` attributes, overlay scripts, and relay connections.
 - **Dynamic ports**: Dev servers and relay use `port: 0`. Never hardcode port numbers.
 - **IPv6-aware**: Verdaccio binds to `[::1]` — port availability checks must try both `::1` and `127.0.0.1`.
+- **Bounded serialization**: Props and state serialization is constrained by depth (6/4), array length (20), string length (2048), property count (50), and byte budget (256 KB). Adapters provide `SerializationHints` via `getSerializationHints()` to skip framework-internal keys (React: `_owner`, `__reactFiber$*`; Vue: `__v_*`).
+- **Shared runtime options**: `DomscribeRuntimeOptions` (including `serialization` constraints) is defined once in `@domscribe/runtime` and re-exported by adapter packages. Framework-specific capture options remain in each adapter.

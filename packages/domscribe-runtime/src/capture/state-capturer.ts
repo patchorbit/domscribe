@@ -38,10 +38,19 @@ export class StateCapturer {
         };
       }
 
-      // Serialize state safely
+      // Serialize state safely — lower default depth than props since hook
+      // state branches heavily (context values, animation trees, etc.).
+      // skipKeys and skipKeyPrefixes come from the adapter's serialization
+      // hints (e.g., React skips _owner, __reactFiber$*, etc.)
       const serialized = serializeValue(rawState, {
-        maxDepth: this.options.maxDepth ?? 10,
+        maxDepth: this.options.maxDepth ?? 4,
+        maxArrayLength: this.options.maxArrayLength,
+        maxStringLength: this.options.maxStringLength,
+        maxProperties: this.options.maxProperties,
+        maxTotalBytes: this.options.maxTotalBytes,
         includeFunctions: false,
+        skipKeys: this.options.skipKeys,
+        skipKeyPrefixes: this.options.skipKeyPrefixes,
       });
 
       // Apply redaction if enabled

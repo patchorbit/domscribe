@@ -30,7 +30,8 @@ export class RuntimeManager {
 
   private elementTracker: ElementTracker | null = null;
   private contextCapturer: ContextCapturer | null = null;
-  private options: Required<RuntimeOptions>;
+  private options: Required<Omit<RuntimeOptions, 'serialization'>> &
+    Pick<RuntimeOptions, 'serialization'>;
   private isInitialized = false;
 
   private constructor() {
@@ -41,6 +42,7 @@ export class RuntimeManager {
       debug: false,
       redactPII: true,
       blockSelectors: [],
+      serialization: undefined,
     };
   }
 
@@ -96,6 +98,7 @@ export class RuntimeManager {
       debug: options.debug ?? false,
       redactPII: options.redactPII ?? true,
       blockSelectors: options.blockSelectors ?? [],
+      serialization: options.serialization,
     };
 
     try {
@@ -112,7 +115,7 @@ export class RuntimeManager {
       this.contextCapturer = new ContextCapturer({
         adapter: this.options.adapter,
         phase: this.options.phase,
-        maxDepth: 10,
+        serialization: this.options.serialization,
         redactPII: this.options.redactPII,
         debug: this.options.debug,
       });
