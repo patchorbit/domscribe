@@ -48,8 +48,10 @@ export interface CaptureOptions {
  */
 export interface SerializationConstraints {
   /**
-   * Maximum depth for object serialization
-   * @default 6 for props, 4 for state
+   * Maximum depth for object serialization.
+   * The serializer defaults to 6. The state capturer overrides to 4
+   * since hook state branches more heavily than props.
+   * @default 6
    */
   maxDepth?: number;
 

@@ -3,41 +3,16 @@
  * @module @domscribe/runtime/utils/serialization-utils
  */
 
+import type { SerializationConstraints } from '../capture/types.js';
+
 /**
- * Options for serialization
+ * Full serialization options for the internal `serializeValue()` function.
+ *
+ * Extends user-facing `SerializationConstraints` (sizing limits) with
+ * internal-only options (replacer, skip keys, function handling) that
+ * are set by the capture layer, not by end users.
  */
-export interface SerializationOptions {
-  /**
-   * Maximum depth for object traversal
-   * @default 6
-   */
-  maxDepth?: number;
-
-  /**
-   * Maximum number of elements to serialize in arrays
-   * @default 20
-   */
-  maxArrayLength?: number;
-
-  /**
-   * Maximum string length before truncation
-   * @default 2048
-   */
-  maxStringLength?: number;
-
-  /**
-   * Maximum number of properties to serialize per object
-   * @default 50
-   */
-  maxProperties?: number;
-
-  /**
-   * Maximum total bytes of serialized output (approximate).
-   * Once exceeded, remaining values are replaced with a truncation sentinel.
-   * @default 262144 (256 KB)
-   */
-  maxTotalBytes?: number;
-
+export interface SerializationOptions extends SerializationConstraints {
   /**
    * Whether to include function references
    * @default false
