@@ -18,12 +18,12 @@
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
-    "next": ">=15.0.0",
+    "next": ">=16.2.3",
     "react": "^19.0.0",
     "webpack": "^5.102.0"
   },
   "peerDependencies": {
-    "next": ">=15.0.0",
+    "next": ">=16.2.3",
     "react": "^18.0.0 || ^19.0.0"
   },
   "engines": {
