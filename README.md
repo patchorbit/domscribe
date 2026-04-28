@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/patchorbit-domscribe-badge.png)](https://mseep.ai/app/patchorbit-domscribe)
+
 <p align="center">
   <img src="./docs/logo.png" alt="Domscribe" width="200" />
 </p>
