@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { McpToolDefinition } from './tools/tool.defs.js';
+import { LEGACY_TOOL_ALIASES, McpToolDefinition } from './tools/tool.defs.js';
 import { McpPromptDefinition } from './prompts/prompt.defs.js';
 import { RelayHttpClient } from '../client/relay-http-client.js';
 import { RELAY_VERSION } from '../version.js';
@@ -116,24 +116,26 @@ export class McpAdapter {
     ];
 
     for (const tool of tools) {
-      this.server.registerTool(
-        tool.name,
-        {
-          description: tool.description,
-          inputSchema: tool.inputSchema,
-        },
-        async (args) => {
-          if (this.debug) {
-            console.error(`[domscribe-mcp] Tool call: ${tool.name}`, args);
-          }
-          return tool.toolCallback(args);
-        },
-      );
+      this.registerToolWithAlias(tool);
     }
   }
 
   private registerDormantTools(cwd: string): void {
-    const tool = new DormantStatusTool(cwd);
+    this.registerToolWithAlias(new DormantStatusTool(cwd));
+  }
+
+  /**
+   * Register a tool under its canonical name AND its legacy dotted alias
+   * (if one exists). Calls via the legacy name emit a deprecation warning
+   * on stderr before delegating to the same callback.
+   *
+   * stderr is the only safe diagnostic channel for a stdio MCP server —
+   * stdout carries the JSON-RPC transport and must not be written to.
+   */
+  private registerToolWithAlias(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tool: McpToolDefinition<z.ZodType<any>, z.ZodType<any>>,
+  ): void {
     this.server.registerTool(
       tool.name,
       {
@@ -143,6 +145,33 @@ export class McpAdapter {
       async (args) => {
         if (this.debug) {
           console.error(`[domscribe-mcp] Tool call: ${tool.name}`, args);
+        }
+        return tool.toolCallback(args);
+      },
+    );
+
+    const legacyName = LEGACY_TOOL_ALIASES[tool.name];
+    if (!legacyName) {
+      return;
+    }
+
+    this.server.registerTool(
+      legacyName,
+      {
+        description: `[DEPRECATED — use \`${tool.name}\`] ${tool.description}`,
+        inputSchema: tool.inputSchema,
+      },
+      async (args) => {
+        process.stderr.write(
+          `[domscribe-mcp] deprecation: tool name "${legacyName}" is deprecated; ` +
+            `use "${tool.name}" instead. Legacy aliases will be removed in the ` +
+            `first major release after RCP v1.0.0.\n`,
+        );
+        if (this.debug) {
+          console.error(
+            `[domscribe-mcp] Tool call (legacy alias): ${legacyName}`,
+            args,
+          );
         }
         return tool.toolCallback(args);
       },

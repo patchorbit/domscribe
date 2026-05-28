@@ -23,14 +23,14 @@ export class ProcessNextPrompt implements McpPromptDefinition<
           type: 'text',
           text: `Process the next queued Domscribe annotation.
 
-Use the domscribe.annotation.process tool to claim the next annotation.
+Use the domscribe_annotation_process tool to claim the next annotation.
 
 If an annotation is found:
 1. Read the userIntent and sourceLocation
 2. Navigate to the source file and understand the context
 3. Implement the requested change
-4. Use domscribe.annotation.respond to store your response
-5. Use domscribe.annotation.updateStatus to mark it as 'processed'
+4. Use domscribe_annotation_respond to store your response
+5. Use domscribe_annotation_update_status to mark it as 'processed'
 
 If no annotation is found, inform the user that the queue is empty.`,
         },

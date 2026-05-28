@@ -45,8 +45,8 @@ describe('AnnotationsProcessTool', () => {
         ...processResponse,
         nextStep:
           'Implement the change described in userIntent. ' +
-          'Then call domscribe.query.bySource with the same file and line to verify your changes in the live browser. ' +
-          'Then call domscribe.annotation.respond with your summary, then domscribe.annotation.updateStatus with status "processed".',
+          'Then call domscribe_query_by_source with the same file and line to verify your changes in the live browser. ' +
+          'Then call domscribe_annotation_respond with your summary, then domscribe_annotation_update_status with status "processed".',
       });
     });
 

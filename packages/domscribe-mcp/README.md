@@ -40,11 +40,11 @@ The relay daemon starts automatically when you run your dev server with Domscrib
 
 Query source locations and retrieve live runtime context from the running browser session.
 
-| Tool                       | Description                                                                                                   |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `domscribe.query.bySource` | Query a source file and line number to get live runtime context from the browser (props, state, DOM snapshot) |
-| `domscribe.manifest.query` | Find all manifest entries by file path, component name, or element ID                                         |
-| `domscribe.manifest.stats` | Manifest coverage statistics (entry count, file count, component count, cache hit rate)                       |
+| Tool                        | Description                                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `domscribe_query_by_source` | Query a source file and line number to get live runtime context from the browser (props, state, DOM snapshot) |
+| `domscribe_manifest_query`  | Find all manifest entries by file path, component name, or element ID                                         |
+| `domscribe_manifest_stats`  | Manifest coverage statistics (entry count, file count, component count, cache hit rate)                       |
 
 ### Element Resolution (UI to Code)
 
@@ -52,27 +52,31 @@ Resolve `data-ds` element IDs injected at build time back to their source locati
 
 | Tool                      | Description                                                                             |
 | ------------------------- | --------------------------------------------------------------------------------------- |
-| `domscribe.resolve`       | Resolve a single `data-ds` element ID to its ManifestEntry (file, line, col, component) |
-| `domscribe.resolve.batch` | Resolve multiple element IDs in one call                                                |
+| `domscribe_resolve`       | Resolve a single `data-ds` element ID to its ManifestEntry (file, line, col, component) |
+| `domscribe_resolve_batch` | Resolve multiple element IDs in one call                                                |
 
 ### Annotation Workflow
 
 Annotations are created when a developer clicks an element in the Domscribe overlay and enters intent. These tools drive the agent-side processing loop.
 
-| Tool                                | Description                                                                                     |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `domscribe.annotation.process`      | Atomically claim the next queued annotation (`claimNext`) — prevents concurrent agent conflicts |
-| `domscribe.annotation.respond`      | Attach agent response and transition annotation to `PROCESSED`                                  |
-| `domscribe.annotation.updateStatus` | Manually transition annotation status                                                           |
-| `domscribe.annotation.get`          | Retrieve annotation by ID                                                                       |
-| `domscribe.annotation.list`         | List annotations with status and filter options                                                 |
-| `domscribe.annotation.search`       | Full-text search across annotation content                                                      |
+| Tool                                 | Description                                                                                     |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `domscribe_annotation_process`       | Atomically claim the next queued annotation (`claimNext`) — prevents concurrent agent conflicts |
+| `domscribe_annotation_respond`       | Attach agent response and transition annotation to `PROCESSED`                                  |
+| `domscribe_annotation_update_status` | Manually transition annotation status                                                           |
+| `domscribe_annotation_get`           | Retrieve annotation by ID                                                                       |
+| `domscribe_annotation_list`          | List annotations with status and filter options                                                 |
+| `domscribe_annotation_search`        | Full-text search across annotation content                                                      |
 
 ### System
 
 | Tool               | Description                                           |
 | ------------------ | ----------------------------------------------------- |
-| `domscribe.status` | Relay daemon health, manifest stats, and queue counts |
+| `domscribe_status` | Relay daemon health, manifest stats, and queue counts |
+
+### Naming grammar and legacy aliases
+
+Tool names follow the MCP `^[a-zA-Z0-9_-]{1,64}$` grammar so they load in every MCP client (including Windsurf/Cascade, which rejects dots). The pre-RCP dotted names (e.g. `domscribe.status`) continue to resolve as deprecated aliases — invocations emit a deprecation warning on stderr and forward to the canonical handler. Legacy aliases will be removed in the first major release after RCP v1.0.0.
 
 ## MCP Prompts
 
@@ -87,7 +91,7 @@ Pre-built prompts that guide agents through common Domscribe workflows.
 
 ## Example Responses
 
-### `domscribe.query.bySource`
+### `domscribe_query_by_source`
 
 Returns the source location matched in the manifest plus live runtime data captured from the browser.
 
@@ -115,7 +119,7 @@ Returns the source location matched in the manifest plus live runtime data captu
 
 ### Annotation Object
 
-Returned by `domscribe.annotation.get`, `domscribe.annotation.process`, and related tools.
+Returned by `domscribe_annotation_get`, `domscribe_annotation_process`, and related tools.
 
 ```json
 {

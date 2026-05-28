@@ -32,7 +32,7 @@ describe('AnnotationsRespondTool', () => {
         success: true,
         annotationId: 'ann_123',
         nextStep:
-          'Call domscribe.annotation.updateStatus with annotationId "ann_123" and status "processed" to complete the lifecycle.',
+          'Call domscribe_annotation_update_status with annotationId "ann_123" and status "processed" to complete the lifecycle.',
       });
     });
 

@@ -13,7 +13,7 @@ const QueryBySourceToolInputSchema = z.object({
     .string()
     .describe(
       'Absolute file path as stored in the manifest (e.g. "/home/user/project/src/components/Button.tsx"). ' +
-        'Use domscribe.manifest.query to discover the exact paths the manifest uses.',
+        'Use domscribe_manifest_query to discover the exact paths the manifest uses.',
     ),
   line: z.number().int().positive().describe('Line number (1-indexed)'),
   column: z
@@ -97,7 +97,7 @@ export class QueryBySourceTool implements McpToolDefinition<
     if (!result.found) {
       return (
         'No manifest entry found for this source location. ' +
-        'Try domscribe.manifest.query with the file path to discover which lines have entries, ' +
+        'Try domscribe_manifest_query with the file path to discover which lines have entries, ' +
         'or use tolerance > 0 to widen the search.'
       );
     }

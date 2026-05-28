@@ -372,16 +372,22 @@ Pluggable transport layer for runtime ↔ overlay communication:
 
 #### MCP Tools (for coding agents)
 
-| Tool                       | Description                                                                    |
-| -------------------------- | ------------------------------------------------------------------------------ |
-| `annotation-get`           | Retrieve annotation by ID                                                      |
-| `annotation-list`          | List annotations with filtering                                                |
-| `annotation-search`        | Search annotations by content                                                  |
-| `annotation-process`       | Mark annotation as processing                                                  |
-| `annotation-respond`       | Add agent response to annotation                                               |
-| `annotation-update-status` | Transition annotation status                                                   |
-| `manifest-query`           | Query manifest entries by file, component, or ID                               |
-| `query-by-source`          | Query by source file + position; returns manifest entry + live runtime context |
+Tool names follow the MCP `^[a-zA-Z0-9_-]{1,64}$` grammar (Windsurf-compatible). The pre-RCP dotted names (e.g. `domscribe.status`) remain resolvable as deprecated aliases for the legacy → canonical migration window.
+
+| Tool                                 | Description                                                                    |
+| ------------------------------------ | ------------------------------------------------------------------------------ |
+| `domscribe_resolve`                  | Resolve a `data-ds` element ID to its source location                          |
+| `domscribe_resolve_batch`            | Resolve multiple element IDs in one call                                       |
+| `domscribe_manifest_query`           | Query manifest entries by file, component, or ID                               |
+| `domscribe_manifest_stats`           | Manifest coverage statistics                                                   |
+| `domscribe_annotation_get`           | Retrieve annotation by ID                                                      |
+| `domscribe_annotation_list`          | List annotations with filtering                                                |
+| `domscribe_annotation_search`        | Search annotations by content                                                  |
+| `domscribe_annotation_process`       | Atomically claim the next queued annotation                                    |
+| `domscribe_annotation_respond`       | Add agent response to annotation                                               |
+| `domscribe_annotation_update_status` | Transition annotation status                                                   |
+| `domscribe_query_by_source`          | Query by source file + position; returns manifest entry + live runtime context |
+| `domscribe_status`                   | Relay daemon health, manifest stats, and queue counts                          |
 
 #### MCP Prompts
 
@@ -720,12 +726,12 @@ interface DomscribeNuxtOptions {
 
 ```
 1. Coding agent connects to relay via MCP (stdio transport)
-2. Agent calls `annotation-list` tool → gets QUEUED annotations
-3. Agent calls `annotation-process` → marks as PROCESSING
-4. Agent calls `manifest-query` → resolves source location
-   - Alternatively, agent calls `query-by-source` with file + line → gets manifest entry + live runtime context in one call
+2. Agent calls `domscribe_annotation_list` tool → gets QUEUED annotations
+3. Agent calls `domscribe_annotation_process` → marks as PROCESSING
+4. Agent calls `domscribe_manifest_query` → resolves source location
+   - Alternatively, agent calls `domscribe_query_by_source` with file + line → gets manifest entry + live runtime context in one call
 5. Agent reads source code, makes changes
-6. Agent calls `annotation-respond` → attaches response + marks PROCESSED
+6. Agent calls `domscribe_annotation_respond` → attaches response + marks PROCESSED
 7. WebSocket broadcasts ANNOTATION_UPDATED to overlay
 8. Developer sees agent's response in ds-annotation-item
 ```

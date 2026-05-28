@@ -6,9 +6,9 @@ import {
 
 const CheckStatusArgsSchema = {};
 
-export class CheckStatusPrompt
-  implements McpPromptDefinition<typeof CheckStatusArgsSchema>
-{
+export class CheckStatusPrompt implements McpPromptDefinition<
+  typeof CheckStatusArgsSchema
+> {
   name = MCP_PROMPTS.CHECK_STATUS;
   description =
     'Check Domscribe system status. Shows relay health, manifest stats, and annotation queue counts.';
@@ -23,7 +23,7 @@ export class CheckStatusPrompt
           type: 'text',
           text: `Check the Domscribe system status.
 
-Use the domscribe.status tool to get:
+Use the domscribe_status tool to get:
 - Relay server health (version, uptime, port)
 - Manifest statistics (entry count, file count, component count)
 - Annotation queue counts by status

@@ -103,7 +103,7 @@ describe('QueryBySourceTool', () => {
         error: undefined,
         hint:
           'No manifest entry found for this source location. ' +
-          'Try domscribe.manifest.query with the file path to discover which lines have entries, ' +
+          'Try domscribe_manifest_query with the file path to discover which lines have entries, ' +
           'or use tolerance > 0 to widen the search.',
       });
     });

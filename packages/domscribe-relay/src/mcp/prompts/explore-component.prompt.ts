@@ -9,9 +9,9 @@ const ExploreComponentArgsSchema = {
   componentName: z.string().describe('Name of the component to explore'),
 };
 
-export class ExploreComponentPrompt
-  implements McpPromptDefinition<typeof ExploreComponentArgsSchema>
-{
+export class ExploreComponentPrompt implements McpPromptDefinition<
+  typeof ExploreComponentArgsSchema
+> {
   name = MCP_PROMPTS.EXPLORE_COMPONENT;
   description =
     'List all DOM elements in a component. Use to understand component structure before making changes.';
@@ -25,7 +25,7 @@ export class ExploreComponentPrompt
           type: 'text',
           text: `Explore the "${args.componentName}" component.
 
-Use the domscribe.manifest.query tool with componentName="${args.componentName}" to list all DOM elements.
+Use the domscribe_manifest_query tool with componentName="${args.componentName}" to list all DOM elements.
 
 For each element, show:
 - Tag name

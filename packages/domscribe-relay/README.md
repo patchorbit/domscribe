@@ -32,8 +32,8 @@ A developer clicks an element in the running app, types an instruction, and subm
 
 | From         | To           | Trigger                                    |
 | ------------ | ------------ | ------------------------------------------ |
-| `QUEUED`     | `PROCESSING` | Agent calls `domscribe.annotation.process` |
-| `PROCESSING` | `PROCESSED`  | Agent calls `domscribe.annotation.respond` |
+| `QUEUED`     | `PROCESSING` | Agent calls `domscribe_annotation_process` |
+| `PROCESSING` | `PROCESSED`  | Agent calls `domscribe_annotation_respond` |
 | `PROCESSING` | `FAILED`     | Agent error or timeout                     |
 | `PROCESSED`  | `ARCHIVED`   | Developer archives via overlay             |
 

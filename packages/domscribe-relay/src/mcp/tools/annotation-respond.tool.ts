@@ -43,7 +43,7 @@ export class AnnotationsRespondTool implements McpToolDefinition<
   description =
     "Store the agent's response to an annotation including explanation message and code patches. " +
     'Use after implementing changes to record what was done so users can review in the overlay. ' +
-    'IMPORTANT: After calling this, you MUST call domscribe.annotation.updateStatus with status "processed" (or "failed") to complete the lifecycle.';
+    'IMPORTANT: After calling this, you MUST call domscribe_annotation_update_status with status "processed" (or "failed") to complete the lifecycle.';
   inputSchema = AnnotationsRespondToolInputSchema;
   outputSchema = AnnotationsRespondToolOutputSchema;
 
@@ -60,7 +60,7 @@ export class AnnotationsRespondTool implements McpToolDefinition<
         success: response.success,
         annotationId: response.annotation.metadata.id,
         nextStep: response.success
-          ? `Call domscribe.annotation.updateStatus with annotationId "${response.annotation.metadata.id}" and status "processed" to complete the lifecycle.`
+          ? `Call domscribe_annotation_update_status with annotationId "${response.annotation.metadata.id}" and status "processed" to complete the lifecycle.`
           : undefined,
       };
 

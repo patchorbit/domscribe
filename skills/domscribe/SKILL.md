@@ -1,7 +1,7 @@
 ---
 name: domscribe
 description: Work with Domscribe — the pixel-to-code bridge. Use when setting up, initializing, or configuring Domscribe for a project, OR when editing or modifying UI components (React, Vue, Next.js, Nuxt), implementing features from captured UI annotations, querying runtime context for source locations, exploring component structure, or when user mentions annotations, queued tasks, UI changes, props, state, DOM, or asks about how elements render at runtime.
-allowed-tools: Read, Edit, Write, Bash, Glob, mcp__domscribe__*, domscribe.*, mcp.domscribe.*, process_next, check_status, explore_component, find_annotations
+allowed-tools: Read, Edit, Write, Bash, Glob, mcp__domscribe__*, domscribe_*, domscribe.*, mcp.domscribe.*, process_next, check_status, explore_component, find_annotations
 ---
 
 # Domscribe
@@ -13,9 +13,9 @@ Domscribe bridges running UI and source code. It maps every rendered element to 
 
 ## Setup / Initialization
 
-If `domscribe.status` returns `active: false`, Domscribe is not yet configured in this workspace. The `.domscribe/` directory is created automatically when the dev server starts with the Domscribe bundler plugin configured. Follow this procedure to set it up:
+If `domscribe_status` returns `active: false`, Domscribe is not yet configured in this workspace. The `.domscribe/` directory is created automatically when the dev server starts with the Domscribe bundler plugin configured. Follow this procedure to set it up:
 
-1. **Confirm dormant state** — call `domscribe.status`. If `active: false`, proceed. Note the `cwd` in the response.
+1. **Confirm dormant state** — call `domscribe_status`. If `active: false`, proceed. Note the `cwd` in the response.
 2. **Detect framework** — read `package.json` (at `cwd`, or at the `appRoot` from `domscribe.config.json` if it exists) and match dependencies against the table below.
 3. **Detect package manager** — check which lockfile exists at the project root.
 4. **Install the package** — run the appropriate install command via Bash (e.g., `pnpm add -D @domscribe/next`).
@@ -78,7 +78,7 @@ The MCP server starts in dormant mode when no `.domscribe/` directory exists. Af
 
 ## Editing Components (Code → UI)
 
-**Why query runtime state?** Source code alone doesn't tell you what props a component actually received, whether a conditional branch rendered, what CSS classes were applied, or what text the user sees. `domscribe.query.bySource` gives you the live truth from the browser.
+**Why query runtime state?** Source code alone doesn't tell you what props a component actually received, whether a conditional branch rendered, what CSS classes were applied, or what text the user sees. `domscribe_query_by_source` gives you the live truth from the browser.
 
 **When to query (these tasks benefit):**
 
@@ -94,14 +94,14 @@ The MCP server starts in dormant mode when no `.domscribe/` directory exists. Af
 - Refactoring (renames, extractions, moves)
 - Type errors or build failures (the compiler already tells you what's wrong)
 
-**Prerequisite:** Runtime queries require the user's dev server to be running and the target component to be rendered in an open browser tab. Before calling `domscribe.query.bySource`, confirm with the user that they have the relevant page open. If you get `browserConnected: false` or `runtime.rendered: false`, ask the user to navigate to the page that renders the component and retry.
+**Prerequisite:** Runtime queries require the user's dev server to be running and the target component to be rendered in an open browser tab. Before calling `domscribe_query_by_source`, confirm with the user that they have the relevant page open. If you get `browserConnected: false` or `runtime.rendered: false`, ask the user to navigate to the page that renders the component and retry.
 
 **Workflow:**
 
 1. **Confirm the page is open** — ask the user if they have the page with the target component open in their browser. If not, ask them to navigate there first.
-2. **Before editing** (if the task matches the scenarios above): Call `domscribe.query.bySource` with the file path and line number. Inspect `runtime.componentProps`, `runtime.componentState`, and `runtime.domSnapshot`.
+2. **Before editing** (if the task matches the scenarios above): Call `domscribe_query_by_source` with the file path and line number. Inspect `runtime.componentProps`, `runtime.componentState`, and `runtime.domSnapshot`.
 3. **Edit** the component source code.
-4. **After editing**: Call `domscribe.query.bySource` again to verify your changes took effect in the live browser.
+4. **After editing**: Call `domscribe_query_by_source` again to verify your changes took effect in the live browser.
 
 ## Quick Commands (MCP Prompts)
 
@@ -114,47 +114,47 @@ The MCP server starts in dormant mode when no `.domscribe/` directory exists. Af
 
 ## All Tools Reference
 
-Tool names below use their MCP registration names (e.g., `domscribe.query.bySource`). Your client may map these differently — use whatever tool name your environment exposes for the domscribe MCP server.
+Tool names below use their MCP registration names (e.g., `domscribe_query_by_source`). Your client may map these differently — use whatever tool name your environment exposes for the domscribe MCP server.
 
 ### Source Query (Code → UI)
 
-| Tool                       | Purpose                                                    |
-| -------------------------- | ---------------------------------------------------------- |
-| `domscribe.query.bySource` | Get runtime context for a source location (file + line)    |
-| `domscribe.manifest.query` | Find all manifest entries by file, component, or tag name  |
-| `domscribe.manifest.stats` | Manifest coverage statistics (entry/file/component counts) |
+| Tool                        | Purpose                                                    |
+| --------------------------- | ---------------------------------------------------------- |
+| `domscribe_query_by_source` | Get runtime context for a source location (file + line)    |
+| `domscribe_manifest_query`  | Find all manifest entries by file, component, or tag name  |
+| `domscribe_manifest_stats`  | Manifest coverage statistics (entry/file/component counts) |
 
 ### Element Resolution (UI → Code)
 
 | Tool                      | Purpose                            |
 | ------------------------- | ---------------------------------- |
-| `domscribe.resolve`       | Get source location for element ID |
-| `domscribe.resolve.batch` | Resolve multiple element IDs       |
+| `domscribe_resolve`       | Get source location for element ID |
+| `domscribe_resolve_batch` | Resolve multiple element IDs       |
 
 ### Annotation Workflow
 
-| Tool                                | Purpose                               |
-| ----------------------------------- | ------------------------------------- |
-| `domscribe.annotation.process`      | Claim next queued annotation (atomic) |
-| `domscribe.annotation.respond`      | Store your implementation message     |
-| `domscribe.annotation.updateStatus` | Mark as `processed` or `failed`       |
-| `domscribe.annotation.list`         | List annotations by status            |
-| `domscribe.annotation.get`          | Get full annotation details           |
-| `domscribe.annotation.search`       | Search by element, file, or text      |
+| Tool                                 | Purpose                               |
+| ------------------------------------ | ------------------------------------- |
+| `domscribe_annotation_process`       | Claim next queued annotation (atomic) |
+| `domscribe_annotation_respond`       | Store your implementation message     |
+| `domscribe_annotation_update_status` | Mark as `processed` or `failed`       |
+| `domscribe_annotation_list`          | List annotations by status            |
+| `domscribe_annotation_get`           | Get full annotation details           |
+| `domscribe_annotation_search`        | Search by element, file, or text      |
 
 ### System
 
 | Tool               | Purpose                              |
 | ------------------ | ------------------------------------ |
-| `domscribe.status` | Relay health, manifest, queue counts |
+| `domscribe_status` | Relay health, manifest, queue counts |
 
-## Using `domscribe.query.bySource`
+## Using `domscribe_query_by_source`
 
 When you're working in a source file and want to understand what an element looks like at runtime, query by file path and line number:
 
 **Input:**
 
-- **`file`** (required): Absolute file path as stored in the manifest. Use `domscribe.manifest.query` to discover exact paths.
+- **`file`** (required): Absolute file path as stored in the manifest. Use `domscribe_manifest_query` to discover exact paths.
 - **`line`** (required): Line number (1-indexed).
 - **`tolerance`** (optional): Match elements within N lines of the target (default: 0, exact match).
 - **`column`** (optional): Narrow to a specific column (0-indexed).
@@ -166,7 +166,7 @@ When you're working in a source file and want to understand what an element look
 - **`runtime`**: Live data from the browser (if connected) — `componentProps`, `componentState`, `domSnapshot` (tag, attributes, innerText).
 - **`browserConnected`**: Whether a browser client is connected via WebSocket.
 
-Use `domscribe.manifest.query` first if you don't know the exact line — it returns all entries for a file, component, or tag, which you can then target with `domscribe.query.bySource`.
+Use `domscribe_manifest_query` first if you don't know the exact line — it returns all entries for a file, component, or tag, which you can then target with `domscribe_query_by_source`.
 
 ## Annotation Lifecycle
 
@@ -184,7 +184,7 @@ queued → processing → processed
 
 ## Annotation Workflow
 
-1. **Claim** an annotation via `domscribe.annotation.process`
+1. **Claim** an annotation via `domscribe_annotation_process`
 
 2. **Understand** the response:
    - `userIntent`: What the user wants (e.g., "Make this button red")
@@ -198,11 +198,11 @@ queued → processing → processed
 
 4. **Implement** the change based on `userIntent`
 
-5. **Verify** via `domscribe.query.bySource` — call with the same file and line to confirm your changes are reflected in the live browser (HMR will have updated the page)
+5. **Verify** via `domscribe_query_by_source` — call with the same file and line to confirm your changes are reflected in the live browser (HMR will have updated the page)
 
-6. **Store** your response via `domscribe.annotation.respond` with the annotation ID and a message describing what you did
+6. **Store** your response via `domscribe_annotation_respond` with the annotation ID and a message describing what you did
 
-7. **Complete** the annotation via `domscribe.annotation.updateStatus` with status `processed` (or `failed` with `errorDetails`)
+7. **Complete** the annotation via `domscribe_annotation_update_status` with status `processed` (or `failed` with `errorDetails`)
 
 ## Error Handling
 
@@ -218,9 +218,9 @@ queued → processing → processed
 ## Key Principles
 
 - Read `userIntent` carefully — it's the user's actual words
-- Use `domscribe.query.bySource` to verify runtime state before and after changes
+- Use `domscribe_query_by_source` to verify runtime state before and after changes
 - Use `element.innerText` to confirm you're changing the right element
 - Use `runtimeContext` to understand current component state
 - Make minimal, focused changes
-- Provide clear explanation via `domscribe.annotation.respond`
-- Search with `domscribe.annotation.search` to check for related prior work
+- Provide clear explanation via `domscribe_annotation_respond`
+- Search with `domscribe_annotation_search` to check for related prior work

@@ -66,7 +66,7 @@ That's it. Start your dev server and you're ready to go.
 
 ### Code → UI: Let the agent see the browser
 
-Your agent calls `domscribe.query.bySource` with a file path and line number and gets back the live DOM snapshot, current props, component state, and rendered attributes — directly from the running browser. No human interaction needed.
+Your agent calls `domscribe_query_by_source` with a file path and line number and gets back the live DOM snapshot, current props, component state, and rendered attributes — directly from the running browser. No human interaction needed.
 
 <p align="center">
   <img src="./docs/code-to-ui.png" alt="Code → UI: Let the agent see the browser" width="900" />
@@ -397,20 +397,22 @@ No single competitor combines build-time stable IDs, deep runtime capture, bidir
 
 ## MCP Tools
 
-| Tool                                | Description                                                                             |
-| ----------------------------------- | --------------------------------------------------------------------------------------- |
-| `domscribe.query.bySource`          | Query a source file + line and get live runtime context (props, state, DOM snapshot)    |
-| `domscribe.manifest.query`          | Find manifest entries by file path, component name, or element ID                       |
-| `domscribe.manifest.stats`          | Manifest coverage statistics (entry count, file count, component count, cache hit rate) |
-| `domscribe.resolve`                 | Resolve a `data-ds` element ID to its source location (file, line, col, component)      |
-| `domscribe.resolve.batch`           | Resolve multiple element IDs in one call                                                |
-| `domscribe.annotation.process`      | Atomically claim the next queued annotation (prevents concurrent agent conflicts)       |
-| `domscribe.annotation.respond`      | Attach agent response and transition to `PROCESSED`                                     |
-| `domscribe.annotation.updateStatus` | Manually transition annotation status                                                   |
-| `domscribe.annotation.get`          | Retrieve annotation by ID                                                               |
-| `domscribe.annotation.list`         | List annotations with status/filter options                                             |
-| `domscribe.annotation.search`       | Full-text search across annotation content                                              |
-| `domscribe.status`                  | Relay daemon health, manifest stats, queue counts                                       |
+| Tool                                 | Description                                                                             |
+| ------------------------------------ | --------------------------------------------------------------------------------------- |
+| `domscribe_query_by_source`          | Query a source file + line and get live runtime context (props, state, DOM snapshot)    |
+| `domscribe_manifest_query`           | Find manifest entries by file path, component name, or element ID                       |
+| `domscribe_manifest_stats`           | Manifest coverage statistics (entry count, file count, component count, cache hit rate) |
+| `domscribe_resolve`                  | Resolve a `data-ds` element ID to its source location (file, line, col, component)      |
+| `domscribe_resolve_batch`            | Resolve multiple element IDs in one call                                                |
+| `domscribe_annotation_process`       | Atomically claim the next queued annotation (prevents concurrent agent conflicts)       |
+| `domscribe_annotation_respond`       | Attach agent response and transition to `PROCESSED`                                     |
+| `domscribe_annotation_update_status` | Manually transition annotation status                                                   |
+| `domscribe_annotation_get`           | Retrieve annotation by ID                                                               |
+| `domscribe_annotation_list`          | List annotations with status/filter options                                             |
+| `domscribe_annotation_search`        | Full-text search across annotation content                                              |
+| `domscribe_status`                   | Relay daemon health, manifest stats, queue counts                                       |
+
+All tool names match the MCP `^[a-zA-Z0-9_-]{1,64}$` grammar so they load in every MCP client (including strict clients like Windsurf/Cascade). The pre-RCP dotted names (`domscribe.status` and friends) continue to resolve as deprecated aliases — see the [CHANGELOG](./CHANGELOG.md) for the alias window.
 
 See the [`@domscribe/mcp` README](./packages/domscribe-mcp/README.md) for detailed tool schemas, response formats, and prompt definitions.
 

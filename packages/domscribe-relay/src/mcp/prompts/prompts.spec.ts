@@ -20,10 +20,10 @@ describe('ProcessNextPrompt', () => {
     expect(messages).toHaveLength(1);
     expect(messages[0].role).toBe('user');
     expect(messages[0].content.type).toBe('text');
-    expect(messages[0].content.text).toContain('domscribe.annotation.process');
-    expect(messages[0].content.text).toContain('domscribe.annotation.respond');
+    expect(messages[0].content.text).toContain('domscribe_annotation_process');
+    expect(messages[0].content.text).toContain('domscribe_annotation_respond');
     expect(messages[0].content.text).toContain(
-      'domscribe.annotation.updateStatus',
+      'domscribe_annotation_update_status',
     );
   });
 });
@@ -43,7 +43,7 @@ describe('CheckStatusPrompt', () => {
 
     expect(messages).toHaveLength(1);
     expect(messages[0].role).toBe('user');
-    expect(messages[0].content.text).toContain('domscribe.status');
+    expect(messages[0].content.text).toContain('domscribe_status');
   });
 });
 
@@ -62,7 +62,7 @@ describe('ExploreComponentPrompt', () => {
     expect(messages).toHaveLength(1);
     expect(messages[0].content.text).toContain('"Header"');
     expect(messages[0].content.text).toContain('componentName="Header"');
-    expect(messages[0].content.text).toContain('domscribe.manifest.query');
+    expect(messages[0].content.text).toContain('domscribe_manifest_query');
   });
 });
 

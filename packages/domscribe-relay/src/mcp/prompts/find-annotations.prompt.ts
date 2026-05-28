@@ -30,7 +30,7 @@ export class FindAnnotationsPrompt implements McpPromptDefinition<
           type: 'text',
           text: `Search for Domscribe annotations.
 
-Use the domscribe.annotation.search tool with these filters:
+Use the domscribe_annotation_search tool with these filters:
 ${args.query ? `- query: "${args.query}"` : ''}
 ${args.file ? `- file: "${args.file}"` : ''}
 ${args.entryId ? `- entryId: "${args.entryId}"` : ''}
