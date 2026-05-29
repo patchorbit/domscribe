@@ -1,6 +1,6 @@
 # RFC 0001: Extract the agent-facing contract into `@domscribe/protocol` as the versioning unit for RCP v1
 
-**Status:** Proposed
+**Status:** Accepted (ratified by [RFC 0002](./0002-protocol-v1-execution.md), sprint 2491)
 **Author:** Principal Eng (sprint 2371)
 **Date:** 2026-05-28
 
