@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/v1/session.ts": {
+      "runtime": "edge",
+      "memory": 128,
+      "maxDuration": 5
+    }
+  }
+}
