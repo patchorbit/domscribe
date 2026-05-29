@@ -1,0 +1,30 @@
+name = "domscribe-telemetry"
+main = "src/index.ts"
+compatibility_date = "2025-09-06"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+# Custom domain — provisioned out-of-band; see README.md §"Custom domain".
+routes = [
+  { pattern = "telemetry.domscribe.dev/v1/*", zone_name = "domscribe.dev" },
+  { pattern = "telemetry.domscribe.dev/healthz", zone_name = "domscribe.dev" }
+]
+
+# KV namespace IDs are populated by the deployer; placeholders below.
+# Production:  wrangler kv:namespace create SESSIONS
+# Preview:     wrangler kv:namespace create SESSIONS --preview
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "REPLACE_WITH_PROD_KV_ID"
+preview_id = "REPLACE_WITH_PREVIEW_KV_ID"
+
+[observability]
+enabled = true
+
+[vars]
+# 12 weeks; matches the §"Privacy" doc retention statement.
+SESSION_TTL_SECONDS = "7257600"
+
+# WAU_READ_TOKEN is a secret, not a var. Set with:
+#   wrangler secret put WAU_READ_TOKEN
+# Read endpoint is disabled if the secret is unset.
