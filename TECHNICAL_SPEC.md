@@ -1186,6 +1186,10 @@ Nx Task Runner (controls fixture-level parallelism)
 | Vue       | 3.3+    | Webpack 5           | Yes             | VNode                       | Full   |
 | Vue       | 3.3+    | Nuxt 3              | Yes             | VNode                       | Full   |
 
+### Code→UI Benchmark
+
+The Code→UI Benchmark v1 scores Domscribe's RCP-v1 surface against `chrome-devtools-mcp` and an in-repo WebMCP-conformant reference across five source-mapped scenarios (S1–S5) and three fixtures (Vite/React, Nuxt/Vue, Next.js) — 45 cells in total. See [`docs/code-to-ui-benchmark/v1-results.md`](./docs/code-to-ui-benchmark/v1-results.md) for the public results page, methodology, and reproduction command. The comparator implementations live in [`packages/domscribe-benchmark-comparators/`](./packages/domscribe-benchmark-comparators/README.md); the benchmark spec and runner live in `@domscribe/benchmark`.
+
 ---
 
 ## 10. CI/CD Pipeline

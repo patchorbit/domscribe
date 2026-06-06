@@ -96,6 +96,10 @@ Click any element in the browser overlay, describe the change in plain English, 
 - 📁 **Annotations live in your repo** — stored as JSON files in `.domscribe/annotations/`, exposed via REST APIs that MCP wraps for agent access
 - 📡 **Real-time feedback** — WebSocket relay pushes agent responses to the browser overlay as they happen
 
+### Code→UI Benchmark
+
+We score five source-mapped scenarios (S1 source-position query, S2 style provenance with source, S3 multi-instance enumeration, S4 runtime context probe, S5 annotation→source roundtrip) across three fixtures (Vite/React, Nuxt/Vue, Next.js) and three MCP comparators (RCP v1, `chrome-devtools-mcp`, an in-repo WebMCP-conformant reference). See **[Code→UI Benchmark v1 results](./docs/code-to-ui-benchmark/v1-results.md)** for the 45-cell table, methodology, and reproduction command.
+
 ---
 
 ## Manual Setup
