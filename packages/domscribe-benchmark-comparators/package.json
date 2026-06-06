@@ -1,0 +1,32 @@
+{
+  "name": "@domscribe/benchmark-comparators",
+  "version": "0.5.2",
+  "description": "External MCP comparators (chrome-devtools-mcp, in-repo WebMCP-conformant reference) and an in-repo WebMCP-conformant reference server for the Code→UI Benchmark suite.",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./webmcp-reference": "./src/webmcp-reference/index.ts",
+    "./chrome-devtools-mcp": "./src/chrome-devtools-mcp/index.ts",
+    "./types": "./src/types/index.ts"
+  },
+  "distExports": {
+    "./webmcp-reference": "./webmcp-reference/index.js",
+    "./chrome-devtools-mcp": "./chrome-devtools-mcp/index.js",
+    "./types": "./types/index.js"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/patchorbit/domscribe.git",
+    "directory": "packages/domscribe-benchmark-comparators"
+  }
+}
