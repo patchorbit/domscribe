@@ -27,6 +27,7 @@ interface ResolvedOptions {
   relay: RelayPluginOptions;
   overlayEnabled: boolean;
   overlayOptions: OverlayPluginOptions;
+  captureStyles: boolean;
 }
 
 /**
@@ -57,6 +58,7 @@ export class DomscribeWebpackPlugin {
       enabled = !isProduction,
       relay = {},
       overlay = true,
+      captureStyles = false,
     } = options;
 
     // Resolve overlay options
@@ -70,6 +72,7 @@ export class DomscribeWebpackPlugin {
       relay,
       overlayEnabled,
       overlayOptions,
+      captureStyles,
     };
   }
 
@@ -155,6 +158,7 @@ export class DomscribeWebpackPlugin {
 
       this.injectorRegistry = InjectorRegistry.getInstance(rootContext, {
         debug: this.options.debug,
+        captureStyles: this.options.captureStyles ?? false,
       });
       await this.injectorRegistry.initialize();
 

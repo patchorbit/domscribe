@@ -433,7 +433,7 @@ describe('DomscribeWebpackPlugin', () => {
       // Assert
       expect(mockInjectorRegistryGetInstance).toHaveBeenCalledWith(
         '/test/workspace',
-        { debug: false },
+        { debug: false, captureStyles: false },
       );
       expect(mockInjectorRegistry.initialize).toHaveBeenCalledTimes(1);
     });

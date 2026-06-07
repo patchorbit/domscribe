@@ -58,4 +58,12 @@ export interface WebpackPluginOptions {
    * @default true
    */
   overlay?: boolean | OverlayPluginOptions;
+
+  /**
+   * Capture build-time style attribution (`styleSource`) on every manifest
+   * entry. See `VitePluginOptions.captureStyles` for details.
+   *
+   * @default false
+   */
+  captureStyles?: boolean;
 }
