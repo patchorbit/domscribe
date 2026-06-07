@@ -1,0 +1,22 @@
+{
+  "name": "@domscribe/styling-fixture-styled",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/domscribe-test-fixtures/styling/styled-app/src",
+  "tags": ["scope:test", "type:test", "npm:private"],
+  "targets": {
+    "typecheck": {
+      "cache": true,
+      "executor": "nx:run-commands",
+      "inputs": [
+        "production",
+        "^production",
+        { "externalDependencies": ["typescript"] }
+      ],
+      "options": {
+        "command": "tsc --noEmit",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}
