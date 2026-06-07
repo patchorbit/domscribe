@@ -43,6 +43,20 @@
         "cwd": "{projectRoot}"
       }
     },
+    "falsifier": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm test:falsifier",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "falsifier:record": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm test:falsifier:record",
+        "cwd": "{projectRoot}"
+      }
+    },
     "build": {
       "executor": "nx:noop"
     },

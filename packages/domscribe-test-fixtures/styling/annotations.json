@@ -1,0 +1,142 @@
+{
+  "$schema": "./annotation.schema.json",
+  "description": "Styling-annotation falsifier corpus for RFC 0001. The agent is graded one-shot: given the intent + sourceFile + sourceLine, can it produce an edit that, when applied to the before route, renders pixel-identical to the after route's baseline?",
+  "schemaVersion": 1,
+  "annotations": [
+    {
+      "id": "A001",
+      "fixture": "tailwind",
+      "fixtureDir": "tailwind-app",
+      "beforeRoute": "#A001/before",
+      "afterRoute": "#A001/after",
+      "intent": "Card padding is too cramped. Bump it to 32px (Tailwind p-8) to match the spacious card style used elsewhere on the page.",
+      "sourceFile": "src/components/A001-padding.tsx",
+      "sourceLine": 33,
+      "targetTestId": "A001",
+      "expectedComputedStyles": { "padding": "32px" },
+      "tags": ["padding", "utility-class-swap"]
+    },
+    {
+      "id": "A002",
+      "fixture": "tailwind",
+      "fixtureDir": "tailwind-app",
+      "beforeRoute": "#A002/before",
+      "afterRoute": "#A002/after",
+      "intent": "The alert is using a generic Tailwind palette color (text-red-500). Switch to the design-system token `text-brand-accent` (Tailwind theme extension; resolves to var(--color-accent)).",
+      "sourceFile": "src/components/A002-color-token.tsx",
+      "sourceLine": 33,
+      "targetTestId": "A002",
+      "expectedComputedStyles": { "color": "rgb(59, 130, 246)" },
+      "expectedCustomProperties": ["--color-accent"],
+      "tags": ["color", "design-token"]
+    },
+    {
+      "id": "A003",
+      "fixture": "tailwind",
+      "fixtureDir": "tailwind-app",
+      "beforeRoute": "#A003/before",
+      "afterRoute": "#A003/after",
+      "intent": "The Continue button has square corners. Make it a pill (rounded-full) to match the action-button style.",
+      "sourceFile": "src/components/A003-rounded.tsx",
+      "sourceLine": 25,
+      "targetTestId": "A003",
+      "expectedComputedStyles": { "border-radius": "9999px" },
+      "tags": ["border-radius", "utility-class-swap"]
+    },
+    {
+      "id": "A004",
+      "fixture": "tailwind",
+      "fixtureDir": "tailwind-app",
+      "beforeRoute": "#A004/before",
+      "afterRoute": "#A004/after",
+      "intent": "The section heading is too light. Bump it to font-bold for visual hierarchy.",
+      "sourceFile": "src/components/A004-font-weight.tsx",
+      "sourceLine": 16,
+      "targetTestId": "A004",
+      "expectedComputedStyles": { "font-weight": "700" },
+      "tags": ["typography", "font-weight"]
+    },
+    {
+      "id": "A005",
+      "fixture": "tailwind",
+      "fixtureDir": "tailwind-app",
+      "beforeRoute": "#A005/before",
+      "afterRoute": "#A005/after",
+      "intent": "Items in the panel are touching. Add gap-4 (16px) for breathing room.",
+      "sourceFile": "src/components/A005-gap.tsx",
+      "sourceLine": 27,
+      "targetTestId": "A005",
+      "expectedComputedStyles": { "gap": "16px" },
+      "tags": ["layout", "flex-gap"]
+    },
+    {
+      "id": "A101",
+      "fixture": "styled",
+      "fixtureDir": "styled-app",
+      "beforeRoute": "#A101/before",
+      "afterRoute": "#A101/after",
+      "intent": "The NEW badge is too cramped — increase padding to 8px 16px for breathing room. This is a styled-components hash-class case; you must edit the `styled.span` source block directly.",
+      "sourceFile": "src/components/A101-badge-padding.tsx",
+      "sourceLine": 19,
+      "targetTestId": "A101",
+      "expectedComputedStyles": { "padding": "8px 16px" },
+      "tags": ["padding", "css-in-js"]
+    },
+    {
+      "id": "A102",
+      "fixture": "styled",
+      "fixtureDir": "styled-app",
+      "beforeRoute": "#A102/before",
+      "afterRoute": "#A102/after",
+      "intent": "The hero is using a hardcoded background color (#e0f2fe). Switch to var(--color-surface) so it tracks the theme. The token is resolved on :root.",
+      "sourceFile": "src/components/A102-hero-background.tsx",
+      "sourceLine": 15,
+      "targetTestId": "A102",
+      "expectedComputedStyles": { "background-color": "rgb(248, 250, 252)" },
+      "expectedCustomProperties": ["--color-surface"],
+      "tags": ["color", "design-token", "css-in-js"]
+    },
+    {
+      "id": "A103",
+      "fixture": "styled",
+      "fixtureDir": "styled-app",
+      "beforeRoute": "#A103/before",
+      "afterRoute": "#A103/after",
+      "intent": "The toggle button is too boxy. Round the corners to a full pill (border-radius: 9999px).",
+      "sourceFile": "src/components/A103-toggle-border-radius.tsx",
+      "sourceLine": 14,
+      "targetTestId": "A103",
+      "expectedComputedStyles": { "border-radius": "9999px" },
+      "tags": ["border-radius", "css-in-js"]
+    },
+    {
+      "id": "A104",
+      "fixture": "styled",
+      "fixtureDir": "styled-app",
+      "beforeRoute": "#A104/before",
+      "afterRoute": "#A104/after",
+      "intent": "The callout text is unreadable. Bump font-size to 16px and line-height to 1.5 for comfortable reading.",
+      "sourceFile": "src/components/A104-callout-typography.tsx",
+      "sourceLine": 15,
+      "targetTestId": "A104",
+      "expectedComputedStyles": {
+        "font-size": "16px",
+        "line-height": "24px"
+      },
+      "tags": ["typography", "css-in-js"]
+    },
+    {
+      "id": "A105",
+      "fixture": "styled",
+      "fixtureDir": "styled-app",
+      "beforeRoute": "#A105/before",
+      "afterRoute": "#A105/after",
+      "intent": "Cards in the stack are touching. Add gap: 12px so they have consistent spacing.",
+      "sourceFile": "src/components/A105-stack-gap.tsx",
+      "sourceLine": 15,
+      "targetTestId": "A105",
+      "expectedComputedStyles": { "gap": "12px" },
+      "tags": ["layout", "flex-gap", "css-in-js"]
+    }
+  ]
+}

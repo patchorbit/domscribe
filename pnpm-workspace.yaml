@@ -1,3 +1,5 @@
 packages:
   - packages/*
-  - "!packages/domscribe-test-fixtures/fixtures/**"
+  - '!packages/domscribe-test-fixtures/fixtures/**'
+  - packages/domscribe-test-fixtures/styling/tailwind-app
+  - packages/domscribe-test-fixtures/styling/styled-app

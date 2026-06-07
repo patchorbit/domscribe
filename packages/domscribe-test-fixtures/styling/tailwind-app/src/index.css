@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-fg: rgb(15, 23, 42);
+  --color-accent: rgb(59, 130, 246);
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+}
