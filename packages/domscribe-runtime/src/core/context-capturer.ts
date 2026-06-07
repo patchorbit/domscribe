@@ -14,6 +14,10 @@ import type {
 } from '../capture/types.js';
 import { PropsCapturer } from '../capture/props-capturer.js';
 import { StateCapturer } from '../capture/state-capturer.js';
+import {
+  StyleCapturer,
+  type StyleCaptureOptions,
+} from '../capture/style-capturer.js';
 import { ContextCaptureError } from '../errors/index.js';
 
 /**
@@ -47,6 +51,23 @@ export interface ContextCapturerOptions {
    * Enable debug logging
    */
   debug?: boolean;
+
+  /**
+   * Enable computed-style + custom-property capture
+   * (RFC 0001 `domscribe.config.captureStyles`).
+   *
+   * Off by default; flips on the {@link StyleCapturer} pass and makes
+   * `RuntimeContext.componentStyles` available to `query.bySource` and the
+   * annotation payload. Respects the existing ≤4 KB per-element budget via
+   * `styleOptions.maxBytes`.
+   */
+  captureStyles?: boolean;
+
+  /**
+   * Tuning knobs forwarded to {@link StyleCapturer}. Ignored when
+   * {@link captureStyles} is false.
+   */
+  styleOptions?: StyleCaptureOptions;
 }
 
 /**
@@ -58,8 +79,11 @@ export interface ContextCapturerOptions {
 export class ContextCapturer {
   private propsCapturer: PropsCapturer;
   private stateCapturer: StateCapturer;
-  private options: Required<Omit<ContextCapturerOptions, 'serialization'>> &
-    Pick<ContextCapturerOptions, 'serialization'>;
+  private styleCapturer: StyleCapturer | null;
+  private options: Required<
+    Omit<ContextCapturerOptions, 'serialization' | 'styleOptions'>
+  > &
+    Pick<ContextCapturerOptions, 'serialization' | 'styleOptions'>;
 
   constructor(options: ContextCapturerOptions) {
     this.options = {
@@ -68,6 +92,8 @@ export class ContextCapturer {
       serialization: options.serialization,
       redactPII: options.redactPII ?? true,
       debug: options.debug ?? false,
+      captureStyles: options.captureStyles ?? false,
+      styleOptions: options.styleOptions,
     };
 
     const s = this.options.serialization;
@@ -90,6 +116,12 @@ export class ContextCapturer {
       redactPII: this.options.redactPII,
       debug: this.options.debug,
     });
+    this.styleCapturer = this.options.captureStyles
+      ? new StyleCapturer({
+          ...(this.options.styleOptions ?? {}),
+          debug: this.options.debug,
+        })
+      : null;
   }
 
   /**
@@ -117,11 +149,43 @@ export class ContextCapturer {
         return null;
       }
 
-      return this.captureForComponent(componentInstance, options);
+      const context = await this.captureForComponent(
+        componentInstance,
+        options,
+      );
+      this.attachStyles(context, element, options);
+      return context;
     } catch (error) {
       throw new ContextCaptureError(
         'Failed to capture context for element',
         error instanceof Error ? error : undefined,
+      );
+    }
+  }
+
+  /**
+   * Run the style capture pass and attach the result onto `context.componentStyles`.
+   *
+   * Skipped when the manager-level `captureStyles` flag is off OR the
+   * per-call `includeStyles` override explicitly opts out. Style-capture
+   * failures are swallowed (logged at debug) — props/state capture must
+   * still succeed even on a page where computed-style resolution is broken.
+   */
+  private attachStyles(
+    context: RuntimeContext,
+    element: HTMLElement,
+    options: CaptureOptions,
+  ): void {
+    if (!this.styleCapturer) return;
+    if (options.includeStyles === false) return;
+
+    const result = this.styleCapturer.capture(element);
+    if (result.success && result.data) {
+      context.componentStyles = result.data;
+    } else if (this.options.debug && result.error) {
+      console.warn(
+        '[domscribe-runtime][context-capturer] Style capture failed:',
+        result.error,
       );
     }
   }
@@ -167,6 +231,7 @@ export class ContextCapturer {
       console.log('[domscribe-runtime][context-capturer] Captured context:', {
         hasProps: !!context.componentProps,
         hasState: !!context.componentState,
+        hasStyles: !!context.componentStyles,
       });
     }
 

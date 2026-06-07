@@ -38,6 +38,14 @@ export interface CaptureOptions {
   includeState?: boolean;
 
   /**
+   * Include the computed-style + custom-property snapshot
+   * (`ComponentStyles`) in capture. The manager-level `captureStyles` flag is
+   * the canonical opt-in; this per-call override exists so a styling-aware
+   * MCP query can request style context without changing the manager config.
+   */
+  includeStyles?: boolean;
+
+  /**
    * Maximum depth for object serialization
    */
   maxDepth?: number;

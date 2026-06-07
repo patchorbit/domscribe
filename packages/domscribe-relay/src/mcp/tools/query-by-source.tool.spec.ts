@@ -71,11 +71,61 @@ describe('QueryBySourceTool', () => {
         },
         browserConnected: true,
         error: undefined,
-        hint: undefined,
+        // The runtime is rendered but `componentStyles` is absent — the
+        // hint nudges the agent to enable `captureStyles` so the next
+        // styling query lands in one round trip (RFC 0001).
+        hint: expect.stringContaining('captureStyles'),
       });
       expect(JSON.parse(getResultText(result))).toEqual(
         result.structuredContent,
       );
+    });
+
+    it('emits no captureStyles hint when componentStyles is already present', async () => {
+      // Arrange — simulate the post-RFC 0001 happy path: runtime is configured
+      // with captureStyles, the query returns componentStyles, agent has full
+      // ground truth and needs no follow-on nudge.
+      const mockClient = createMockRelayClient({
+        queryBySource: vi.fn().mockResolvedValue({
+          found: true,
+          entryId: 'aB3dEf7h',
+          sourceLocation: {
+            file: 'src/components/Button.tsx',
+            start: { line: 10, column: 4 },
+          },
+          runtime: {
+            rendered: true,
+            componentProps: { label: 'Submit' },
+            componentStyles: {
+              computed: { padding: '16px', color: 'rgb(15, 23, 42)' },
+              customProperties: { '--color-fg': 'rgb(15, 23, 42)' },
+            },
+          },
+          browserConnected: true,
+        }),
+      });
+      const tool = new QueryBySourceTool(mockClient);
+
+      // Act
+      const result: CallToolResult = await tool.toolCallback({
+        file: 'src/components/Button.tsx',
+        line: 10,
+      });
+
+      // Assert
+      expect(
+        (result.structuredContent as { hint?: string }).hint,
+      ).toBeUndefined();
+      expect(
+        (
+          result.structuredContent as {
+            runtime?: { componentStyles?: unknown };
+          }
+        ).runtime?.componentStyles,
+      ).toEqual({
+        computed: { padding: '16px', color: 'rgb(15, 23, 42)' },
+        customProperties: { '--color-fg': 'rgb(15, 23, 42)' },
+      });
     });
 
     it('should handle not-found responses', async () => {

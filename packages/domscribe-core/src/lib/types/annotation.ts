@@ -54,11 +54,43 @@ export const EnvironmentSchema = z.object({
   packageManager: z.string().optional().describe('Package manager used'),
 });
 
+/**
+ * Component-style snapshot captured at runtime.
+ *
+ * `computed` is a bounded subset of CSS properties resolved via
+ * `getComputedStyle()` against the picked element (see the
+ * `STYLE_CAPTURE_ALLOWLIST` in `@domscribe/runtime`). `customProperties` are
+ * the resolved `--*` CSS variables visible from the element up to `:root`,
+ * used as the runtime token boundary for design-system attribution.
+ *
+ * Both fields are optional so older clients can ignore them. Companion
+ * build-time `styleSource` attribution lives on `ManifestEntry` and is
+ * intentionally separate — runtime context here is ground truth for what is
+ * rendered; the manifest field is ground truth for where it came from.
+ */
+export const ComponentStylesSchema = z.object({
+  computed: z
+    .record(z.string(), z.string())
+    .optional()
+    .describe(
+      'Computed CSS properties from the allowlist (≤32 entries: layout, spacing, typography, visual, positioning)',
+    ),
+  customProperties: z
+    .record(z.string(), z.string())
+    .optional()
+    .describe(
+      'Resolved `--*` CSS custom properties visible from the element through its ancestors up to `:root`',
+    ),
+});
+
 export const RuntimeContextSchema = z.object({
   componentProps: z.unknown().optional().describe('Component props snapshot'),
   componentState: z.unknown().optional().describe('Component state snapshot'),
   eventFlow: z.unknown().optional().describe('Event flow breadcrumbs'),
   performance: z.unknown().optional().describe('Performance metrics'),
+  componentStyles: ComponentStylesSchema.optional().describe(
+    'Captured computed styles + resolved CSS custom properties for the picked element. Populated when `domscribe.config.captureStyles` is enabled.',
+  ),
 });
 
 export const AnnotationIdSchema = z
@@ -196,3 +228,4 @@ export type BoundingRect = z.infer<typeof BoundingRectSchema>;
 export type Viewport = z.infer<typeof ViewportSchema>;
 export type Environment = z.infer<typeof EnvironmentSchema>;
 export type RuntimeContext = z.infer<typeof RuntimeContextSchema>;
+export type ComponentStyles = z.infer<typeof ComponentStylesSchema>;

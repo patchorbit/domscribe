@@ -6,6 +6,7 @@
 import type { ManifestEntryId, RuntimeContext } from '@domscribe/core';
 import type { FrameworkAdapter } from '../adapters/adapter.interface.js';
 import type { SerializationConstraints } from '../capture/types.js';
+import type { StyleCaptureOptions } from '../capture/style-capturer.js';
 
 /**
  * User-facing runtime configuration options (minus adapter, which is framework-specific).
@@ -22,6 +23,16 @@ export interface DomscribeRuntimeOptions {
   blockSelectors?: string[];
   /** Serialization constraints for captured props and state. */
   serialization?: SerializationConstraints;
+  /**
+   * Capture computed-style + custom-property snapshot for every annotation
+   * (RFC 0001 `domscribe.config.captureStyles`). Off by default so existing
+   * v0.x integrations continue to ship a leaner runtime payload. Flip on for
+   * styling-aware agent workflows.
+   * @default false
+   */
+  captureStyles?: boolean;
+  /** Tuning knobs for the style capturer. Ignored when `captureStyles` is false. */
+  styleOptions?: StyleCaptureOptions;
 }
 
 /**

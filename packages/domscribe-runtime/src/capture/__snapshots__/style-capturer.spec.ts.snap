@@ -1,0 +1,38 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`StyleCapturer > allowlist invariants > orders entries deterministically (snapshot for CI stability) 1`] = `
+[
+  "display",
+  "position",
+  "box-sizing",
+  "margin",
+  "padding",
+  "width",
+  "height",
+  "top",
+  "right",
+  "bottom",
+  "left",
+  "z-index",
+  "color",
+  "background-color",
+  "background-image",
+  "font-family",
+  "font-size",
+  "font-weight",
+  "line-height",
+  "letter-spacing",
+  "text-align",
+  "border",
+  "border-radius",
+  "box-shadow",
+  "opacity",
+  "transform",
+  "transition",
+  "cursor",
+  "flex",
+  "gap",
+  "grid-template-columns",
+  "overflow",
+]
+`;
