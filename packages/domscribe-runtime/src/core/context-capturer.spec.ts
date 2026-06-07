@@ -67,6 +67,14 @@ vi.mock('../capture/state-capturer.js', () => ({
   },
 }));
 
+const mockStyleCapture = vi.fn();
+
+vi.mock('../capture/style-capturer.js', () => ({
+  StyleCapturer: class {
+    capture = (element: unknown) => mockStyleCapture(element);
+  },
+}));
+
 // Test Helpers
 function createMockAdapter(
   overrides?: Partial<FrameworkAdapter>,
@@ -211,6 +219,84 @@ describe('ContextCapturer', () => {
       // Assert
       expect(adapter.getComponentInstance).toHaveBeenCalledWith(element);
       expect(adapter.getComponentInstance).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('captureForElement - style capture (RFC 0001)', () => {
+    beforeEach(() => {
+      adapter.getComponentInstance.mockReturnValue({ type: 'TestComponent' });
+      mockPropsCapture.mockReturnValue({ success: true, data: { ok: 1 } });
+      mockStateCapture.mockReturnValue({ success: true, data: { ok: 2 } });
+    });
+
+    it('does not invoke StyleCapturer when captureStyles is unset (default off)', async () => {
+      // Arrange
+      const capturer = new ContextCapturer({ adapter });
+      const element = document.createElement('div');
+
+      // Act
+      const result = await capturer.captureForElement(element);
+
+      // Assert
+      expect(mockStyleCapture).not.toHaveBeenCalled();
+      expect(result?.componentStyles).toBeUndefined();
+    });
+
+    it('attaches componentStyles when captureStyles is true and StyleCapturer succeeds', async () => {
+      // Arrange
+      const styles = {
+        computed: { padding: '16px' },
+        customProperties: { '--color-fg': 'rgb(15, 23, 42)' },
+      };
+      mockStyleCapture.mockReturnValue({ success: true, data: styles });
+      const capturer = new ContextCapturer({ adapter, captureStyles: true });
+      const element = document.createElement('div');
+
+      // Act
+      const result = await capturer.captureForElement(element);
+
+      // Assert
+      expect(mockStyleCapture).toHaveBeenCalledWith(element);
+      expect(result?.componentStyles).toEqual(styles);
+    });
+
+    it('swallows StyleCapturer failure without breaking the props/state pipeline', async () => {
+      // Arrange — style capture fails (e.g., a detached element); the rest of
+      // the context still has to come through cleanly. This is the explicit
+      // RFC requirement: style capture is best-effort, never load-bearing.
+      mockStyleCapture.mockReturnValue({
+        success: false,
+        error: new Error('No owner window'),
+      });
+      const capturer = new ContextCapturer({ adapter, captureStyles: true });
+      const element = document.createElement('div');
+
+      // Act
+      const result = await capturer.captureForElement(element);
+
+      // Assert
+      expect(result?.componentStyles).toBeUndefined();
+      expect(result?.componentProps).toBeDefined();
+      expect(result?.componentState).toBeDefined();
+    });
+
+    it('honors per-call includeStyles=false even when manager-level captureStyles is on', async () => {
+      // Arrange
+      mockStyleCapture.mockReturnValue({
+        success: true,
+        data: { computed: { padding: '16px' } },
+      });
+      const capturer = new ContextCapturer({ adapter, captureStyles: true });
+      const element = document.createElement('div');
+
+      // Act
+      const result = await capturer.captureForElement(element, {
+        includeStyles: false,
+      });
+
+      // Assert
+      expect(mockStyleCapture).not.toHaveBeenCalled();
+      expect(result?.componentStyles).toBeUndefined();
     });
   });
 

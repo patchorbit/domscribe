@@ -30,8 +30,10 @@ export class RuntimeManager {
 
   private elementTracker: ElementTracker | null = null;
   private contextCapturer: ContextCapturer | null = null;
-  private options: Required<Omit<RuntimeOptions, 'serialization'>> &
-    Pick<RuntimeOptions, 'serialization'>;
+  private options: Required<
+    Omit<RuntimeOptions, 'serialization' | 'styleOptions'>
+  > &
+    Pick<RuntimeOptions, 'serialization' | 'styleOptions'>;
   private isInitialized = false;
 
   private constructor() {
@@ -43,6 +45,8 @@ export class RuntimeManager {
       redactPII: true,
       blockSelectors: [],
       serialization: undefined,
+      captureStyles: false,
+      styleOptions: undefined,
     };
   }
 
@@ -99,6 +103,8 @@ export class RuntimeManager {
       redactPII: options.redactPII ?? true,
       blockSelectors: options.blockSelectors ?? [],
       serialization: options.serialization,
+      captureStyles: options.captureStyles ?? false,
+      styleOptions: options.styleOptions,
     };
 
     try {
@@ -118,6 +124,8 @@ export class RuntimeManager {
         serialization: this.options.serialization,
         redactPII: this.options.redactPII,
         debug: this.options.debug,
+        captureStyles: this.options.captureStyles,
+        styleOptions: this.options.styleOptions,
       });
 
       this.isInitialized = true;

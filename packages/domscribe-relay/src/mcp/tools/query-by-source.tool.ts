@@ -55,6 +55,25 @@ const QueryBySourceToolOutputSchema = McpToolOutputSchema.extend({
       rendered: z.boolean(),
       componentProps: z.unknown().optional(),
       componentState: z.unknown().optional(),
+      componentStyles: z
+        .object({
+          computed: z
+            .record(z.string(), z.string())
+            .optional()
+            .describe(
+              'Computed CSS properties from the allowlist (display, padding, color, font-*, etc.). Use this to confirm what the element actually renders before editing.',
+            ),
+          customProperties: z
+            .record(z.string(), z.string())
+            .optional()
+            .describe(
+              "Resolved `--*` CSS custom properties visible at the element. When a computed value matches a token's resolved value, prefer the token name in the fix.",
+            ),
+        })
+        .optional()
+        .describe(
+          'Runtime style snapshot (RFC 0001). Present only when the runtime is configured with `captureStyles: true`. Use this on styling annotations to ground the agent edit in what the user sees, not just what the source says.',
+        ),
       domSnapshot: z
         .object({
           tagName: z.string().optional(),
@@ -79,11 +98,13 @@ export class QueryBySourceTool implements McpToolDefinition<
 > {
   name = MCP_TOOLS.QUERY_BY_SOURCE;
   description =
-    'Get live DOM snapshot, component props, and state for a source location (file + line). ' +
+    'Get live DOM snapshot, component props, state, and computed styles for a source location (file + line). ' +
     'Call this when fixing visual/styling bugs, debugging conditional rendering, tracing prop values, or verifying UI changes after editing. ' +
+    'For styling annotations specifically — padding, color, spacing, typography, layout — always call this first: `runtime.componentStyles.computed` is the ground truth for what the user sees, and `runtime.componentStyles.customProperties` exposes the resolved design-system tokens (`--*` vars) at the element. Prefer token names over raw values in your edit when the resolved value matches. ' +
     "Skip for pure logic changes, new files, refactoring, or type fixes — runtime context won't help there. " +
     'If browserConnected is false, ask the user to open the page in their browser and retry. ' +
-    'Returns manifest data even when the browser is not connected.';
+    'Returns manifest data even when the browser is not connected. ' +
+    'NOTE: `componentStyles` requires the runtime to be configured with `captureStyles: true` (off by default in v0.x for payload-size reasons).';
   inputSchema = QueryBySourceToolInputSchema;
   outputSchema = QueryBySourceToolOutputSchema;
 
@@ -92,7 +113,10 @@ export class QueryBySourceTool implements McpToolDefinition<
   private buildHint(result: {
     found: boolean;
     browserConnected?: boolean;
-    runtime?: { rendered?: boolean };
+    runtime?: {
+      rendered?: boolean;
+      componentStyles?: unknown;
+    };
   }): string | undefined {
     if (!result.found) {
       return (
@@ -111,6 +135,18 @@ export class QueryBySourceTool implements McpToolDefinition<
       return (
         'The element exists in the manifest but is not currently rendered in the browser. ' +
         'Ask the user to navigate to a page that renders this component, then retry.'
+      );
+    }
+    if (
+      result.runtime &&
+      result.runtime.rendered &&
+      !result.runtime.componentStyles
+    ) {
+      return (
+        'componentStyles is not in this response. If the user is asking about a styling change ' +
+        '(padding, color, spacing, typography, layout), ask the user to set `captureStyles: true` ' +
+        "in their Domscribe runtime config and retry — you'll get the computed-style + token snapshot " +
+        'for the element, which lets the edit land in one round trip.'
       );
     }
     return undefined;

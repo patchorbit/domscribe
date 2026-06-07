@@ -446,6 +446,17 @@ export const QueryBySourceResponseSchema = z.object({
       rendered: z.boolean(),
       componentProps: z.unknown().optional(),
       componentState: z.unknown().optional(),
+      componentStyles: z
+        .object({
+          computed: z.record(z.string(), z.string()).optional(),
+          customProperties: z.record(z.string(), z.string()).optional(),
+        })
+        .optional()
+        .describe(
+          'Runtime computed styles + resolved CSS custom properties (RFC 0001). ' +
+            'Populated when the runtime is configured with `captureStyles: true`. ' +
+            'Use this to verify what the user actually sees before editing styling source.',
+        ),
       domSnapshot: z
         .object({
           tagName: z.string().optional(),

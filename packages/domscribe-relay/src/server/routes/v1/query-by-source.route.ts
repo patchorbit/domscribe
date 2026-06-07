@@ -109,6 +109,7 @@ export class QueryBySourceRoute implements RelayRoute {
               rendered: wsResult.rendered ?? false,
               componentProps: wsResult.context?.componentProps,
               componentState: wsResult.context?.componentState,
+              componentStyles: wsResult.context?.componentStyles,
               domSnapshot: wsResult.elementInfo,
             };
           }
