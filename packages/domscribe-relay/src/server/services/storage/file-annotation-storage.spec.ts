@@ -14,6 +14,7 @@ import {
 import path from 'path';
 import { tmpdir } from 'os';
 import {
+  ANNOTATION_SCHEMA_VERSION,
   AnnotationStatusEnum,
   type Annotation,
   type AnnotationStatus,
@@ -221,7 +222,7 @@ describe('FileAnnotationStorage', () => {
         AnnotationStatusEnum.QUEUED,
       );
       expect(result).not.toBeNull();
-      expect(result?.metadata.schemaVersion).toBe(1);
+      expect(result?.metadata.schemaVersion).toBe(ANNOTATION_SCHEMA_VERSION);
     });
 
     it('should stamp schemaVersion on listByStatus when missing from persisted data', async () => {
@@ -231,7 +232,7 @@ describe('FileAnnotationStorage', () => {
 
       const results = await storage.listByStatus(AnnotationStatusEnum.QUEUED);
       expect(results).toHaveLength(1);
-      expect(results[0].metadata.schemaVersion).toBe(1);
+      expect(results[0].metadata.schemaVersion).toBe(ANNOTATION_SCHEMA_VERSION);
     });
   });
 
