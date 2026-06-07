@@ -397,7 +397,7 @@ No single competitor combines build-time stable IDs, deep runtime capture, bidir
 
 ## MCP Tools
 
-The agent-facing surface — tools, prompts, wire schemas, error envelope, and a stability policy — is specified by the **Runtime Context Protocol (RCP)**. RCP is versioned independently of this implementation. The current version is **[RCP v1.0.0](./docs/rcp/v1.md)**, published from `@domscribe/protocol@1.0.0`. IDE and agent vendors integrating against Domscribe should treat the spec as the contract; the table below is a human-readable index.
+The agent-facing surface — tools, prompts, wire schemas, and error envelope — is listed below as a human-readable index.
 
 | Tool                                | Description                                                                             |
 | ----------------------------------- | --------------------------------------------------------------------------------------- |
@@ -414,7 +414,7 @@ The agent-facing surface — tools, prompts, wire schemas, error envelope, and a
 | `domscribe.annotation.search`       | Full-text search across annotation content                                              |
 | `domscribe.status`                  | Relay daemon health, manifest stats, queue counts                                       |
 
-See the [`@domscribe/mcp` README](./packages/domscribe-mcp/README.md) for detailed tool schemas, response formats, and prompt definitions, and **[RCP v1.0.0](./docs/rcp/v1.md)** for the protocol spec and stability policy.
+See the [`@domscribe/mcp` README](./packages/domscribe-mcp/README.md) for detailed tool schemas, response formats, and prompt definitions.
 
 ---
 

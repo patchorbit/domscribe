@@ -372,7 +372,7 @@ Pluggable transport layer for runtime ↔ overlay communication:
 
 #### MCP Tools (for coding agents)
 
-> The agent-facing surface — tool/prompt names, wire schemas, error envelope, and stability policy — is specified by [RCP v1.0.0](./docs/rcp/v1.md), versioned independently as `@domscribe/protocol@1.0.0`. The table below summarises what this implementation exposes; the spec is the contract.
+> The agent-facing surface — tool/prompt names, wire schemas, and error envelope — is summarised in the table below.
 
 | Tool                       | Description                                                                    |
 | -------------------------- | ------------------------------------------------------------------------------ |
