@@ -55,42 +55,47 @@ export const EnvironmentSchema = z.object({
 });
 
 /**
- * Component-style snapshot captured at runtime.
+ * Runtime style snapshot for the annotated element.
  *
- * `computed` is a bounded subset of CSS properties resolved via
- * `getComputedStyle()` against the picked element (see the
- * `STYLE_CAPTURE_ALLOWLIST` in `@domscribe/runtime`). `customProperties` are
- * the resolved `--*` CSS variables visible from the element up to `:root`,
- * used as the runtime token boundary for design-system attribution.
+ * Captured by `@domscribe/runtime` at interaction time when
+ * `domscribe.config.captureStyles` is enabled. Two slots:
  *
- * Both fields are optional so older clients can ignore them. Companion
- * build-time `styleSource` attribution lives on `ManifestEntry` and is
- * intentionally separate — runtime context here is ground truth for what is
- * rendered; the manifest field is ground truth for where it came from.
+ * - `computed`: a fixed allowlist of computed-style properties (≤32 entries
+ *   covering layout, spacing, typography, visual, and positioning). This is
+ *   the ground truth for "what the user sees" — survives conditional class
+ *   names, responsive variants, and runtime theme switches that build-time
+ *   attribution alone cannot resolve.
+ * - `customProperties`: resolved CSS custom properties (`--*` vars) on the
+ *   element and its ancestors up to `:root`. Lets the agent recover the
+ *   design-system token boundary without re-resolving Tailwind config or a
+ *   styled-components theme.
+ *
+ * Both fields are optional. Capture is best-effort and respects the
+ * existing per-element serialization budget (≤4 KB).
  */
 export const ComponentStylesSchema = z.object({
   computed: z
     .record(z.string(), z.string())
     .optional()
     .describe(
-      'Computed CSS properties from the allowlist (≤32 entries: layout, spacing, typography, visual, positioning)',
+      'Subset of computed CSS properties for the element, drawn from a fixed ≤32-property allowlist',
     ),
   customProperties: z
     .record(z.string(), z.string())
     .optional()
     .describe(
-      'Resolved `--*` CSS custom properties visible from the element through its ancestors up to `:root`',
+      'Resolved CSS custom properties (--* variables) inherited by the element from itself up to :root',
     ),
 });
 
 export const RuntimeContextSchema = z.object({
   componentProps: z.unknown().optional().describe('Component props snapshot'),
   componentState: z.unknown().optional().describe('Component state snapshot'),
+  componentStyles: ComponentStylesSchema.optional().describe(
+    'Computed-style allowlist + resolved CSS custom properties (captured when domscribe.config.captureStyles is enabled)',
+  ),
   eventFlow: z.unknown().optional().describe('Event flow breadcrumbs'),
   performance: z.unknown().optional().describe('Performance metrics'),
-  componentStyles: ComponentStylesSchema.optional().describe(
-    'Captured computed styles + resolved CSS custom properties for the picked element. Populated when `domscribe.config.captureStyles` is enabled.',
-  ),
 });
 
 export const AnnotationIdSchema = z
@@ -100,8 +105,14 @@ export const AnnotationIdSchema = z
 
 /**
  * Current annotation schema version. Bump when the Annotation shape changes.
+ *
+ * Version history:
+ * - v1: initial schema.
+ * - v2: added optional `runtimeContext.componentStyles` (computed-style
+ *   allowlist + CSS custom properties) and optional `styleSource` on
+ *   embedded `manifestSnapshot` entries, per RFC 0001.
  */
-export const ANNOTATION_SCHEMA_VERSION = 1;
+export const ANNOTATION_SCHEMA_VERSION = 2;
 
 export const AnnotationMetadataSchema = z.object({
   id: AnnotationIdSchema,
@@ -229,3 +240,56 @@ export type Viewport = z.infer<typeof ViewportSchema>;
 export type Environment = z.infer<typeof EnvironmentSchema>;
 export type RuntimeContext = z.infer<typeof RuntimeContextSchema>;
 export type ComponentStyles = z.infer<typeof ComponentStylesSchema>;
+
+/**
+ * Allowlist of computed-style property names captured by the runtime
+ * `StyleCapturer` (≤32 entries). Lives in `@domscribe/core` so the
+ * runtime, the relay, and downstream tools agree on the contract.
+ *
+ * Covers layout, spacing, typography, visual, and positioning — chosen to
+ * be a useful styling-debug subset without bloating the per-element
+ * serialization budget.
+ */
+export const COMPONENT_STYLES_ALLOWLIST = [
+  // Layout
+  'display',
+  'position',
+  'flex-direction',
+  'flex-wrap',
+  'align-items',
+  'justify-content',
+  'gap',
+  'grid-template-columns',
+  'grid-template-rows',
+  // Spacing
+  'margin',
+  'padding',
+  'width',
+  'height',
+  'min-width',
+  'min-height',
+  'max-width',
+  'max-height',
+  // Typography
+  'font-family',
+  'font-size',
+  'font-weight',
+  'line-height',
+  'letter-spacing',
+  'text-align',
+  'color',
+  // Visual
+  'background-color',
+  'border',
+  'border-radius',
+  'box-shadow',
+  'opacity',
+  // Positioning
+  'top',
+  'right',
+  'bottom',
+  'left',
+] as const satisfies readonly string[];
+
+export type ComponentStylesAllowlist =
+  (typeof COMPONENT_STYLES_ALLOWLIST)[number];

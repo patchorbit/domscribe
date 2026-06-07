@@ -38,11 +38,50 @@ describe('ResolveTool', () => {
         end: { line: 10, column: 30 },
         componentName: 'Button',
         tagName: 'button',
+        styleSource: undefined,
         error: undefined,
       });
       expect(JSON.parse(getResultText(result))).toEqual(
         result.structuredContent,
       );
+    });
+
+    it('should forward styleSource when present on the manifest entry', async () => {
+      // Build-time style capture path (RFC 0001): when the transform was
+      // run with captureStyles enabled, the entry carries className tokens
+      // and any CSS-in-JS source-block info. The tool must pass it through.
+      const mockClient = createMockRelayClient({
+        resolveManifestEntry: vi.fn().mockResolvedValue({
+          success: true,
+          entry: {
+            file: 'src/components/Button.tsx',
+            start: { line: 10, column: 5 },
+            end: { line: 10, column: 30 },
+            componentName: 'Button',
+            tagName: 'button',
+            styleSource: {
+              className: 'px-4 py-2 bg-blue-500',
+              classes: ['px-4', 'py-2', 'bg-blue-500'],
+            },
+          },
+        }),
+      });
+      const tool = new ResolveTool(mockClient);
+
+      const result: CallToolResult = await tool.toolCallback({
+        entryId: 'ds_abc123',
+      });
+
+      expect(
+        (
+          result.structuredContent as {
+            styleSource?: { classes?: string[]; className?: string };
+          }
+        )?.styleSource,
+      ).toEqual({
+        className: 'px-4 py-2 bg-blue-500',
+        classes: ['px-4', 'py-2', 'bg-blue-500'],
+      });
     });
 
     it('should handle not-found entries', async () => {
@@ -68,6 +107,7 @@ describe('ResolveTool', () => {
         end: undefined,
         componentName: undefined,
         tagName: undefined,
+        styleSource: undefined,
         error: 'Entry not found',
       });
     });

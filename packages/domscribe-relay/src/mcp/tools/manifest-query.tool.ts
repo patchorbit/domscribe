@@ -51,7 +51,8 @@ export class ManifestQueryTool implements McpToolDefinition<
     'Query the Domscribe manifest to find UI elements by file, component, or tag name. ' +
     'Use to explore what elements exist in a file ("what\'s in Button.tsx?"), ' +
     'find all instances of a component ("find all Modal elements"), ' +
-    'or list elements by tag ("show all input elements").';
+    'or list elements by tag ("show all input elements"). ' +
+    'Entries include `styleSource` when build-time style capture is enabled (statically-resolvable className tokens + CSS-in-JS source-block location) — useful when triaging a styling annotation before requesting live runtime context.';
   inputSchema = ManifestQueryToolInputSchema;
   outputSchema = ManifestQueryToolOutputSchema;
 

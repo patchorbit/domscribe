@@ -17,13 +17,23 @@
 import MagicString from 'magic-string';
 import type { ParserInterface } from '../parsers/parser.interface.js';
 import { SourceLocation } from '../parsers/types.js';
-import { PATHS, type ManifestEntry } from '@domscribe/core';
+import {
+  PATHS,
+  type CssInJsSourceLocation,
+  type ManifestEntry,
+} from '@domscribe/core';
 import {
   InjectParams,
   InjectorOptions,
   InjectorResult,
   InjectorMetrics,
 } from './types.js';
+import {
+  buildStyleSource,
+  collectCssInJsDeclarations,
+  extractClassNameFromJSX,
+  resolveTagToBindingName,
+} from './style-extractor.js';
 import { SourceMapConsumer } from 'source-map';
 import { IDStabilizer, type IDGenerator } from '@domscribe/manifest';
 import path from 'path';
@@ -39,6 +49,7 @@ export class DomscribeInjector<TParseResult = unknown, TElement = unknown> {
   ) {
     this.options = {
       debug: options?.debug ?? false,
+      captureStyles: options?.captureStyles ?? false,
     };
   }
 
@@ -127,6 +138,14 @@ export class DomscribeInjector<TParseResult = unknown, TElement = unknown> {
     // Generate manifest entries
     const manifestEntries: ManifestEntry[] = [];
 
+    // Build the file-level CSS-in-JS declaration map once per inject() call
+    // so per-element lookups stay O(1). Skip when style capture is off so
+    // we don't pay for the extra walk in the default-off case.
+    const cssInJsByBinding: Map<string, CssInJsSourceLocation> = this.options
+      .captureStyles
+      ? collectCssInJsDeclarations(ast, source, sourceFile)
+      : new Map();
+
     // Process each element
     for (const element of elements) {
       // Skip if element already has data-ds attribute
@@ -184,6 +203,17 @@ export class DomscribeInjector<TParseResult = unknown, TElement = unknown> {
           end,
           tagName,
         };
+
+        if (this.options.captureStyles) {
+          const classNameInfo = extractClassNameFromJSX(element);
+          const cssInJs = cssInJsByBinding.get(
+            resolveTagToBindingName(tagName),
+          );
+          const styleSource = buildStyleSource(classNameInfo, cssInJs);
+          if (styleSource) {
+            entry.styleSource = styleSource;
+          }
+        }
 
         manifestEntries.push(entry);
         metrics.elementsInjected++;

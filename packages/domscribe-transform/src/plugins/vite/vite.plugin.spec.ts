@@ -388,6 +388,7 @@ describe('domscribe Vite plugin', () => {
         '/test/workspace',
         {
           debug: true,
+          captureStyles: false,
         },
       );
     });

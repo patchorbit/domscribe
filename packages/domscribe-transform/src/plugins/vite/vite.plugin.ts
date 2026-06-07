@@ -96,6 +96,7 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
     relay: relayOptions = {},
     overlay: overlayOption = true,
     rootDir,
+    captureStyles = false,
   } = options;
   const filter = createFilter(include, exclude);
 
@@ -181,7 +182,10 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
       // Note: ManifestWriter.getInstance() calls initialize() internally via constructor
       writer = ManifestWriter.getInstance(rootContext, { debug });
 
-      injectorRegistry = InjectorRegistry.getInstance(rootContext, { debug });
+      injectorRegistry = InjectorRegistry.getInstance(rootContext, {
+        debug,
+        captureStyles,
+      });
       await injectorRegistry.initialize();
 
       stats = TransformStats.getInstance(rootContext);

@@ -58,6 +58,14 @@ export interface TurbopackLoaderOptions {
    * Falls back to `@domscribe/next/auto-init` when omitted.
    */
   autoInitPath?: string;
+
+  /**
+   * Capture build-time style attribution (`styleSource`) on every manifest
+   * entry. See `VitePluginOptions.captureStyles` for details.
+   *
+   * @default false
+   */
+  captureStyles?: boolean;
 }
 
 /**

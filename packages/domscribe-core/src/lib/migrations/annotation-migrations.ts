@@ -16,12 +16,22 @@ import {
 /**
  * Registry of migration functions keyed by the version they migrate FROM.
  * e.g. migrationSteps[1] migrates v1 → v2.
- *
- * Currently empty — only v1 exists.  When a v2 schema is introduced, add:
- *   migrationSteps[1] = (data: Record<string, unknown>) => { … mutate … };
  */
 const migrationSteps: Record<number, (data: Record<string, unknown>) => void> =
-  {};
+  {
+    /**
+     * v1 → v2: additive only (per RFC 0001).
+     *
+     * v2 adds optional `runtimeContext.componentStyles` and optional
+     * `manifestSnapshot[].styleSource`. Both are optional and absent on v1
+     * payloads, so no field rewriting is required — the migration step
+     * exists purely to satisfy the version-walk contract and to let v1
+     * annotations be stamped as v2 on next write without throwing.
+     */
+    1: () => {
+      // No-op: v1 → v2 is purely additive.
+    },
+  };
 
 /**
  * Read `metadata.schemaVersion` from raw JSON, defaulting to 1 for

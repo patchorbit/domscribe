@@ -71,7 +71,7 @@ async function doInit(
   rootContext: string,
   options: TurbopackLoaderOptions,
 ): Promise<void> {
-  const { debug = false, relay = {} } = options;
+  const { debug = false, relay = {}, captureStyles = false } = options;
 
   if (debug) {
     console.log(`${LOG_PREFIX} Initializing singletons...`);
@@ -81,7 +81,10 @@ async function doInit(
   ManifestWriter.getInstance(rootContext, { debug });
 
   // Initialize injector registry
-  const injectorRegistry = InjectorRegistry.getInstance(rootContext, { debug });
+  const injectorRegistry = InjectorRegistry.getInstance(rootContext, {
+    debug,
+    captureStyles,
+  });
   await injectorRegistry.initialize();
 
   // Initialize stats
