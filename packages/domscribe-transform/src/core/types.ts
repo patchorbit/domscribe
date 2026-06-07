@@ -16,6 +16,19 @@ export interface InjectorOptions {
    * @default false
    */
   debug?: boolean;
+
+  /**
+   * Capture build-time style attribution (`styleSource`) on every manifest
+   * entry. When `true`, the injector extracts className tokens and
+   * styled-component source-block locations on the same AST visit that
+   * injects `data-ds` attributes.
+   *
+   * Bundler plugins read `domscribe.config.captureStyles` and propagate it
+   * here. Default-off in v0.x per RFC 0001 reversibility plan.
+   *
+   * @default false
+   */
+  captureStyles?: boolean;
 }
 
 /**

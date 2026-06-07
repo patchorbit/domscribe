@@ -56,15 +56,16 @@ describe('migrateAnnotation', () => {
     expect(result.metadata.schemaVersion).toBe(ANNOTATION_SCHEMA_VERSION);
   });
 
-  it('should default to version 1 when metadata has no schemaVersion', () => {
-    // With ANNOTATION_SCHEMA_VERSION === 1 and no field, readVersion returns 1.
-    // Since 1 === ANNOTATION_SCHEMA_VERSION, no migration steps run — it just stamps.
+  it('should walk legacy (unversioned) data forward to the current version', () => {
+    // readVersion defaults missing metadata.schemaVersion to 1, so a legacy
+    // annotation is migrated through every registered step up to the current
+    // version and then stamped.
     const raw = buildRawAnnotation();
     delete (raw['metadata'] as Record<string, unknown>)['schemaVersion'];
 
     const result = migrateAnnotation(raw);
 
-    expect(result.metadata.schemaVersion).toBe(1);
+    expect(result.metadata.schemaVersion).toBe(ANNOTATION_SCHEMA_VERSION);
   });
 
   it('should default to version 1 when metadata is missing entirely', () => {
@@ -101,5 +102,43 @@ describe('migrateAnnotation', () => {
     expect(result.interaction.type).toBe('element-annotation');
     expect(result.context.pageUrl).toBe('http://localhost:3000');
     expect(result.context.viewport).toEqual({ width: 1920, height: 1080 });
+  });
+
+  it('should migrate a v1 annotation up to v2 (additive, no field rewrite)', () => {
+    // Simulates a v1 annotation persisted before RFC 0001 schema bump.
+    // The v1 → v2 step is purely additive (componentStyles + styleSource
+    // are new optional fields) — the migration must not rewrite or delete
+    // any existing payload data.
+    const raw = buildRawAnnotation({
+      metadata: { schemaVersion: 1 },
+      context: {
+        pageUrl: 'http://localhost:3000',
+        pageTitle: 'Test',
+        viewport: { width: 1920, height: 1080 },
+        userAgent: 'test-agent',
+        runtimeContext: {
+          componentProps: { foo: 'bar' },
+        },
+      },
+    });
+
+    const result = migrateAnnotation(raw);
+
+    expect(result.metadata.schemaVersion).toBe(ANNOTATION_SCHEMA_VERSION);
+    expect(result.context.runtimeContext).toEqual({
+      componentProps: { foo: 'bar' },
+    });
+  });
+
+  it('should leave v1 payloads structurally untouched (forward-compat for v1-pinned clients)', () => {
+    // Forward-compat guarantee for annotation-process.tool: a v1-pinned
+    // downstream consumer reading a v2-migrated annotation sees exactly the
+    // v1 fields it already understood. The new componentStyles slot is
+    // optional and is absent (`undefined`) on migrated v1 payloads.
+    const raw = buildRawAnnotation({ metadata: { schemaVersion: 1 } });
+
+    const result = migrateAnnotation(raw);
+
+    expect(result.context.runtimeContext).toBeUndefined();
   });
 });

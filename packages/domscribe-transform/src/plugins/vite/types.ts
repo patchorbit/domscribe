@@ -54,4 +54,16 @@ export interface VitePluginOptions {
    * root differs from the project root (e.g., Nuxt with a custom `srcDir`).
    */
   rootDir?: string;
+
+  /**
+   * Capture build-time style attribution (`styleSource`) on every manifest
+   * entry. Extracts className tokens and styled-component source-block
+   * locations on the same AST visit that injects `data-ds`.
+   *
+   * Per RFC 0001 the feature flag defaults off in v0.x; opt in to give
+   * agents single-round-trip styling context.
+   *
+   * @default false
+   */
+  captureStyles?: boolean;
 }

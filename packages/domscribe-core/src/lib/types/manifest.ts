@@ -26,6 +26,86 @@ export const StyleInfoSchema = z.object({
 });
 
 /**
+ * Source-block location for a CSS-in-JS declaration (styled-components or emotion).
+ *
+ * Recorded at transform time for elements rendered by a locally-declared
+ * styled-component (e.g. `const StyledDiv = styled.div\`...\`;` used as
+ * `<StyledDiv>`). Lets agents jump from the runtime DOM back to the
+ * authoring source without re-deriving the binding from a hashed class name.
+ */
+export const CssInJsSourceLocationSchema = z.object({
+  file: z
+    .string()
+    .describe('Source file path containing the styled declaration'),
+  line: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe('Line number of the styled declaration (1-indexed)'),
+  column: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe('Column number of the styled declaration (0-indexed)'),
+  blockText: z
+    .string()
+    .describe(
+      'Verbatim source text of the styled template literal or css block (truncated to 4 KB)',
+    ),
+  library: z
+    .enum(['styled-components', 'emotion', 'unknown'])
+    .optional()
+    .describe('Detected CSS-in-JS library, when statically inferable'),
+  kind: z
+    .enum(['styled-tag', 'styled-call', 'css-template'])
+    .optional()
+    .describe(
+      'AST pattern that matched: styled.div (styled-tag), styled(Component) (styled-call), or css`...` (css-template)',
+    ),
+});
+
+/**
+ * Build-time style attribution for a manifest entry.
+ *
+ * Captured by `@domscribe/transform` on the same AST visit that injects
+ * `data-ds` attributes. Provides the agent with a static link from the
+ * rendered element to the styling source that produced it, so styling-shaped
+ * annotations can be resolved without a runtime round trip for the
+ * source-attribution step.
+ *
+ * @remarks
+ * - `className` is the raw value of the JSX `className` attribute when it is
+ *   statically extractable (string literal or single template literal with
+ *   no interpolations). Computed expressions yield `undefined`.
+ * - `classes` is the array of utility-class tokens statically derivable from
+ *   the `className` expression, including tokens reachable through `clsx`,
+ *   `cn`, `tw`, conditional expressions, and string-only template literals.
+ *   Tokens reachable only through runtime values are silently dropped.
+ * - `cssInJs` is set when the JSX tag references a locally-declared
+ *   styled-component in the same source file.
+ *
+ * All fields are optional: a partial attribution is preferable to a throw,
+ * and absence is the correct signal to fall back to reading the source.
+ */
+export const StyleSourceSchema = z.object({
+  className: z
+    .string()
+    .optional()
+    .describe(
+      'Statically-resolvable className literal as it appears in source; undefined when className is fully computed at runtime',
+    ),
+  classes: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Parsed utility-class tokens reachable statically from the className expression',
+    ),
+  cssInJs: CssInJsSourceLocationSchema.optional().describe(
+    'Source-block location for the CSS-in-JS declaration backing this element',
+  ),
+});
+
+/**
  * Framework-specific component metadata
  */
 export const ComponentMetadataSchema = z.record(
@@ -73,6 +153,9 @@ export const ManifestEntrySchema = z.object({
     .string()
     .optional()
     .describe('xxhash64 hash of file content at transform time (16 hex chars)'),
+  styleSource: StyleSourceSchema.optional().describe(
+    'Build-time style attribution (className tokens + CSS-in-JS source-block location)',
+  ),
 });
 
 export const ManifestMetadataSchema = z.object({
@@ -107,6 +190,8 @@ export const ManifestIndexSchema = z.object({
 export type SourcePosition = z.infer<typeof SourcePositionSchema>;
 export type StyleInfo = z.infer<typeof StyleInfoSchema>;
 export type ComponentMetadata = z.infer<typeof ComponentMetadataSchema>;
+export type CssInJsSourceLocation = z.infer<typeof CssInJsSourceLocationSchema>;
+export type StyleSource = z.infer<typeof StyleSourceSchema>;
 
 export type ManifestEntryId = z.infer<typeof ManifestEntryIdSchema>;
 export type ManifestEntry = z.infer<typeof ManifestEntrySchema>;
