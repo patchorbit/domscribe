@@ -56,15 +56,15 @@ describe('migrateAnnotation', () => {
     expect(result.metadata.schemaVersion).toBe(ANNOTATION_SCHEMA_VERSION);
   });
 
-  it('should default to version 1 when metadata has no schemaVersion', () => {
-    // With ANNOTATION_SCHEMA_VERSION === 1 and no field, readVersion returns 1.
-    // Since 1 === ANNOTATION_SCHEMA_VERSION, no migration steps run — it just stamps.
-    const raw = buildRawAnnotation();
-    delete (raw['metadata'] as Record<string, unknown>)['schemaVersion'];
+  it('should migrate v1 annotations forward (verifyHistory stays absent — additive only)', () => {
+    const raw = buildRawAnnotation({
+      metadata: { schemaVersion: 1 },
+    });
 
     const result = migrateAnnotation(raw);
 
-    expect(result.metadata.schemaVersion).toBe(1);
+    expect(result.metadata.schemaVersion).toBe(ANNOTATION_SCHEMA_VERSION);
+    expect(result.verifyHistory).toBeUndefined();
   });
 
   it('should default to version 1 when metadata is missing entirely', () => {

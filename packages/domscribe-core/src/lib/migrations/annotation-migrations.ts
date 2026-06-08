@@ -16,12 +16,19 @@ import {
 /**
  * Registry of migration functions keyed by the version they migrate FROM.
  * e.g. migrationSteps[1] migrates v1 → v2.
- *
- * Currently empty — only v1 exists.  When a v2 schema is introduced, add:
- *   migrationSteps[1] = (data: Record<string, unknown>) => { … mutate … };
  */
 const migrationSteps: Record<number, (data: Record<string, unknown>) => void> =
-  {};
+  {
+    // v1 → v2: introduce optional `verifyHistory: VerifyResult[]` on the
+    // Annotation root (RFC 0002). Migration is a pure stamp — older
+    // annotations had no verify data, so no field needs to be synthesized
+    // and consumers MUST treat `verifyHistory` as optional.
+    1: () => {
+      // Intentionally no-op: the field is optional and additive. The
+      // schemaVersion bump alone is sufficient; we keep the slot so
+      // migrateAnnotation does not throw at version 1.
+    },
+  };
 
 /**
  * Read `metadata.schemaVersion` from raw JSON, defaulting to 1 for
