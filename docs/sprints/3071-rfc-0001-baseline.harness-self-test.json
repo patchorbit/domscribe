@@ -1,0 +1,83 @@
+
+> @domscribe/test-fixtures@0.0.1 test:falsifier /tmp/wt-sprint-3071-task-a/packages/domscribe-test-fixtures
+> tsx styling/scripts/falsifier.ts
+
+{
+  "mode": "self-test",
+  "total": 10,
+  "passes": 10,
+  "fails": 0,
+  "oneShotRate": 1,
+  "annotations": [
+    {
+      "id": "A001",
+      "fixture": "tailwind",
+      "passed": true,
+      "pixelDiffRatio": 0,
+      "diffPixels": 0
+    },
+    {
+      "id": "A002",
+      "fixture": "tailwind",
+      "passed": true,
+      "pixelDiffRatio": 0,
+      "diffPixels": 0
+    },
+    {
+      "id": "A003",
+      "fixture": "tailwind",
+      "passed": true,
+      "pixelDiffRatio": 0,
+      "diffPixels": 0
+    },
+    {
+      "id": "A004",
+      "fixture": "tailwind",
+      "passed": true,
+      "pixelDiffRatio": 0,
+      "diffPixels": 0
+    },
+    {
+      "id": "A005",
+      "fixture": "tailwind",
+      "passed": true,
+      "pixelDiffRatio": 0,
+      "diffPixels": 0
+    },
+    {
+      "id": "A101",
+      "fixture": "styled",
+      "passed": true,
+      "pixelDiffRatio": 0,
+      "diffPixels": 0
+    },
+    {
+      "id": "A102",
+      "fixture": "styled",
+      "passed": true,
+      "pixelDiffRatio": 0,
+      "diffPixels": 0
+    },
+    {
+      "id": "A103",
+      "fixture": "styled",
+      "passed": true,
+      "pixelDiffRatio": 0,
+      "diffPixels": 0
+    },
+    {
+      "id": "A104",
+      "fixture": "styled",
+      "passed": true,
+      "pixelDiffRatio": 0,
+      "diffPixels": 0
+    },
+    {
+      "id": "A105",
+      "fixture": "styled",
+      "passed": true,
+      "pixelDiffRatio": 0,
+      "diffPixels": 0
+    }
+  ]
+}
