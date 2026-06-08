@@ -31,6 +31,16 @@ const migrationSteps: Record<number, (data: Record<string, unknown>) => void> =
     1: () => {
       // No-op: v1 → v2 is purely additive.
     },
+    /**
+     * v2 → v3: additive only (per RFC 0002).
+     *
+     * v3 adds optional `context.verifyHistory` (an array of `VerifyResult`
+     * records emitted by the `verify_after_edit` MCP tool). The field is
+     * absent on v2 payloads, so no field rewriting is required.
+     */
+    2: () => {
+      // No-op: v2 → v3 is purely additive.
+    },
   };
 
 /**
