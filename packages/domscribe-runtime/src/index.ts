@@ -27,3 +27,16 @@ export {
   STYLE_CAPTURE_ALLOWLIST,
 } from './capture/style-capturer.js';
 export type { StyleCaptureOptions } from './capture/style-capturer.js';
+
+// Screenshot capture (RFC 0002 — verify_after_edit)
+export {
+  ScreenshotCapturer,
+  SCREENSHOT_MAX_BYTES,
+  SCREENSHOT_DEFAULT_QUALITY,
+} from './capture/screenshot-capturer.js';
+export type {
+  ScreenshotCaptureOptions,
+  ScreenshotCaptureRequest,
+  ScreenshotCaptureResult,
+  ScreenshotDriver,
+} from './capture/screenshot-capturer.js';
