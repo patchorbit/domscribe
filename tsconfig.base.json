@@ -34,6 +34,8 @@
       "@domscribe/transform/*": ["packages/domscribe-transform/src/*"],
       "@domscribe/manifest": ["packages/domscribe-manifest/src/index.ts"],
       "@domscribe/manifest/*": ["packages/domscribe-manifest/src/*"],
+      "@domscribe/verify": ["packages/domscribe-verify/src/index.ts"],
+      "@domscribe/verify/*": ["packages/domscribe-verify/src/*"],
       "@domscribe/vue": ["packages/domscribe-vue/src/index.ts"],
       "@domscribe/vue/*": ["packages/domscribe-vue/src/*"],
       "@domscribe/nuxt": ["packages/domscribe-nuxt/src/index.ts"],

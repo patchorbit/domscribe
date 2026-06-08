@@ -43,6 +43,19 @@ export default [
                 'scope:adapter',
               ],
             },
+            {
+              // scope:test consumes the same packages adapters do — it
+              // grades them. Notably, `@domscribe/test-fixtures` now imports
+              // `@domscribe/verify` (scope:infra) so the harness and the
+              // relay verify_after_edit tool share one comparator.
+              sourceTag: 'scope:test',
+              onlyDependOnLibsWithTags: [
+                'scope:core',
+                'scope:infra',
+                'scope:build',
+                'scope:adapter',
+              ],
+            },
           ],
         },
       ],
