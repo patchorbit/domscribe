@@ -104,6 +104,114 @@ export const AnnotationIdSchema = z
   .describe('Unique identifier: ann_<nanoid>_<timestamp>');
 
 /**
+ * Verdict for a single post-edit verification call.
+ *
+ * - `match`: the post-edit state matches the user's intent (within the
+ *   visual-diff threshold and the requested computed-style deltas).
+ * - `partial`: some requested deltas match and some do not — the agent
+ *   should consult `componentStylesDelta` / `computedStyleDelta` and retry.
+ * - `no_change`: the comparator detected no visual or computed-style delta
+ *   from the pre-edit baseline — the agent's edit did not affect the
+ *   rendered element. Typically a wrong selector or a no-op edit.
+ * - `regression`: the post-edit state diverged from the baseline in a way
+ *   that did not match the intent — the agent likely broke something.
+ */
+export const VerifyVerdictSchema = z.enum([
+  'match',
+  'partial',
+  'no_change',
+  'regression',
+]);
+
+/**
+ * Numeric delta between a baseline value and a post-edit value for a single
+ * `BoundingRect` field. Recorded only when a non-zero delta is observed.
+ */
+export const BoundingRectDeltaSchema = z.object({
+  field: z
+    .enum(['x', 'y', 'width', 'height', 'top', 'right', 'bottom', 'left'])
+    .describe('Which BoundingRect field changed'),
+  before: z.number().describe('Baseline value (px)'),
+  after: z.number().describe('Post-edit value (px)'),
+});
+
+/**
+ * Delta between baseline and post-edit values for a single style property.
+ * Used for both `componentStyles.computed` and `selectedElement.computedStyles`.
+ * Recorded only when the property's resolved value differs.
+ */
+export const StylePropertyDeltaSchema = z.object({
+  property: z.string().describe('CSS property name (e.g. "padding")'),
+  before: z
+    .string()
+    .nullable()
+    .describe(
+      'Baseline resolved value; `null` when the property was absent before',
+    ),
+  after: z
+    .string()
+    .nullable()
+    .describe(
+      'Post-edit resolved value; `null` when the property is absent after',
+    ),
+});
+
+/**
+ * Result of a single `verify_after_edit` MCP call (RFC 0002).
+ *
+ * Returned by the relay's verify tool to the agent so it can reason about
+ * its own edit on retry rather than re-guessing from source. Shape is
+ * deliberately structured (not a binary pass/fail) — the falsifier
+ * (≥60% retry-resolution rate) requires actionable deltas.
+ *
+ * All delta fields are optional; the verdict alone may be sufficient when
+ * the baseline matches exactly.
+ *
+ * `screenshotRef` is intentionally a relay-side blob reference, never inline
+ * bytes — preserves the 4 KB-per-element serialization budget from RFC 0001.
+ */
+export const VerifyResultSchema = z.object({
+  verdict: VerifyVerdictSchema.describe('Overall verification outcome'),
+  timestamp: z.string().describe('ISO 8601 timestamp of the verify call'),
+  pixelDiffRatio: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe(
+      'Fraction of pixels that differ between the post-edit screenshot and the pre-edit baseline (0 = identical)',
+    ),
+  componentStylesDelta: z
+    .array(StylePropertyDeltaSchema)
+    .optional()
+    .describe(
+      'Per-property deltas on the runtime `componentStyles.computed` allowlist (RFC 0001)',
+    ),
+  computedStyleDelta: z
+    .array(StylePropertyDeltaSchema)
+    .optional()
+    .describe(
+      'Per-property deltas on `selectedElement.computedStyles` outside the componentStyles allowlist',
+    ),
+  boundingRectDelta: z
+    .array(BoundingRectDeltaSchema)
+    .optional()
+    .describe('Per-field deltas on the element bounding rectangle'),
+  screenshotRef: z
+    .string()
+    .optional()
+    .describe(
+      'Relay-side blob reference for the post-edit element screenshot (never inlined bytes)',
+    ),
+  notes: z
+    .string()
+    .optional()
+    .describe(
+      'Human-readable reason or comparator note (e.g. "baseline missing")',
+    ),
+});
+
+/**
  * Current annotation schema version. Bump when the Annotation shape changes.
  *
  * Version history:
@@ -111,8 +219,11 @@ export const AnnotationIdSchema = z
  * - v2: added optional `runtimeContext.componentStyles` (computed-style
  *   allowlist + CSS custom properties) and optional `styleSource` on
  *   embedded `manifestSnapshot` entries, per RFC 0001.
+ * - v3: added optional `context.verifyHistory` (an array of `VerifyResult`
+ *   records from `verify_after_edit` MCP calls), per RFC 0002. Older
+ *   clients silently ignore the field.
  */
-export const ANNOTATION_SCHEMA_VERSION = 2;
+export const ANNOTATION_SCHEMA_VERSION = 3;
 
 export const AnnotationMetadataSchema = z.object({
   id: AnnotationIdSchema,
@@ -193,6 +304,12 @@ export const AnnotationContextSchema = z.object({
   runtimeContext: RuntimeContextSchema.optional().describe(
     'Runtime context (Phase 1 & 2 features)',
   ),
+  verifyHistory: z
+    .array(VerifyResultSchema)
+    .optional()
+    .describe(
+      'Append-only history of `verify_after_edit` calls for this annotation (RFC 0002). Optional — absent on annotations that were not verified, and silently ignored by pre-v3 clients.',
+    ),
 });
 
 export const AgentResponseSchema = z.object({
@@ -240,6 +357,10 @@ export type Viewport = z.infer<typeof ViewportSchema>;
 export type Environment = z.infer<typeof EnvironmentSchema>;
 export type RuntimeContext = z.infer<typeof RuntimeContextSchema>;
 export type ComponentStyles = z.infer<typeof ComponentStylesSchema>;
+export type VerifyVerdict = z.infer<typeof VerifyVerdictSchema>;
+export type VerifyResult = z.infer<typeof VerifyResultSchema>;
+export type StylePropertyDelta = z.infer<typeof StylePropertyDeltaSchema>;
+export type BoundingRectDelta = z.infer<typeof BoundingRectDeltaSchema>;
 
 /**
  * Allowlist of computed-style property names captured by the runtime

@@ -141,4 +141,31 @@ describe('migrateAnnotation', () => {
 
     expect(result.context.runtimeContext).toBeUndefined();
   });
+
+  it('should migrate a v2 annotation up to v3 (additive verifyHistory, no field rewrite)', () => {
+    // Simulates a v2 annotation persisted between RFC 0001 (v1→v2) and
+    // RFC 0002 (v2→v3). The v2 → v3 step is purely additive (verifyHistory
+    // is a new optional field) — pre-existing runtimeContext data must
+    // survive untouched.
+    const raw = buildRawAnnotation({
+      metadata: { schemaVersion: 2 },
+      context: {
+        pageUrl: 'http://localhost:3000',
+        pageTitle: 'Test',
+        viewport: { width: 1920, height: 1080 },
+        userAgent: 'test-agent',
+        runtimeContext: {
+          componentStyles: { computed: { padding: '16px' } },
+        },
+      },
+    });
+
+    const result = migrateAnnotation(raw);
+
+    expect(result.metadata.schemaVersion).toBe(ANNOTATION_SCHEMA_VERSION);
+    expect(result.context.runtimeContext).toEqual({
+      componentStyles: { computed: { padding: '16px' } },
+    });
+    expect(result.context.verifyHistory).toBeUndefined();
+  });
 });
