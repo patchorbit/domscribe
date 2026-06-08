@@ -3,11 +3,11 @@
   "files": [],
   "include": [],
   "references": [
-    // All project dependencies
-    { "path": "../domscribe-core" },
-    { "path": "../domscribe-manifest" },
-    { "path": "../domscribe-transform" },
-    // This project's other tsconfig.*.json files
-    { "path": "./tsconfig.spec.json" }
+    {
+      "path": "../domscribe-verify"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
   ]
 }

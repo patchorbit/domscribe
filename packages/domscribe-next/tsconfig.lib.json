@@ -40,13 +40,16 @@
   ],
   "references": [
     {
-      "path": "../domscribe-transform/tsconfig.lib.json"
+      "path": "../domscribe-overlay/tsconfig.lib.json"
+    },
+    {
+      "path": "../domscribe-react/tsconfig.lib.json"
     },
     {
       "path": "../domscribe-runtime/tsconfig.lib.json"
     },
     {
-      "path": "../domscribe-react/tsconfig.lib.json"
+      "path": "../domscribe-transform/tsconfig.lib.json"
     }
   ]
 }

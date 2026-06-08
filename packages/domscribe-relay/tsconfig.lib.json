@@ -38,7 +38,14 @@
     "**/.nx"
   ],
   "references": [
-    { "path": "../domscribe-core/tsconfig.lib.json" },
-    { "path": "../domscribe-manifest/tsconfig.lib.json" }
+    {
+      "path": "../domscribe-verify/tsconfig.lib.json"
+    },
+    {
+      "path": "../domscribe-manifest/tsconfig.lib.json"
+    },
+    {
+      "path": "../domscribe-core/tsconfig.lib.json"
+    }
   ]
 }

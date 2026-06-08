@@ -39,13 +39,16 @@
   ],
   "references": [
     {
+      "path": "../domscribe-relay/tsconfig.lib.json"
+    },
+    {
+      "path": "../domscribe-overlay/tsconfig.lib.json"
+    },
+    {
       "path": "../domscribe-manifest/tsconfig.lib.json"
     },
     {
       "path": "../domscribe-core/tsconfig.lib.json"
-    },
-    {
-      "path": "../domscribe-relay/tsconfig.lib.json"
     }
   ]
 }
