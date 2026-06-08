@@ -18,6 +18,11 @@ describe('tool.defs', () => {
       expect(MCP_TOOLS.ANNOTATION_RESPOND).toBe('domscribe.annotation.respond');
       expect(MCP_TOOLS.ANNOTATION_SEARCH).toBe('domscribe.annotation.search');
       expect(MCP_TOOLS.STATUS).toBe('domscribe.status');
+      expect(MCP_TOOLS.VERIFY_AFTER_EDIT).toBe('domscribe.verify.afterEdit');
+    });
+
+    it('declares 13 active tools (RFC 0002 added verify_after_edit)', () => {
+      expect(Object.keys(MCP_TOOLS)).toHaveLength(13);
     });
   });
 

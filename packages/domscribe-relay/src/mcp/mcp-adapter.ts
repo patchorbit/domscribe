@@ -25,6 +25,7 @@ import { AnnotationsRespondTool } from './tools/annotation-respond.tool.js';
 import { AnnotationsSearchTool } from './tools/annotation-search.tool.js';
 import { StatusTool } from './tools/status.tool.js';
 import { QueryBySourceTool } from './tools/query-by-source.tool.js';
+import { VerifyAfterEditTool } from './tools/verify-after-edit.tool.js';
 
 // Prompt classes
 import { ProcessNextPrompt } from './prompts/process-next.prompt.js';
@@ -113,6 +114,7 @@ export class McpAdapter {
       new AnnotationsSearchTool(relayHttpClient),
       new StatusTool(relayHttpClient),
       new QueryBySourceTool(relayHttpClient),
+      new VerifyAfterEditTool(relayHttpClient),
     ];
 
     for (const tool of tools) {

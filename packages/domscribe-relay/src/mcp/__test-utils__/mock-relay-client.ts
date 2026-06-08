@@ -20,6 +20,7 @@ export function createMockRelayClient(
     processAnnotation: vi.fn(),
     updateAnnotationStatus: vi.fn(),
     updateAnnotationResponse: vi.fn(),
+    verifyAnnotation: vi.fn(),
     createAnnotation: vi.fn(),
     deleteAnnotation: vi.fn(),
     patchAnnotation: vi.fn(),

@@ -30,7 +30,8 @@ If an annotation is found:
 2. Navigate to the source file and understand the context
 3. Implement the requested change
 4. Use domscribe.annotation.respond to store your response
-5. Use domscribe.annotation.updateStatus to mark it as 'processed'
+5. RECOMMENDED: call domscribe.verify.afterEdit with your post-edit ComponentStyles / boundingRect (and a screenshotRef when the overlay supplied one). The tool grades your edit against the pre-edit baseline and returns a verdict (match | partial | no_change | regression) plus per-axis deltas. If the verdict is no_change or regression, reconcile the deltas and retry your edit before moving on.
+6. Use domscribe.annotation.updateStatus to mark the annotation 'processed'. (NOTE: updateStatus does NOT require verify — it is a soft-recommended diagnostic, not a lifecycle gate.)
 
 If no annotation is found, inform the user that the queue is empty.`,
         },

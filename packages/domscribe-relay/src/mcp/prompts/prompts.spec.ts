@@ -25,6 +25,11 @@ describe('ProcessNextPrompt', () => {
     expect(messages[0].content.text).toContain(
       'domscribe.annotation.updateStatus',
     );
+    // RFC 0002: prompt should recommend verify_after_edit between respond
+    // and updateStatus, but NOT gate the lifecycle on it.
+    expect(messages[0].content.text).toContain('domscribe.verify.afterEdit');
+    expect(messages[0].content.text).toMatch(/RECOMMENDED/i);
+    expect(messages[0].content.text).toMatch(/not a lifecycle gate/i);
   });
 });
 

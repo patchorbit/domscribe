@@ -27,6 +27,8 @@ export const MCP_TOOLS = {
   QUERY_BY_SOURCE: 'domscribe.query.bySource',
   // System tools
   STATUS: 'domscribe.status',
+  // Verify tools (RFC 0002)
+  VERIFY_AFTER_EDIT: 'domscribe.verify.afterEdit',
 } as const;
 
 export type McpToolName = (typeof MCP_TOOLS)[keyof typeof MCP_TOOLS];
