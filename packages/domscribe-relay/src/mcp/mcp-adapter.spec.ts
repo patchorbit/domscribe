@@ -60,7 +60,8 @@ describe('McpAdapter', () => {
 
       // Assert
       const server = getServer(adapter);
-      expect(server.registeredTools.size).toBe(12);
+      // RFC 0002 added the verify_after_edit tool — the active count is 13.
+      expect(server.registeredTools.size).toBe(13);
       expect(server.registeredTools.has('domscribe.resolve')).toBe(true);
       expect(server.registeredTools.has('domscribe.resolve.batch')).toBe(true);
       expect(server.registeredTools.has('domscribe.manifest.stats')).toBe(true);
@@ -83,6 +84,9 @@ describe('McpAdapter', () => {
       );
       expect(server.registeredTools.has('domscribe.status')).toBe(true);
       expect(server.registeredTools.has('domscribe.query.bySource')).toBe(true);
+      expect(server.registeredTools.has('domscribe.verify.afterEdit')).toBe(
+        true,
+      );
     });
 
     it('should register all 4 prompts', () => {

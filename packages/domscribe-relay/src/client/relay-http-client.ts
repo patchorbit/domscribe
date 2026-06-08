@@ -12,6 +12,8 @@ import {
   AnnotationInteraction,
   AnnotationStatus,
   API_PATHS,
+  BoundingRect,
+  ComponentStyles,
   DomscribeError,
   DomscribeErrorCode,
   InteractionMode,
@@ -37,6 +39,8 @@ import {
   AnnotationUpdateResponseResponseSchema,
   AnnotationUpdateStatusResponse,
   AnnotationUpdateStatusResponseSchema,
+  AnnotationVerifyResponse,
+  AnnotationVerifyResponseSchema,
   HealthResponse,
   HealthResponseSchema,
   ManifestBatchResolveResponse,
@@ -216,6 +220,36 @@ export class RelayHttpClient {
       throw await this.parseError(response);
     }
     return AnnotationUpdateResponseResponseSchema.parse(await response.json());
+  }
+
+  /**
+   * Grade a post-edit capture against the annotation's pre-edit baseline
+   * via the relay's verify_after_edit endpoint (RFC 0002).
+   *
+   * `postEdit.screenshotRef` is an opaque blob reference managed by the
+   * overlay; raw image bytes never traverse this client.
+   */
+  async verifyAnnotation(
+    annotationId: AnnotationId,
+    postEdit: {
+      componentStyles?: ComponentStyles;
+      boundingRect?: BoundingRect;
+      screenshotRef?: string;
+    },
+  ): Promise<AnnotationVerifyResponse> {
+    const apiPath = `${API_PATHS.BASE.replace(':version', 'v1')}${API_PATHS.ANNOTATION_VERIFY.replace(':id', annotationId)}`;
+    const url = new URL(apiPath, this.baseUrl);
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ postEdit }),
+    });
+    if (!response.ok) {
+      throw await this.parseError(response);
+    }
+    return AnnotationVerifyResponseSchema.parse(await response.json());
   }
 
   async updateAnnotationStatus(

@@ -1,0 +1,26 @@
+{
+  "name": "@domscribe/verify",
+  "version": "0.5.2",
+  "description": "Pure-TS comparator that grades post-edit captures against pre-edit baselines for the verify_after_edit MCP tool (RFC 0002).",
+  "type": "module",
+  "main": "src/index.ts",
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "dependencies": {
+    "@domscribe/core": "workspace:*",
+    "pixelmatch": "^7.1.0",
+    "pngjs": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/pngjs": "^6.0.5"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/patchorbit/domscribe.git",
+    "directory": "packages/domscribe-verify"
+  }
+}

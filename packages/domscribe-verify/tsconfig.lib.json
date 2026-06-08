@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "tsBuildInfoFile": "../../dist/packages/domscribe-transform/tsconfig.tsbuildinfo",
+    "tsBuildInfoFile": "../../dist/packages/domscribe-verify/tsconfig.tsbuildinfo",
     "lib": [
       "es2024",
       "ESNext.Array",
@@ -23,14 +23,8 @@
     "src/**/*.spec.ts",
     "src/**/*.test.tsx",
     "src/**/*.spec.tsx",
-    "src/**/*.test.js",
-    "src/**/*.spec.js",
-    "src/**/*.test.jsx",
-    "src/**/*.spec.jsx",
     "**/dist",
     "**/build",
-    "**/.next",
-    "**/.turbo",
     "**/coverage",
     "**/generated",
     "**/tmp",
@@ -38,15 +32,6 @@
     "**/.nx"
   ],
   "references": [
-    {
-      "path": "../domscribe-relay/tsconfig.lib.json"
-    },
-    {
-      "path": "../domscribe-overlay/tsconfig.lib.json"
-    },
-    {
-      "path": "../domscribe-manifest/tsconfig.lib.json"
-    },
     {
       "path": "../domscribe-core/tsconfig.lib.json"
     }

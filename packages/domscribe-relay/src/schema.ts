@@ -13,6 +13,8 @@ import {
   AnnotationIdSchema,
   AnnotationInteractionSchema,
   AnnotationSchema,
+  BoundingRectSchema,
+  ComponentStylesSchema,
   InteractionModeSchema,
   ManifestEntryIdSchema,
   ManifestEntrySchema,
@@ -21,6 +23,7 @@ import {
   SourcePositionSchema,
   AnnotationStatusSchema,
   AnnotationSummarySchema,
+  VerifyResultSchema,
 } from '@domscribe/core';
 
 /* =============================
@@ -179,6 +182,53 @@ export const AnnotationUpdateResponseResponseSchema = z.object({
 
 export type AnnotationUpdateResponseResponse = z.infer<
   typeof AnnotationUpdateResponseResponseSchema
+>;
+
+/* =============================
+ * Annotation - Verify After Edit (RFC 0002)
+ * ============================= */
+export const AnnotationVerifyRequestParamsSchema = z.object({
+  id: AnnotationIdSchema.describe('The annotation ID to verify'),
+});
+export type AnnotationVerifyRequestParams = z.infer<
+  typeof AnnotationVerifyRequestParamsSchema
+>;
+
+export const AnnotationVerifyRequestBodySchema = z.object({
+  postEdit: z
+    .object({
+      componentStyles: ComponentStylesSchema.optional().describe(
+        'Post-edit ComponentStyles snapshot from the runtime StyleCapturer',
+      ),
+      boundingRect: BoundingRectSchema.optional().describe(
+        'Post-edit boundingRect from the picked element',
+      ),
+      screenshotRef: z
+        .string()
+        .optional()
+        .describe(
+          'Opaque relay-blob reference for the post-edit screenshot (NEVER raw bytes)',
+        ),
+    })
+    .describe(
+      "Post-edit capture as observed by the overlay. The relay grades this against the annotation's pre-edit baseline.",
+    ),
+});
+export type AnnotationVerifyRequestBody = z.infer<
+  typeof AnnotationVerifyRequestBodySchema
+>;
+
+export const AnnotationVerifyResponseSchema = z.object({
+  success: z.boolean().describe('Whether the verify result was recorded'),
+  result: VerifyResultSchema.describe(
+    'Structured verify verdict and per-axis deltas',
+  ),
+  annotationId: AnnotationIdSchema.describe(
+    'Annotation ID that was verified (echoed for client convenience)',
+  ),
+});
+export type AnnotationVerifyResponse = z.infer<
+  typeof AnnotationVerifyResponseSchema
 >;
 
 /* =============================

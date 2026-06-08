@@ -100,8 +100,12 @@ export const AnnotationIdSchema = z
 
 /**
  * Current annotation schema version. Bump when the Annotation shape changes.
+ *
+ * v1 → v2: introduce optional `verifyHistory: VerifyResult[]` on Annotation
+ *           for the RFC 0002 verify_after_edit workflow. Older clients ignore
+ *           the field; the migration is a pure stamp (additive change).
  */
-export const ANNOTATION_SCHEMA_VERSION = 1;
+export const ANNOTATION_SCHEMA_VERSION = 2;
 
 export const AnnotationMetadataSchema = z.object({
   id: AnnotationIdSchema,
@@ -188,6 +192,100 @@ export const AgentResponseSchema = z.object({
   message: z.string().optional().describe('Message from the agent'),
 });
 
+/**
+ * Verdict produced by `verify_after_edit` comparing pre/post-edit captures.
+ *
+ *   match       — visual + computed-style + boundingRect within tolerance
+ *   partial     — some axes match, some drifted (agent should reconcile)
+ *   no_change   — post-edit capture is indistinguishable from pre-edit
+ *                 baseline; almost always means the edit did not land in
+ *                 the rendered output the user is looking at
+ *   regression  — measurable backslide on at least one axis vs. baseline
+ *
+ * See RFC 0002 §Decision for the verdict semantics.
+ */
+export const VerifyVerdictSchema = z.enum([
+  'match',
+  'partial',
+  'no_change',
+  'regression',
+]);
+
+/**
+ * Per-property delta keyed by CSS property name. Values are the
+ * `[before, after]` pair; absence of a key means "unchanged". Bounded
+ * by the StyleCapturer allowlist so the payload stays well under 4 KB.
+ */
+export const ComponentStylesDeltaSchema = z.record(
+  z.string(),
+  z.tuple([z.string(), z.string()]),
+);
+
+/**
+ * Bounding-rect delta — only the four edges plus dimensions are surfaced,
+ * matching `BoundingRectSchema`. Each axis is `[before, after]`. Keys
+ * absent from this record were unchanged. Keys are constrained at the
+ * comparator level (see `@domscribe/verify`), kept as `string` here so
+ * the record stays partial without per-key optional bookkeeping.
+ */
+export const BoundingRectDeltaSchema = z.record(
+  z.string(),
+  z.tuple([z.number(), z.number()]),
+);
+
+/**
+ * Result of `verify_after_edit` — the structured verdict the agent
+ * reconciles against on retry. Built on RFC 0001's componentStyles surface;
+ * `screenshotRef` is a relay-blob reference (never the raw bytes — the
+ * 4 KB-per-element serialization budget assumes screenshots are external).
+ */
+export const VerifyResultSchema = z.object({
+  annotationId: AnnotationIdSchema.describe(
+    'Annotation this verify result is bound to',
+  ),
+  verdict: VerifyVerdictSchema.describe(
+    'Overall verdict — see VerifyVerdictSchema for semantics',
+  ),
+  pixelDiffRatio: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe(
+      'Fraction of element-scoped pixels that differ between pre/post screenshots in [0, 1]',
+    ),
+  pixelDiffPixels: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe('Absolute pixel-count diff (companion to pixelDiffRatio)'),
+  componentStylesDelta: ComponentStylesDeltaSchema.describe(
+    'Per-CSS-property [before, after] pairs for properties that changed',
+  ),
+  boundingRectDelta: BoundingRectDeltaSchema.describe(
+    'Per-axis [before, after] pairs for boundingRect entries that changed',
+  ),
+  screenshotRef: z
+    .string()
+    .optional()
+    .describe(
+      'Opaque relay-blob reference for the post-edit element screenshot. NEVER raw bytes — fetch via the relay if the agent needs the image.',
+    ),
+  capturedAt: z
+    .string()
+    .describe('ISO 8601 timestamp when the post-edit capture was taken'),
+  reason: z
+    .string()
+    .optional()
+    .describe(
+      'Human-readable explanation when the verdict is not "match" — surface in agent retry prompts',
+    ),
+});
+
+export type VerifyVerdict = z.infer<typeof VerifyVerdictSchema>;
+export type ComponentStylesDelta = z.infer<typeof ComponentStylesDeltaSchema>;
+export type BoundingRectDelta = z.infer<typeof BoundingRectDeltaSchema>;
+export type VerifyResult = z.infer<typeof VerifyResultSchema>;
+
 export const AnnotationSchema = z.object({
   metadata: AnnotationMetadataSchema.describe('Annotation metadata'),
   interaction: AnnotationInteractionSchema.describe('User interaction details'),
@@ -195,6 +293,12 @@ export const AnnotationSchema = z.object({
   agentResponse: AgentResponseSchema.optional().describe(
     "Agent's response if processed",
   ),
+  verifyHistory: z
+    .array(VerifyResultSchema)
+    .optional()
+    .describe(
+      'Verify-after-edit results, appended in call order. Optional — older clients ignore. Soft-recommended; not gated by the annotation lifecycle.',
+    ),
 });
 
 export const AnnotationSummarySchema = z.object({

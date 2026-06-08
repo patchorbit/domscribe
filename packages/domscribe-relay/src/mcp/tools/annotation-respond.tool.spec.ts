@@ -28,12 +28,15 @@ describe('AnnotationsRespondTool', () => {
         'ann_123',
         'Changed button color to blue',
       );
-      expect(result.structuredContent).toEqual({
+      expect(result.structuredContent).toMatchObject({
         success: true,
         annotationId: 'ann_123',
-        nextStep:
-          'Call domscribe.annotation.updateStatus with annotationId "ann_123" and status "processed" to complete the lifecycle.',
       });
+      const structured = result.structuredContent as { nextStep: string };
+      expect(structured.nextStep).toContain('domscribe.verify.afterEdit');
+      expect(structured.nextStep).toContain(
+        'domscribe.annotation.updateStatus',
+      );
     });
 
     it('should default message to empty string when not provided', async () => {

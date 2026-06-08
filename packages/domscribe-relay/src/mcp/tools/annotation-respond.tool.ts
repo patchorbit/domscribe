@@ -43,7 +43,8 @@ export class AnnotationsRespondTool implements McpToolDefinition<
   description =
     "Store the agent's response to an annotation including explanation message and code patches. " +
     'Use after implementing changes to record what was done so users can review in the overlay. ' +
-    'IMPORTANT: After calling this, you MUST call domscribe.annotation.updateStatus with status "processed" (or "failed") to complete the lifecycle.';
+    'RECOMMENDED next step: call domscribe.verify.afterEdit to grade your edit against the pre-edit baseline (verdict + per-axis deltas you can reconcile on retry). ' +
+    'IMPORTANT: After verify (or directly, if you skip verify), call domscribe.annotation.updateStatus with status "processed" (or "failed") to complete the lifecycle.';
   inputSchema = AnnotationsRespondToolInputSchema;
   outputSchema = AnnotationsRespondToolOutputSchema;
 
@@ -60,7 +61,7 @@ export class AnnotationsRespondTool implements McpToolDefinition<
         success: response.success,
         annotationId: response.annotation.metadata.id,
         nextStep: response.success
-          ? `Call domscribe.annotation.updateStatus with annotationId "${response.annotation.metadata.id}" and status "processed" to complete the lifecycle.`
+          ? `RECOMMENDED: call domscribe.verify.afterEdit with annotationId "${response.annotation.metadata.id}" and your post-edit ComponentStyles / boundingRect to grade the edit. Then call domscribe.annotation.updateStatus with status "processed" to complete the lifecycle.`
           : undefined,
       };
 

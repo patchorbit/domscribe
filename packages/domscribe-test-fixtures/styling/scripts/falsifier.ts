@@ -46,8 +46,7 @@ import path from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { chromium, type Browser, type Page } from 'playwright';
-import pixelmatch from 'pixelmatch';
-import { PNG } from 'pngjs';
+import { diffPng, MAX_DIFF_RATIO } from '@domscribe/verify';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STYLING_ROOT = path.resolve(__dirname, '..');
@@ -55,23 +54,12 @@ const BASELINES_ROOT = path.join(STYLING_ROOT, 'baselines');
 const ANNOTATIONS_FILE = path.join(STYLING_ROOT, 'annotations.json');
 
 /**
- * Pixel-diff tolerance.
- *
- *   PER_PIXEL_THRESHOLD — pixelmatch's `threshold` (color distance per
- *   pixel below which two pixels are considered equal). 0.1 is the
- *   library's recommended starting point; we keep it modest so the
- *   harness catches real visual deltas but tolerates AA jitter.
- *
- *   MAX_DIFF_RATIO — the fraction of total pixels that may differ before
- *   we call the annotation a fail. The canonical-after path diffs at 0,
- *   so this is a defensive floor for CI worker AA jitter on text glyphs.
- *   0.1% (0.001) is tight enough that two images that happen to share
- *   a mostly-white background (a real false-positive risk we observed in
- *   sanity testing) cannot slip through, while still absorbing a few
- *   pixels of subpixel font rendering noise.
+ * Pixel-diff tolerance lives in `@domscribe/verify` so the comparator
+ * stays bit-identical between CI and the live `verify_after_edit` MCP
+ * tool. See the package for the rationale on PER_PIXEL_THRESHOLD and
+ * MAX_DIFF_RATIO. We only re-import MAX_DIFF_RATIO for the failure
+ * reason string below.
  */
-const PER_PIXEL_THRESHOLD = 0.1;
-const MAX_DIFF_RATIO = 0.001;
 
 const VIEWPORT = { width: 800, height: 600 };
 
@@ -270,25 +258,14 @@ async function screenshotRoute(
   });
 }
 
-function loadPng(buf: Buffer): PNG {
-  return PNG.sync.read(buf);
-}
-
-function diff(a: PNG, b: PNG): { diffPixels: number; ratio: number } {
-  if (a.width !== b.width || a.height !== b.height) {
-    return {
-      diffPixels: a.width * a.height,
-      ratio: 1,
-    };
-  }
-  const out = new PNG({ width: a.width, height: a.height });
-  const diffPixels = pixelmatch(a.data, b.data, out.data, a.width, a.height, {
-    threshold: PER_PIXEL_THRESHOLD,
-  });
-  return {
-    diffPixels,
-    ratio: diffPixels / (a.width * a.height),
-  };
+/**
+ * Pixel diff via the shared `@domscribe/verify` comparator. Kept as a
+ * thin shim so the rest of the harness reads the same way it did
+ * before the lift.
+ */
+function diff(a: Buffer, b: Buffer): { diffPixels: number; ratio: number } {
+  const r = diffPng(a, b);
+  return { diffPixels: r.diffPixels, ratio: r.pixelDiffRatio };
 }
 
 interface BrowserContext {
@@ -418,10 +395,7 @@ async function runAgainstSource(
       try {
         const actualBuf = await source(page, server, ann);
         const baselineBuf = fs.readFileSync(baseline);
-        const { diffPixels, ratio } = diff(
-          loadPng(actualBuf),
-          loadPng(baselineBuf),
-        );
+        const { diffPixels, ratio } = diff(actualBuf, baselineBuf);
         const passed = ratio <= MAX_DIFF_RATIO;
         results.push({
           id: ann.id,
