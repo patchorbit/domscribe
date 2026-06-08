@@ -12,9 +12,12 @@ import type {
   AnnotationInteraction,
   AnnotationStatus,
   AnnotationSummary,
+  BoundingRect,
+  ComponentStyles,
   InteractionMode,
   ManifestEntry,
   ManifestEntryId,
+  VerifyResult,
 } from '@domscribe/core';
 import {
   ANNOTATION_SCHEMA_VERSION,
@@ -22,6 +25,7 @@ import {
   generateAnnotationId,
   WS_EVENTS,
 } from '@domscribe/core';
+import { compare } from '@domscribe/verify';
 import type { AnnotationStorageProvider } from './storage/annotation-storage.js';
 
 /**
@@ -384,6 +388,62 @@ export class AnnotationService {
     await this.storage.write(annotation);
 
     return annotation;
+  }
+
+  /**
+   * Run verify_after_edit against a stored annotation.
+   *
+   * Reads the pre-edit baseline from the annotation's
+   * `context.runtimeContext.componentStyles` and `interaction.boundingRect`,
+   * compares it to the caller-supplied post-edit capture via
+   * `@domscribe/verify`, and appends the resulting `VerifyResult` to the
+   * annotation's `verifyHistory`.
+   *
+   * Soft-recommended: there is NO lifecycle gate — `updateStatus(PROCESSED)`
+   * works whether or not `verifyAfterEdit` has been called. RFC 0002 §Decision
+   * routes the escalation path through a falsifier-trip review, not the
+   * state machine.
+   *
+   * Screenshots are never inlined into the annotation — only the opaque
+   * `screenshotRef` is stored. The pixel-diff axis is therefore inactive
+   * here; it activates when the overlay later wires the runtime
+   * ScreenshotCapturer through the blob endpoint (deferred to a follow-up
+   * PR per RFC 0002 §B1).
+   */
+  async verifyAfterEdit(
+    id: string,
+    postEdit: {
+      componentStyles?: ComponentStyles;
+      boundingRect?: BoundingRect;
+      screenshotRef?: string;
+    },
+  ): Promise<VerifyResult> {
+    const annotation = await this.get(id);
+    if (!annotation) {
+      throw new Error(`Annotation not found: ${id}`);
+    }
+
+    const beforeStyles = annotation.context.runtimeContext?.componentStyles;
+    const beforeRect = annotation.interaction.boundingRect;
+
+    const result = compare({
+      annotationId: annotation.metadata.id as AnnotationId,
+      beforeStyles,
+      afterStyles: postEdit.componentStyles,
+      beforeRect,
+      afterRect: postEdit.boundingRect,
+      screenshotRef: postEdit.screenshotRef,
+    });
+
+    annotation.verifyHistory = [...(annotation.verifyHistory ?? []), result];
+
+    await this.storage.write(annotation);
+    this.emit({
+      type: WS_EVENTS.ANNOTATION_UPDATED,
+      data: { id, status: annotation.metadata.status },
+    });
+
+    return result;
   }
 
   /**

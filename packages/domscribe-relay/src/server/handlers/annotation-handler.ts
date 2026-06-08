@@ -14,6 +14,7 @@ import {
   AnnotationUpdateResponseRoute,
   AnnotationUpdateStatusRoute,
   AnnotationProcessRoute,
+  AnnotationVerifyRoute,
 } from '../routes/index.js';
 import { registerRoute } from '../routes/route.interface.js';
 
@@ -104,6 +105,15 @@ export function registerAnnotationHandlers(
    * Atomically fetch and claim the next queued annotation
    */
   registerRoute(AnnotationProcessRoute, {
+    app,
+    annotationService,
+  });
+
+  /**
+   * POST /api/v1/annotations/:id/verify
+   * Grade a post-edit capture against the pre-edit baseline (RFC 0002)
+   */
+  registerRoute(AnnotationVerifyRoute, {
     app,
     annotationService,
   });

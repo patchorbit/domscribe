@@ -11,6 +11,7 @@ export { AnnotationProcessRoute } from './v1/annotation-process.route.js';
 export { AnnotationSearchRoute } from './v1/annotation-search.route.js';
 export { AnnotationUpdateResponseRoute } from './v1/annotation-update-response.route.js';
 export { AnnotationUpdateStatusRoute } from './v1/annotation-update-status.route.js';
+export { AnnotationVerifyRoute } from './v1/annotation-verify.route.js';
 export { AnnotationDeleteRoute } from './v1/annotation-delete.route.js';
 export { AnnotationPatchRoute } from './v1/annotation-patch.route.js';
 
