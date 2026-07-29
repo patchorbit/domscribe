@@ -11,6 +11,7 @@ export type {
   SearchAnnotationsOptions,
   SearchAnnotationsResult,
 } from './annotation-service.js';
+export { VerifyService } from './verify-service.js';
 export type { AnnotationStorageProvider } from './storage/index.js';
 export {
   FileAnnotationStorage,

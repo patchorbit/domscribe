@@ -17,3 +17,15 @@ export {
   loadPng,
 } from './lib/comparator.js';
 export type { DiffResult } from './lib/comparator.js';
+
+export {
+  RECT_EPSILON_PX,
+  diffBoundingRects,
+  diffStyleMaps,
+  resolveVerdict,
+} from './lib/delta.js';
+export type {
+  ExpectedChange,
+  VerdictInput,
+  VerdictResult,
+} from './lib/delta.js';

@@ -20,3 +20,7 @@ export { ManifestResolveRoute } from './v1/manifest-resolve.route.js';
 export { ManifestStatsRoute } from './v1/manifest-stats.route.js';
 export { ManifestQueryRoute } from './v1/manifest-query.route.js';
 export { QueryBySourceRoute } from './v1/query-by-source.route.js';
+
+/** Verify routes (RFC 0002) */
+export { VerifyBaselineRoute } from './v1/verify-baseline.route.js';
+export { VerifyCheckRoute } from './v1/verify-check.route.js';

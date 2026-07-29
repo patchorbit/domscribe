@@ -13,6 +13,7 @@ import {
   AnnotationIdSchema,
   AnnotationInteractionSchema,
   AnnotationSchema,
+  BoundingRectSchema,
   InteractionModeSchema,
   ManifestEntryIdSchema,
   ManifestEntrySchema,
@@ -21,6 +22,7 @@ import {
   SourcePositionSchema,
   AnnotationStatusSchema,
   AnnotationSummarySchema,
+  VerifyResultSchema,
 } from '@domscribe/core';
 
 /* =============================
@@ -395,11 +397,86 @@ export const WSContextResponseSchema = z.object({
       tagName: z.string().optional(),
       attributes: z.record(z.string(), z.string()).optional(),
       innerText: z.string().optional(),
+      boundingRect: BoundingRectSchema.optional(),
     })
     .optional(),
   error: z.string().optional(),
 });
 export type WSContextResponse = z.infer<typeof WSContextResponseSchema>;
+
+/* =============================
+ * Verify (RFC 0002)
+ * ============================= */
+export const VerifyBaselineRequestSchema = z.object({
+  entryId: ManifestEntryIdSchema.describe(
+    'Manifest entry ID (data-ds attribute value) of the element about to be edited',
+  ),
+});
+export type VerifyBaselineRequest = z.infer<typeof VerifyBaselineRequestSchema>;
+
+export const VerifyBaselineResponseSchema = z.object({
+  captured: z.boolean().describe('Whether a baseline snapshot was stored'),
+  baselineId: z
+    .string()
+    .optional()
+    .describe('Opaque handle to pass to the verify check call'),
+  entryId: ManifestEntryIdSchema.optional(),
+  capturedAt: z.string().optional().describe('ISO 8601 capture timestamp'),
+  browserConnected: z.boolean().describe('Whether a browser client was connected'),
+  hasComponentStyles: z
+    .boolean()
+    .optional()
+    .describe(
+      'Whether the baseline includes a computed-style snapshot (requires runtime captureStyles: true)',
+    ),
+  hasBoundingRect: z
+    .boolean()
+    .optional()
+    .describe('Whether the baseline includes element geometry'),
+  error: z.string().optional(),
+});
+export type VerifyBaselineResponse = z.infer<
+  typeof VerifyBaselineResponseSchema
+>;
+
+export const ExpectedChangeSchema = z.object({
+  property: z
+    .string()
+    .describe('CSS property expected to change (e.g. "padding")'),
+  value: z
+    .string()
+    .optional()
+    .describe(
+      'Expected resolved value as reported by getComputedStyle (e.g. "12px", "rgb(255, 0, 0)"). Omit to only assert that the property changed.',
+    ),
+});
+export type ExpectedChangeInput = z.infer<typeof ExpectedChangeSchema>;
+
+export const VerifyCheckRequestSchema = z.object({
+  baselineId: z
+    .string()
+    .describe('Baseline handle returned by the baseline capture call'),
+  expectedChanges: z
+    .array(ExpectedChangeSchema)
+    .optional()
+    .describe('Declared intent — the style changes the edit was meant to make'),
+  annotationId: AnnotationIdSchema.optional().describe(
+    'When set, the verify result is appended to this annotation’s verifyHistory',
+  ),
+});
+export type VerifyCheckRequest = z.infer<typeof VerifyCheckRequestSchema>;
+
+export const VerifyCheckResponseSchema = z.object({
+  verified: z
+    .boolean()
+    .describe('Whether a post-edit snapshot was captured and compared'),
+  browserConnected: z.boolean(),
+  result: VerifyResultSchema.optional().describe(
+    'Structured verify result (verdict + deltas) when verification ran',
+  ),
+  error: z.string().optional(),
+});
+export type VerifyCheckResponse = z.infer<typeof VerifyCheckResponseSchema>;
 
 /* =============================
  * Query By Source

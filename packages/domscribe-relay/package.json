@@ -24,6 +24,7 @@
     "@clack/prompts": "^1.1.0",
     "@domscribe/core": "workspace:*",
     "@domscribe/manifest": "workspace:*",
+    "@domscribe/verify": "workspace:*",
     "@fastify/cors": "^10.0.0",
     "@fastify/websocket": "^11.0.0",
     "@modelcontextprotocol/sdk": "^1.0.0",

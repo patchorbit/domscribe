@@ -412,6 +412,8 @@ The agent-facing surface — tools, prompts, wire schemas, and error envelope �
 | `domscribe.annotation.get`          | Retrieve annotation by ID                                                               |
 | `domscribe.annotation.list`         | List annotations with status/filter options                                             |
 | `domscribe.annotation.search`       | Full-text search across annotation content                                              |
+| `domscribe.verify.baseline`         | Capture a pre-edit style/geometry snapshot of a rendered element                        |
+| `domscribe.verify.afterEdit`        | Compare the element against the baseline — deterministic verdict + per-property deltas  |
 | `domscribe.status`                  | Relay daemon health, manifest stats, queue counts                                       |
 
 See the [`@domscribe/mcp` README](./packages/domscribe-mcp/README.md) for detailed tool schemas, response formats, and prompt definitions.

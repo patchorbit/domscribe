@@ -159,6 +159,9 @@ export class RelayService {
                       ),
                     ),
                     innerText: elementInfo.element?.innerText?.slice(0, 500),
+                    boundingRect: this.serializeBoundingRect(
+                      elementInfo.element,
+                    ),
                   }
                 : undefined,
             };
@@ -186,6 +189,38 @@ export class RelayService {
     await this.refreshAnnotations();
 
     return true;
+  }
+
+  /**
+   * Serialize an element's bounding rect into a plain JSON-safe object.
+   * DOMRect is not JSON-serializable directly (its fields are getters).
+   */
+  private serializeBoundingRect(element: HTMLElement | undefined):
+    | {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        top: number;
+        right: number;
+        bottom: number;
+        left: number;
+      }
+    | undefined {
+    if (!element || typeof element.getBoundingClientRect !== 'function') {
+      return undefined;
+    }
+    const rect = element.getBoundingClientRect();
+    return {
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      left: rect.left,
+    };
   }
 
   /**

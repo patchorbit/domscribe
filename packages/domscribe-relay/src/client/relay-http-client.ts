@@ -51,6 +51,11 @@ import {
   ShutdownResponseSchema,
   StatusResponse,
   StatusResponseSchema,
+  ExpectedChangeInput,
+  VerifyBaselineResponse,
+  VerifyBaselineResponseSchema,
+  VerifyCheckResponse,
+  VerifyCheckResponseSchema,
 } from '../schema.js';
 import {
   RelayErrorResponse,
@@ -352,6 +357,44 @@ export class RelayHttpClient {
       throw await this.parseError(response);
     }
     return QueryBySourceResponseSchema.parse(await response.json());
+  }
+
+  async verifyBaseline(params: {
+    entryId: ManifestEntryId;
+  }): Promise<VerifyBaselineResponse> {
+    const apiPath = `${API_PATHS.BASE.replace(':version', 'v1')}${API_PATHS.VERIFY_BASELINE}`;
+    const url = new URL(apiPath, this.baseUrl);
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+    if (!response.ok) {
+      throw await this.parseError(response);
+    }
+    return VerifyBaselineResponseSchema.parse(await response.json());
+  }
+
+  async verifyCheck(params: {
+    baselineId: string;
+    expectedChanges?: ExpectedChangeInput[];
+    annotationId?: string;
+  }): Promise<VerifyCheckResponse> {
+    const apiPath = `${API_PATHS.BASE.replace(':version', 'v1')}${API_PATHS.VERIFY_CHECK}`;
+    const url = new URL(apiPath, this.baseUrl);
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+    if (!response.ok) {
+      throw await this.parseError(response);
+    }
+    return VerifyCheckResponseSchema.parse(await response.json());
   }
 
   async getManifestStats(): Promise<ManifestStatsResponse> {
