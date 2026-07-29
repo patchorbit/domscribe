@@ -16,5 +16,8 @@
   "devDependencies": {
     "@domscribe/nuxt": "*",
     "typescript": "^5.5.0"
+  },
+  "overrides": {
+    "@vitejs/devtools": "^0.3.0"
   }
 }

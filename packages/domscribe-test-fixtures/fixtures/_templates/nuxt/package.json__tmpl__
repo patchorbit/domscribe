@@ -13,6 +13,9 @@
     "nuxt": "^<%= frameworkVersion %>.0.0",
     "vue": "^3.0.0",
   },
+  "overrides": {
+    "@vitejs/devtools": "^0.3.0"
+  },
   "devDependencies": {
     "@domscribe/nuxt": "*",
     "typescript": "^5.5.0"
