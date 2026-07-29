@@ -17,6 +17,8 @@ describe('tool.defs', () => {
       expect(MCP_TOOLS.ANNOTATION_PROCESS).toBe('domscribe.annotation.process');
       expect(MCP_TOOLS.ANNOTATION_RESPOND).toBe('domscribe.annotation.respond');
       expect(MCP_TOOLS.ANNOTATION_SEARCH).toBe('domscribe.annotation.search');
+      expect(MCP_TOOLS.VERIFY_BASELINE).toBe('domscribe.verify.baseline');
+      expect(MCP_TOOLS.VERIFY_AFTER_EDIT).toBe('domscribe.verify.afterEdit');
       expect(MCP_TOOLS.STATUS).toBe('domscribe.status');
     });
   });

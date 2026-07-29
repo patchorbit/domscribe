@@ -26,6 +26,10 @@ export const API_PATHS = {
   MANIFEST_RESOLVE_BATCH: '/manifest/resolve/batch',
   MANIFEST_RESOLVE_BY_SOURCE: '/manifest/resolve-by-source',
 
+  // Verify endpoints (RFC 0002)
+  VERIFY_BASELINE: '/verify/baseline',
+  VERIFY_CHECK: '/verify/check',
+
   // System endpoints
   STATUS: `/status`,
   HEALTH: `/health`,

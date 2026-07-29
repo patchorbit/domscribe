@@ -68,6 +68,15 @@ Annotations are created when a developer clicks an element in the Domscribe over
 | `domscribe.annotation.list`         | List annotations with status and filter options                                                 |
 | `domscribe.annotation.search`       | Full-text search across annotation content                                                      |
 
+### Post-Edit Verification
+
+Deterministic verification that a UI edit actually took effect (RFC 0002). Capture a baseline before editing, edit, then verify — the verdict and per-property deltas are exact measurements, not vision-model judgments.
+
+| Tool                        | Description                                                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `domscribe.verify.baseline`  | Capture a pre-edit snapshot (computed styles + geometry) of a rendered element; returns a `baselineId`                        |
+| `domscribe.verify.afterEdit` | Re-capture and compare against the baseline; returns a verdict (`match`/`partial`/`no_change`/`regression`) with style deltas |
+
 ### System
 
 | Tool               | Description                                           |

@@ -15,7 +15,11 @@ import {
 } from '@domscribe/core';
 import path from 'path';
 import { ManifestReader } from '@domscribe/manifest';
-import { AnnotationService, FileAnnotationStorage } from './services/index.js';
+import {
+  AnnotationService,
+  FileAnnotationStorage,
+  VerifyService,
+} from './services/index.js';
 import {
   registerManifestHandlers,
   registerAnnotationHandlers,
@@ -24,7 +28,11 @@ import {
   registerShutdownHandler,
 } from './handlers/index.js';
 import { createWSServer, type WSServer } from './ws-server.js';
-import { QueryBySourceRoute } from './routes/index.js';
+import {
+  QueryBySourceRoute,
+  VerifyBaselineRoute,
+  VerifyCheckRoute,
+} from './routes/index.js';
 import { registerRoute } from './routes/route.interface.js';
 import {
   serializerCompiler,
@@ -148,6 +156,10 @@ export async function createRelayServer(
 
   // Register routes that depend on WebSocket server
   registerRoute(QueryBySourceRoute, { app, manifestReader, wsServer: ws });
+
+  const verifyService = new VerifyService(ws, annotationService);
+  registerRoute(VerifyBaselineRoute, { app, verifyService });
+  registerRoute(VerifyCheckRoute, { app, verifyService });
 
   // Error handler
   app.setErrorHandler((error: FastifyError, _request, reply) => {

@@ -50,7 +50,7 @@ function getServer(adapter: McpAdapter) {
 
 describe('McpAdapter', () => {
   describe('active mode', () => {
-    it('should register all 12 tools', () => {
+    it('should register all 14 tools', () => {
       // Act
       const adapter = new McpAdapter({
         mode: 'active',
@@ -60,7 +60,7 @@ describe('McpAdapter', () => {
 
       // Assert
       const server = getServer(adapter);
-      expect(server.registeredTools.size).toBe(12);
+      expect(server.registeredTools.size).toBe(14);
       expect(server.registeredTools.has('domscribe.resolve')).toBe(true);
       expect(server.registeredTools.has('domscribe.resolve.batch')).toBe(true);
       expect(server.registeredTools.has('domscribe.manifest.stats')).toBe(true);
@@ -83,6 +83,12 @@ describe('McpAdapter', () => {
       );
       expect(server.registeredTools.has('domscribe.status')).toBe(true);
       expect(server.registeredTools.has('domscribe.query.bySource')).toBe(true);
+      expect(server.registeredTools.has('domscribe.verify.baseline')).toBe(
+        true,
+      );
+      expect(server.registeredTools.has('domscribe.verify.afterEdit')).toBe(
+        true,
+      );
     });
 
     it('should register all 4 prompts', () => {

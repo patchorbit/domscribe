@@ -24,6 +24,8 @@ export function createMockRelayClient(
     deleteAnnotation: vi.fn(),
     patchAnnotation: vi.fn(),
     queryBySource: vi.fn(),
+    verifyBaseline: vi.fn(),
+    verifyCheck: vi.fn(),
     getStatus: vi.fn(),
     getHealth: vi.fn(),
     shutdown: vi.fn(),
