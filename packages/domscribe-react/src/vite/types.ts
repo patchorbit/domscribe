@@ -34,6 +34,16 @@ export interface DomscribeReactPluginOptions {
   include?: RegExp;
   exclude?: RegExp;
   debug?: boolean;
+  /**
+   * Enable RFC 0001 style capture on both tiers with one flag:
+   * build-time `styleSource` attribution in the manifest (transform tier)
+   * and runtime `componentStyles` snapshots (runtime tier).
+   *
+   * `runtime.captureStyles` overrides the runtime tier when set explicitly.
+   *
+   * @default false
+   */
+  captureStyles?: boolean;
   relay?: {
     autoStart?: boolean;
     port?: number;

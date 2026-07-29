@@ -66,6 +66,18 @@ export interface TurbopackLoaderOptions {
    * @default false
    */
   captureStyles?: boolean;
+
+  /**
+   * Serializable runtime options forwarded verbatim to the browser as
+   * `window.__DOMSCRIBE_RUNTIME_OPTIONS__`, where the meta-framework's
+   * auto-init module spreads them into `RuntimeManager.initialize()`.
+   *
+   * Typed loosely because this package cannot depend on
+   * `@domscribe/runtime` (module boundary) — meta-framework wrappers
+   * (e.g. `@domscribe/next`) type their public option surface as
+   * `DomscribeRuntimeOptions` and pass it through here.
+   */
+  runtime?: Record<string, unknown>;
 }
 
 /**

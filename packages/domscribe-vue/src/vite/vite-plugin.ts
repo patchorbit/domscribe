@@ -64,6 +64,18 @@ export function domscribe(options?: DomscribeVuePluginOptions): Plugin {
       const cap = options?.capture ?? {};
       const debug = options?.debug ?? false;
 
+      // JSON.stringify drops undefined fields, so optional runtime options
+      // (serialization, styleOptions) only appear when configured.
+      const runtimeJson = JSON.stringify({
+        phase: rt.phase ?? 1,
+        debug,
+        redactPII: rt.redactPII ?? true,
+        blockSelectors: rt.blockSelectors ?? [],
+        serialization: rt.serialization,
+        captureStyles: rt.captureStyles ?? options?.captureStyles ?? false,
+        styleOptions: rt.styleOptions,
+      });
+
       // Bare specifiers here get rewritten by Vite's transform pipeline
       // to pre-bundled paths, matching what the overlay resolves internally
       return [
@@ -71,10 +83,7 @@ export function domscribe(options?: DomscribeVuePluginOptions): Plugin {
         `import { createVueAdapter } from '@domscribe/vue';`,
         ``,
         `RuntimeManager.getInstance().initialize({`,
-        `  phase: ${rt.phase ?? 1},`,
-        `  debug: ${debug},`,
-        `  redactPII: ${rt.redactPII ?? true},`,
-        `  blockSelectors: ${JSON.stringify(rt.blockSelectors ?? [])},`,
+        `  ...${runtimeJson},`,
         `  adapter: createVueAdapter({`,
         `    maxTreeDepth: ${cap.maxTreeDepth ?? 50},`,
         `    debug: ${debug},`,

@@ -160,17 +160,34 @@ function applyDevTransforms(
     debug = false,
     relay = {},
     overlay = true,
+    captureStyles = false,
+    runtime = {},
   } = options;
+
+  // One flag drives both RFC 0001 tiers; `runtime.captureStyles` can
+  // override the runtime tier independently.
+  const runtimeOptions = {
+    ...runtime,
+    captureStyles: runtime.captureStyles ?? captureStyles,
+  };
 
   return {
     ...nextConfig,
-    turbopack: buildTurbopackConfig(nextConfig, { debug, relay, overlay }),
+    turbopack: buildTurbopackConfig(nextConfig, {
+      debug,
+      relay,
+      overlay,
+      captureStyles,
+      runtime: runtimeOptions,
+    }),
     webpack: buildWebpackFn(nextConfig, {
       include,
       exclude,
       debug,
       relay,
       overlay,
+      captureStyles,
+      runtime: runtimeOptions,
     }),
   };
 }
@@ -181,6 +198,8 @@ function buildTurbopackConfig(
     debug: boolean;
     relay: DomscribeNextOptions['relay'];
     overlay: DomscribeNextOptions['overlay'];
+    captureStyles: boolean;
+    runtime: DomscribeNextOptions['runtime'];
   },
 ): NextConfig['turbopack'] {
   let turbopackLoaderPath: string;
@@ -197,6 +216,8 @@ function buildTurbopackConfig(
     enabled: true,
     relay: options.relay as JSONValue,
     overlay: options.overlay as JSONValue,
+    captureStyles: options.captureStyles,
+    runtime: options.runtime as JSONValue,
     autoInitPath: resolveAutoInitPath(),
   };
 
@@ -270,6 +291,8 @@ function buildWebpackFn(
     debug: boolean;
     relay: DomscribeNextOptions['relay'];
     overlay: DomscribeNextOptions['overlay'];
+    captureStyles: boolean;
+    runtime: DomscribeNextOptions['runtime'];
   },
 ): NextConfig['webpack'] {
   const existingWebpack = nextConfig.webpack;
@@ -286,6 +309,8 @@ function buildWebpackFn(
     enabled: true,
     relay: options.relay as JSONValue,
     overlay: options.overlay as JSONValue,
+    captureStyles: options.captureStyles,
+    runtime: options.runtime as JSONValue,
     autoInitPath: resolveAutoInitPath(),
   };
 

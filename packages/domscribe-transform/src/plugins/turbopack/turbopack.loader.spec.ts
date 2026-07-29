@@ -618,6 +618,48 @@ describe('Turbopack Loader', () => {
       expect(outputCode).toContain('"initialMode":"expanded"');
     });
 
+    it('should inject runtime options when configured', async () => {
+      // Arrange
+      const source = 'export function App() { return <div>Hello</div>; }';
+      const context = createLoaderContext('/test/App.tsx', {
+        runtime: { captureStyles: true, serialization: { maxDepth: 3 } },
+      });
+      const asyncCallback = vi.fn();
+      context.async = vi.fn(() => asyncCallback);
+      mockInjector.inject.mockReturnValue(
+        createMockInjectorResult('transformed', 1),
+      );
+
+      // Act
+      loaderModule.default.call(context, source);
+      await vi.waitFor(() => expect(asyncCallback).toHaveBeenCalled());
+
+      // Assert
+      const outputCode = asyncCallback.mock.calls[0][1] as string;
+      expect(outputCode).toContain('__DOMSCRIBE_RUNTIME_OPTIONS__');
+      expect(outputCode).toContain('"captureStyles":true');
+      expect(outputCode).toContain('"serialization":{"maxDepth":3}');
+    });
+
+    it('should omit the runtime global when runtime options are not provided', async () => {
+      // Arrange
+      const source = 'export function App() { return <div>Hello</div>; }';
+      const context = createLoaderContext('/test/App.tsx');
+      const asyncCallback = vi.fn();
+      context.async = vi.fn(() => asyncCallback);
+      mockInjector.inject.mockReturnValue(
+        createMockInjectorResult('transformed', 1),
+      );
+
+      // Act
+      loaderModule.default.call(context, source);
+      await vi.waitFor(() => expect(asyncCallback).toHaveBeenCalled());
+
+      // Assert
+      const outputCode = asyncCallback.mock.calls[0][1] as string;
+      expect(outputCode).not.toContain('__DOMSCRIBE_RUNTIME_OPTIONS__');
+    });
+
     it('should skip empty source', async () => {
       // Arrange
       const context = createLoaderContext('/test/App.tsx');

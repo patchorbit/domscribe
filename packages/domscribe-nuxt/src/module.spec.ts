@@ -323,6 +323,47 @@ describe('domscribeModule', () => {
         const innerHTML = nuxt.options.app.head.script[0].innerHTML;
         expect(innerHTML.split(';').length).toBeGreaterThanOrEqual(3);
       });
+
+      it('should inject runtime options when captureStyles is enabled', async () => {
+        const nuxt = createMockNuxt();
+
+        await callSetup(
+          { debug: false, relay: {}, overlay: false, captureStyles: true },
+          nuxt,
+        );
+
+        const innerHTML = nuxt.options.app.head.script[0].innerHTML;
+        expect(innerHTML).toContain('__DOMSCRIBE_RUNTIME_OPTIONS__=');
+        expect(innerHTML).toContain('"captureStyles":true');
+      });
+
+      it('should let runtime.captureStyles override the top-level flag', async () => {
+        const nuxt = createMockNuxt();
+
+        await callSetup(
+          {
+            debug: false,
+            relay: {},
+            overlay: false,
+            captureStyles: true,
+            runtime: { captureStyles: false, serialization: { maxDepth: 3 } },
+          },
+          nuxt,
+        );
+
+        const innerHTML = nuxt.options.app.head.script[0].innerHTML;
+        expect(innerHTML).toContain('"captureStyles":false');
+        expect(innerHTML).toContain('"serialization":{"maxDepth":3}');
+      });
+
+      it('should not inject runtime options when none are configured', async () => {
+        const nuxt = createMockNuxt();
+
+        await callSetup({ debug: false, relay: {}, overlay: false }, nuxt);
+
+        const innerHTML = nuxt.options.app.head.script[0].innerHTML;
+        expect(innerHTML).not.toContain('__DOMSCRIBE_RUNTIME_OPTIONS__');
+      });
     });
 
     describe('vite plugin registration', () => {

@@ -139,6 +139,9 @@ describe('DomscribeWebpackPlugin (vue)', () => {
           debug: false,
           redactPII: undefined,
           blockSelectors: undefined,
+          serialization: undefined,
+          captureStyles: false,
+          styleOptions: undefined,
         }),
         __DOMSCRIBE_ADAPTER_OPTIONS__: JSON.stringify({
           maxTreeDepth: undefined,
@@ -146,6 +149,41 @@ describe('DomscribeWebpackPlugin (vue)', () => {
         }),
       });
       expect(mockDefinePluginApply).toHaveBeenCalledWith(compiler);
+    });
+
+    it('should forward captureStyles and style options into runtime globals', () => {
+      const plugin = new DomscribeWebpackPlugin({
+        captureStyles: true,
+        runtime: {
+          serialization: { maxDepth: 3 },
+          styleOptions: { maxCustomProperties: 16 },
+        },
+      });
+      const compiler = createMockCompiler();
+
+      plugin.apply(compiler);
+
+      const runtimeJson = MockDefinePlugin.calls[0][
+        '__DOMSCRIBE_RUNTIME_OPTIONS__'
+      ] as string;
+      expect(runtimeJson).toContain('"captureStyles":true');
+      expect(runtimeJson).toContain('"serialization":{"maxDepth":3}');
+      expect(runtimeJson).toContain('"styleOptions":{"maxCustomProperties":16}');
+    });
+
+    it('should let runtime.captureStyles override the top-level flag', () => {
+      const plugin = new DomscribeWebpackPlugin({
+        captureStyles: true,
+        runtime: { captureStyles: false },
+      });
+      const compiler = createMockCompiler();
+
+      plugin.apply(compiler);
+
+      const runtimeJson = MockDefinePlugin.calls[0][
+        '__DOMSCRIBE_RUNTIME_OPTIONS__'
+      ] as string;
+      expect(runtimeJson).toContain('"captureStyles":false');
     });
 
     it('should inject custom runtime options', () => {

@@ -43,12 +43,23 @@ interface DomscribeReactPluginOptions {
   overlay?:
     | boolean
     | { initialMode?: 'collapsed' | 'expanded'; debug?: boolean };
+  captureStyles?: boolean;
 
   // React-specific
   runtime?: DomscribeRuntimeOptions;
   capture?: DomscribeReactCaptureOptions;
 }
 ```
+
+### Style Capture (RFC 0001)
+
+`captureStyles: true` enables both style-capture tiers with one flag: build-time
+`styleSource` attribution in the manifest and runtime `componentStyles`
+snapshots (computed-style allowlist + CSS custom properties). This powers
+styling-aware agent workflows — `domscribe.query.bySource` returns the
+element's resolved styles, and the `domscribe.verify.*` MCP tools can compute
+per-property deltas after an edit. Off by default in v0.x.
+`runtime.captureStyles` overrides the runtime tier independently.
 
 ### Runtime Options
 
@@ -58,6 +69,8 @@ interface DomscribeReactPluginOptions {
 | `redactPII`      | `boolean`                  | `true`      | Redact sensitive values in captured data                                                               |
 | `blockSelectors` | `string[]`                 | `[]`        | CSS selectors to exclude from capture                                                                  |
 | `serialization`  | `SerializationConstraints` | `undefined` | Serialization bounds (maxDepth, maxArrayLength, maxTotalBytes, etc.) — see `@domscribe/runtime` README |
+| `captureStyles`  | `boolean`                  | `false`     | Runtime-tier style capture (overrides the top-level flag when set)                                     |
+| `styleOptions`   | `StyleCaptureOptions`      | `undefined` | Style capturer tuning (allowlist, maxCustomProperties, maxBytes)                                       |
 
 ### Capture Options
 

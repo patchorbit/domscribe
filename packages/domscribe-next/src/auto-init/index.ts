@@ -11,10 +11,16 @@
  */
 
 if (typeof window !== 'undefined') {
-  // Initialize runtime + React adapter
+  // Initialize runtime + React adapter. Runtime options (serialization,
+  // captureStyles, styleOptions, ...) come from the loader preamble global.
   Promise.all([import('@domscribe/runtime'), import('@domscribe/react')])
     .then(([{ RuntimeManager }, { createReactAdapter }]) => {
+      const win = globalThis as Record<string, unknown>;
+      const runtimeOptions =
+        (win['__DOMSCRIBE_RUNTIME_OPTIONS__'] as Record<string, unknown>) ??
+        {};
       RuntimeManager.getInstance().initialize({
+        ...runtimeOptions,
         adapter: createReactAdapter(),
       });
     })

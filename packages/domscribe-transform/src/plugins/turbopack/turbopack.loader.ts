@@ -212,6 +212,12 @@ function buildClientGlobalsPreamble(
     );
   }
 
+  if (options.runtime !== undefined) {
+    parts.push(
+      `window.__DOMSCRIBE_RUNTIME_OPTIONS__=${JSON.stringify(options.runtime)}`,
+    );
+  }
+
   const autoInitSpecifier = resolveAutoInitSpecifier(
     options.autoInitPath,
     sourceFile,

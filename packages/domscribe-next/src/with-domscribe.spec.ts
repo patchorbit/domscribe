@@ -335,7 +335,56 @@ describe('withDomscribe', () => {
           enabled: true,
           relay: { port: 5000, host: '0.0.0.0', bodyLimit: 5242880 },
           overlay: { initialMode: 'expanded', debug: true },
+          captureStyles: false,
+          runtime: { captureStyles: false },
           autoInitPath: '/resolved/@domscribe/next/auto-init',
+        });
+      });
+
+      it('should thread captureStyles and runtime options into the loader', () => {
+        const result = withDomscribe({
+          captureStyles: true,
+          runtime: { serialization: { maxDepth: 3 } },
+        })({});
+        const webpackFn = result.webpack as (
+          config: WebpackConfig,
+          context: WebpackConfigContext,
+        ) => WebpackConfig;
+        const config = createMockWebpackConfig();
+
+        webpackFn(config, createMockWebpackContext());
+
+        const rules = config.module?.rules ?? [];
+        const use = rules[0].use ?? [];
+        const loaderEntry = use[0];
+        expect(loaderEntry.options).toMatchObject({
+          captureStyles: true,
+          runtime: {
+            serialization: { maxDepth: 3 },
+            captureStyles: true,
+          },
+        });
+      });
+
+      it('should let runtime.captureStyles override the top-level flag', () => {
+        const result = withDomscribe({
+          captureStyles: true,
+          runtime: { captureStyles: false },
+        })({});
+        const webpackFn = result.webpack as (
+          config: WebpackConfig,
+          context: WebpackConfigContext,
+        ) => WebpackConfig;
+        const config = createMockWebpackConfig();
+
+        webpackFn(config, createMockWebpackContext());
+
+        const rules = config.module?.rules ?? [];
+        const use = rules[0].use ?? [];
+        const loaderEntry = use[0];
+        expect(loaderEntry.options).toMatchObject({
+          captureStyles: true,
+          runtime: { captureStyles: false },
         });
       });
 
