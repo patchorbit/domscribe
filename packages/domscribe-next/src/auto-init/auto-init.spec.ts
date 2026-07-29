@@ -28,6 +28,9 @@ describe('auto-init', () => {
     delete (globalThis as Record<string, unknown>)[
       '__DOMSCRIBE_OVERLAY_OPTIONS__'
     ];
+    delete (globalThis as Record<string, unknown>)[
+      '__DOMSCRIBE_RUNTIME_OPTIONS__'
+    ];
   });
 
   it('should initialize runtime and react adapter', async () => {
@@ -37,6 +40,22 @@ describe('auto-init', () => {
     expect(mockGetInstance).toHaveBeenCalled();
     expect(mockCreateReactAdapter).toHaveBeenCalled();
     expect(mockInitialize).toHaveBeenCalledWith({
+      adapter: { name: 'react-adapter' },
+    });
+  });
+
+  it('should spread __DOMSCRIBE_RUNTIME_OPTIONS__ into initialize', async () => {
+    (globalThis as Record<string, unknown>)['__DOMSCRIBE_RUNTIME_OPTIONS__'] = {
+      captureStyles: true,
+      serialization: { maxDepth: 3 },
+    };
+
+    await import('./index.js');
+    await vi.dynamicImportSettled();
+
+    expect(mockInitialize).toHaveBeenCalledWith({
+      captureStyles: true,
+      serialization: { maxDepth: 3 },
       adapter: { name: 'react-adapter' },
     });
   });

@@ -68,10 +68,11 @@ describe('domscribe (vue/vite)', () => {
 
       const result = load.call({}, '/@domscribe/vue-init.js');
 
-      expect(result).toContain('phase: 1');
-      expect(result).toContain('debug: false');
-      expect(result).toContain('redactPII: true');
-      expect(result).toContain('blockSelectors: []');
+      expect(result).toContain('"phase":1');
+      expect(result).toContain('"debug":false');
+      expect(result).toContain('"redactPII":true');
+      expect(result).toContain('"blockSelectors":[]');
+      expect(result).toContain('"captureStyles":false');
       expect(result).toContain('maxTreeDepth: 50');
     });
 
@@ -83,9 +84,46 @@ describe('domscribe (vue/vite)', () => {
 
       const result = load.call({}, '/@domscribe/vue-init.js');
 
-      expect(result).toContain('phase: 2');
-      expect(result).toContain('redactPII: false');
-      expect(result).toContain('blockSelectors: [".secret"]');
+      expect(result).toContain('"phase":2');
+      expect(result).toContain('"redactPII":false');
+      expect(result).toContain('"blockSelectors":[".secret"]');
+    });
+
+    it('should enable runtime style capture from the top-level captureStyles flag', () => {
+      const plugin = domscribe({ captureStyles: true });
+      const load = plugin.load as (id: string) => string | null;
+
+      const result = load.call({}, '/@domscribe/vue-init.js');
+
+      expect(result).toContain('"captureStyles":true');
+    });
+
+    it('should let runtime.captureStyles override the top-level flag', () => {
+      const plugin = domscribe({
+        captureStyles: true,
+        runtime: { captureStyles: false },
+      });
+      const load = plugin.load as (id: string) => string | null;
+
+      const result = load.call({}, '/@domscribe/vue-init.js');
+
+      expect(result).toContain('"captureStyles":false');
+    });
+
+    it('should serialize serialization and styleOptions when provided', () => {
+      const plugin = domscribe({
+        runtime: {
+          serialization: { maxDepth: 3 },
+          captureStyles: true,
+          styleOptions: { maxCustomProperties: 16 },
+        },
+      });
+      const load = plugin.load as (id: string) => string | null;
+
+      const result = load.call({}, '/@domscribe/vue-init.js');
+
+      expect(result).toContain('"serialization":{"maxDepth":3}');
+      expect(result).toContain('"styleOptions":{"maxCustomProperties":16}');
     });
 
     it('should serialize custom capture options', () => {
@@ -105,9 +143,9 @@ describe('domscribe (vue/vite)', () => {
 
       const result = load.call({}, '/@domscribe/vue-init.js');
 
-      // debug appears in both initialize() and createVueAdapter()
-      const debugMatches = result.match(/debug: true/g);
-      expect(debugMatches).toHaveLength(2);
+      // debug appears in both initialize() (runtime JSON) and createVueAdapter()
+      expect(result).toContain('"debug":true');
+      expect(result).toContain('debug: true');
     });
 
     it('should return null for unrelated IDs', () => {

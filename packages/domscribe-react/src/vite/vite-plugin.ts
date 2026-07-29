@@ -65,6 +65,18 @@ export function domscribe(options?: DomscribeReactPluginOptions): Plugin {
       const cap = options?.capture ?? {};
       const debug = options?.debug ?? false;
 
+      // JSON.stringify drops undefined fields, so optional runtime options
+      // (serialization, styleOptions) only appear when configured.
+      const runtimeJson = JSON.stringify({
+        phase: rt.phase ?? 1,
+        debug,
+        redactPII: rt.redactPII ?? true,
+        blockSelectors: rt.blockSelectors ?? [],
+        serialization: rt.serialization,
+        captureStyles: rt.captureStyles ?? options?.captureStyles ?? false,
+        styleOptions: rt.styleOptions,
+      });
+
       // Build hookNameResolvers reconstruction if provided
       const resolversLine = cap.hookNameResolvers
         ? `const _r = ${JSON.stringify(cap.hookNameResolvers)};\n` +
@@ -82,10 +94,7 @@ export function domscribe(options?: DomscribeReactPluginOptions): Plugin {
         resolversLine,
         ``,
         `RuntimeManager.getInstance().initialize({`,
-        `  phase: ${rt.phase ?? 1},`,
-        `  debug: ${debug},`,
-        `  redactPII: ${rt.redactPII ?? true},`,
-        `  blockSelectors: ${JSON.stringify(rt.blockSelectors ?? [])},`,
+        `  ...${runtimeJson},`,
         `  adapter: createReactAdapter({`,
         `    strategy: '${cap.strategy ?? 'best-effort'}',`,
         `    maxTreeDepth: ${cap.maxTreeDepth ?? 50},`,

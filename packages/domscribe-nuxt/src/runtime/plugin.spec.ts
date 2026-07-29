@@ -64,6 +64,9 @@ describe('runtime/plugin', () => {
     delete (globalThis as unknown as Record<string, unknown>)[
       '__DOMSCRIBE_OVERLAY_OPTIONS__'
     ];
+    delete (globalThis as unknown as Record<string, unknown>)[
+      '__DOMSCRIBE_RUNTIME_OPTIONS__'
+    ];
   });
 
   it('should register a plugin function via defineNuxtPlugin', () => {
@@ -77,6 +80,20 @@ describe('runtime/plugin', () => {
     expect(mockGetInstance).toHaveBeenCalled();
     expect(mockCreateVueAdapter).toHaveBeenCalledWith({});
     expect(mockInitialize).toHaveBeenCalledWith({
+      adapter: { name: 'vue-adapter' },
+    });
+  });
+
+  it('should spread __DOMSCRIBE_RUNTIME_OPTIONS__ into initialize', async () => {
+    (globalThis as unknown as Record<string, unknown>)[
+      '__DOMSCRIBE_RUNTIME_OPTIONS__'
+    ] = { captureStyles: true, serialization: { maxDepth: 3 } };
+
+    await getPluginFn()();
+
+    expect(mockInitialize).toHaveBeenCalledWith({
+      captureStyles: true,
+      serialization: { maxDepth: 3 },
       adapter: { name: 'vue-adapter' },
     });
   });

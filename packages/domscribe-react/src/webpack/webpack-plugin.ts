@@ -50,12 +50,14 @@ export class DomscribeWebpackPlugin implements WebpackPluginInstance {
   private readonly basePlugin: BaseDomscribeWebpackPlugin;
   private readonly runtimeOptions: DomscribeRuntimeOptions;
   private readonly captureOptions: DomscribeReactCaptureOptions;
+  private readonly captureStyles: boolean;
   private readonly debug: boolean;
 
   constructor(options?: DomscribeReactWebpackPluginOptions) {
     this.basePlugin = new BaseDomscribeWebpackPlugin(options);
     this.runtimeOptions = options?.runtime ?? {};
     this.captureOptions = options?.capture ?? {};
+    this.captureStyles = options?.captureStyles ?? false;
     this.debug = options?.debug ?? false;
   }
 
@@ -67,6 +69,9 @@ export class DomscribeWebpackPlugin implements WebpackPluginInstance {
         debug: this.debug,
         redactPII: this.runtimeOptions.redactPII,
         blockSelectors: this.runtimeOptions.blockSelectors,
+        serialization: this.runtimeOptions.serialization,
+        captureStyles: this.runtimeOptions.captureStyles ?? this.captureStyles,
+        styleOptions: this.runtimeOptions.styleOptions,
       }),
       __DOMSCRIBE_ADAPTER_OPTIONS__: JSON.stringify({
         strategy: this.captureOptions.strategy,

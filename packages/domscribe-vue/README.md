@@ -43,12 +43,23 @@ interface DomscribeVuePluginOptions {
   overlay?:
     | boolean
     | { initialMode?: 'collapsed' | 'expanded'; debug?: boolean };
+  captureStyles?: boolean;
 
   // Vue-specific
   runtime?: DomscribeRuntimeOptions;
   capture?: DomscribeVueCaptureOptions;
 }
 ```
+
+### Style Capture (RFC 0001)
+
+`captureStyles: true` enables both style-capture tiers with one flag: build-time
+`styleSource` attribution in the manifest (JSX only in v0.x) and runtime
+`componentStyles` snapshots (computed-style allowlist + CSS custom properties).
+This powers styling-aware agent workflows — `domscribe.query.bySource` returns
+the element's resolved styles, and the `domscribe.verify.*` MCP tools can
+compute per-property deltas after an edit. Off by default in v0.x.
+`runtime.captureStyles` overrides the runtime tier independently.
 
 ### Runtime Options
 

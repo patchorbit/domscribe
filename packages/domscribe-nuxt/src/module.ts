@@ -92,6 +92,21 @@ export const domscribeModule = defineNuxtModule<DomscribeNuxtOptions>({
       );
     }
 
+    // Runtime options for the client plugin (RFC 0001 style capture etc.).
+    // One `captureStyles` flag drives both tiers; `runtime.captureStyles`
+    // can override the runtime tier independently. Only emitted when the
+    // user configured something — the plugin defaults handle absence.
+    if (options.runtime !== undefined || options.captureStyles !== undefined) {
+      const runtimeOptions = {
+        ...options.runtime,
+        captureStyles:
+          options.runtime?.captureStyles ?? options.captureStyles ?? false,
+      };
+      parts.push(
+        `window.__DOMSCRIBE_RUNTIME_OPTIONS__=${JSON.stringify(runtimeOptions)}`,
+      );
+    }
+
     if (parts.length > 0) {
       const head = nuxt.options.app.head;
       head.script = head.script || [];
@@ -150,6 +165,7 @@ export const domscribeModule = defineNuxtModule<DomscribeNuxtOptions>({
             debug,
             relay: { ...options.relay, autoStart: false },
             overlay: options.overlay,
+            captureStyles: options.captureStyles,
           }),
         );
       },

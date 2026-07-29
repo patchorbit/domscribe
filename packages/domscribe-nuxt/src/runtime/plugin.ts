@@ -9,7 +9,14 @@ import { RuntimeManager } from '@domscribe/runtime';
 import { createVueAdapter } from '@domscribe/vue';
 
 export default defineNuxtPlugin(async () => {
+  // Runtime options (serialization, captureStyles, styleOptions, ...) are
+  // injected by the module's head script before any bundle executes.
+  const win = globalThis as Record<string, unknown>;
+  const runtimeOptions =
+    (win['__DOMSCRIBE_RUNTIME_OPTIONS__'] as Record<string, unknown>) ?? {};
+
   RuntimeManager.getInstance().initialize({
+    ...runtimeOptions,
     adapter: createVueAdapter({}),
   });
 
