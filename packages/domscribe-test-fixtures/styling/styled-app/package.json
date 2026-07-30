@@ -1,6 +1,6 @@
 {
   "name": "@domscribe/styling-fixture-styled",
-  "version": "0.0.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "scripts": {
