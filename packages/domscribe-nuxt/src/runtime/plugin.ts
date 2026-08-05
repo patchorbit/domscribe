@@ -15,10 +15,18 @@ export default defineNuxtPlugin(async () => {
   const runtimeOptions =
     (win['__DOMSCRIBE_RUNTIME_OPTIONS__'] as Record<string, unknown>) ?? {};
 
-  RuntimeManager.getInstance().initialize({
-    ...runtimeOptions,
-    adapter: createVueAdapter({}),
-  });
+  try {
+    await RuntimeManager.getInstance().initialize({
+      ...runtimeOptions,
+      adapter: createVueAdapter({}),
+    });
+  } catch (e) {
+    console.warn(
+      '[domscribe/nuxt] Failed to initialize runtime:',
+      e instanceof Error ? e.message : String(e),
+    );
+    return;
+  }
 
   // Initialize overlay if options were injected by the module's head script
   if (window.__DOMSCRIBE_OVERLAY_OPTIONS__) {

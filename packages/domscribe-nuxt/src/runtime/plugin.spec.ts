@@ -98,6 +98,44 @@ describe('runtime/plugin', () => {
     });
   });
 
+  it('should wait for runtime initialization before initializing the overlay', async () => {
+    // Arrange
+    let resolveInitialize: (() => void) | undefined;
+    mockInitialize.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        resolveInitialize = resolve;
+      }),
+    );
+    (globalThis as unknown as Record<string, unknown>)[
+      '__DOMSCRIBE_OVERLAY_OPTIONS__'
+    ] = {};
+
+    // Act
+    const pluginPromise = getPluginFn()();
+    await vi.dynamicImportSettled();
+
+    // Assert
+    expect(mockInitOverlay).not.toHaveBeenCalled();
+
+    resolveInitialize?.();
+    await pluginPromise;
+    expect(mockInitOverlay).toHaveBeenCalled();
+  });
+
+  it('should skip overlay initialization when runtime initialization fails', async () => {
+    // Arrange
+    mockInitialize.mockRejectedValueOnce(new Error('runtime broken'));
+    (globalThis as unknown as Record<string, unknown>)[
+      '__DOMSCRIBE_OVERLAY_OPTIONS__'
+    ] = {};
+
+    // Act
+    await getPluginFn()();
+
+    // Assert
+    expect(mockInitOverlay).not.toHaveBeenCalled();
+  });
+
   it('should initialize overlay when __DOMSCRIBE_OVERLAY_OPTIONS__ is set', async () => {
     (globalThis as unknown as Record<string, unknown>)[
       '__DOMSCRIBE_OVERLAY_OPTIONS__'
