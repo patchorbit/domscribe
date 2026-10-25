@@ -8,3 +8,6 @@
  */
 export { RelayHttpClient } from './relay-http-client.js';
 export { RelayWSClient } from './relay-ws-client.js';
+export { WSTargetRequestSchema, WSContextRequestSchema } from '../schema.js';
+
+export type { AnnotationListResponse } from '../schema.js';

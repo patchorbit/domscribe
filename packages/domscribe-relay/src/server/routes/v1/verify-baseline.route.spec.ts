@@ -27,6 +27,7 @@ function createMockWSServer(overrides?: Partial<WSServer>): WSServer {
     broadcast: vi.fn(),
     getClientCount: vi.fn().mockReturnValue(0),
     requestContext: vi.fn().mockResolvedValue(null),
+    requestTargets: vi.fn().mockResolvedValue(null),
     close: vi.fn(),
     ...overrides,
   };

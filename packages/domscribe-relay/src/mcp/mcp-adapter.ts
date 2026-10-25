@@ -1,3 +1,4 @@
+import { TargetsQueryTool } from './tools/targets-query.tool.js';
 /**
  * MCP (Model Context Protocol) adapter for Domscribe.
  * Provides a stdio-based MCP server that proxies requests to the HTTP relay.
@@ -63,8 +64,7 @@ export interface McpAdapterDormantOptions {
  * Discriminated on `mode` to determine which tools are registered.
  */
 export type McpAdapterOptions =
-  | McpAdapterActiveOptions
-  | McpAdapterDormantOptions;
+  McpAdapterActiveOptions | McpAdapterDormantOptions;
 
 /**
  * MCP adapter that registers tool and prompt handlers against the MCP server.
@@ -115,6 +115,7 @@ export class McpAdapter {
       new AnnotationsSearchTool(relayHttpClient),
       new StatusTool(relayHttpClient),
       new QueryBySourceTool(relayHttpClient),
+      new TargetsQueryTool(relayHttpClient),
       new VerifyBaselineTool(relayHttpClient),
       new VerifyAfterEditTool(relayHttpClient),
     ];

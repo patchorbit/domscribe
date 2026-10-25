@@ -6,7 +6,13 @@
  */
 
 import { OverlayStore } from '../core/overlay-store.js';
-import { RelayHttpClient, RelayWSClient } from '@domscribe/relay/client';
+import {
+  type AnnotationListResponse,
+  RelayHttpClient,
+  RelayWSClient,
+  WSContextRequestSchema,
+  WSTargetRequestSchema,
+} from '@domscribe/relay/client';
 import type {
   Annotation,
   ManifestEntry,
@@ -129,13 +135,31 @@ export class RelayService {
       }),
     );
 
+    this.unsubscribers.push(
+      this.wsClient.on(WS_EVENTS.TARGET_REQUEST, async (data: unknown) => {
+        const packet = WSTargetRequestSchema.safeParse(data);
+        if (!packet.success) return;
+        let result;
+        try {
+          result = await BridgeDispatch.getInstance().queryTargets(
+            packet.data.query,
+          );
+        } catch {
+          result = { status: 'unavailable', targets: [], total: 0 };
+        }
+        this.wsClient?.send(WS_EVENTS.TARGET_RESPONSE, {
+          requestId: packet.data.requestId,
+          result,
+        });
+      }),
+    );
+
     // Handle context requests from relay server (bidirectional WS)
     this.unsubscribers.push(
       this.wsClient.on(WS_EVENTS.CONTEXT_REQUEST, async (data: unknown) => {
-        const { requestId, entryId } = data as {
-          requestId: string;
-          entryId: string;
-        };
+        const packet = WSContextRequestSchema.safeParse(data);
+        if (!packet.success) return;
+        const { requestId, entryId, instanceId, locator } = packet.data;
         const bridge = BridgeDispatch.getInstance();
 
         let responseData: Record<string, unknown>;
@@ -143,12 +167,26 @@ export class RelayService {
           responseData = { requestId, success: false, rendered: false };
         } else {
           try {
-            const context = await bridge.captureContextForEntry(entryId);
-            const elementInfo = bridge.getElementInfo(entryId);
+            const selection = await bridge.queryTargets({
+              entryId,
+              instanceId,
+              locator,
+            });
+            const context = selection.context;
+            const selected =
+              selection.status === 'resolved'
+                ? document.querySelector<HTMLElement>(
+                    selection.targets[0].selector,
+                  )
+                : null;
+            const elementInfo = selected ? { element: selected } : null;
             responseData = {
               requestId,
-              success: context !== null,
-              rendered: context !== null,
+              selectionStatus: selection.status,
+              targets: selection.targets,
+              total: selection.total,
+              success: selection.status === 'resolved' && context != null,
+              rendered: selection.status === 'resolved',
               context: context ?? undefined,
               elementInfo: elementInfo
                 ? {
@@ -313,7 +351,7 @@ export class RelayService {
     statuses?: AnnotationStatus[];
     limit?: number;
     offset?: number;
-  }) {
+  }): Promise<AnnotationListResponse> {
     if (!this.relayHttpClient) {
       throw new Error('Relay not connected');
     }

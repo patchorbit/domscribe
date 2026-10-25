@@ -25,6 +25,7 @@ export const MCP_TOOLS = {
   ANNOTATION_SEARCH: 'domscribe.annotation.search',
   // Query tools
   QUERY_BY_SOURCE: 'domscribe.query.bySource',
+  TARGETS_QUERY: 'domscribe.targets.query',
   // Verify tools (RFC 0002)
   VERIFY_BASELINE: 'domscribe.verify.baseline',
   VERIFY_AFTER_EDIT: 'domscribe.verify.afterEdit',

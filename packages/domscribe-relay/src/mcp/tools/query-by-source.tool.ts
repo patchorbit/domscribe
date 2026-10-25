@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { SourcePositionSchema } from '@domscribe/core';
+import {
+  SourcePositionSchema,
+  PortableLocatorSchema,
+  ElementTargetSchema,
+  TargetStatusSchema,
+} from '@domscribe/core';
 import {
   McpToolDefinition,
   McpToolOutputSchema,
@@ -9,6 +14,8 @@ import {
 import { RelayHttpClient } from '../../client/relay-http-client.js';
 
 const QueryBySourceToolInputSchema = z.object({
+  instanceId: z.string().min(1).max(128).optional(),
+  locator: PortableLocatorSchema.optional(),
   file: z
     .string()
     .describe(
@@ -39,6 +46,9 @@ const QueryBySourceToolInputSchema = z.object({
 type QueryBySourceToolInput = z.infer<typeof QueryBySourceToolInputSchema>;
 
 const QueryBySourceToolOutputSchema = McpToolOutputSchema.extend({
+  selectionStatus: TargetStatusSchema.optional(),
+  targets: z.array(ElementTargetSchema).optional(),
+  total: z.number().int().nonnegative().optional(),
   found: z.boolean(),
   entryId: z.string().optional(),
   sourceLocation: z
@@ -112,12 +122,19 @@ export class QueryBySourceTool implements McpToolDefinition<
 
   private buildHint(result: {
     found: boolean;
+    selectionStatus?: string;
     browserConnected?: boolean;
     runtime?: {
       rendered?: boolean;
       componentStyles?: unknown;
     };
   }): string | undefined {
+    if (result.selectionStatus === 'ambiguous')
+      return 'Multiple live instances share this source. Inspect targets and retry with an instanceId; persist its locator for another session.';
+    if (result.selectionStatus === 'ambiguous_browser')
+      return 'Multiple browsers are connected. Keep one target browser session connected before querying.';
+    if (result.selectionStatus === 'stale')
+      return 'The instance is stale. Rediscover targets or resolve the saved portable locator; do not reuse the handle.';
     if (!result.found) {
       return (
         'No manifest entry found for this source location. ' +
@@ -157,6 +174,9 @@ export class QueryBySourceTool implements McpToolDefinition<
       const result = await this.relayHttpClient.queryBySource(input);
 
       const output: QueryBySourceToolOutput = {
+        selectionStatus: result.selectionStatus,
+        targets: result.targets,
+        total: result.total,
         found: result.found,
         entryId: result.entryId,
         sourceLocation: result.sourceLocation,

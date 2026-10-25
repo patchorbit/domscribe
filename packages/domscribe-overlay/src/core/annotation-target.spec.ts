@@ -47,7 +47,9 @@ describe('annotation target resolution', () => {
     runtime = RuntimeManager.getInstance();
     await runtime.initialize();
     for (const element of document.querySelectorAll('button'))
-      element.scrollIntoView = () => {};
+      element.scrollIntoView = () => {
+        /* jsdom has no layout scrolling */
+      };
     expect(
       OverlayStore.getInstance()
         .locateElement(saved)
@@ -59,7 +61,9 @@ describe('annotation target resolution', () => {
     document.body.innerHTML =
       '<button data-ds="aB3dEf7h">Wrong</button><button data-ds="aB3dEf7h">Right</button>';
     for (const element of document.querySelectorAll('button'))
-      element.scrollIntoView = () => {};
+      element.scrollIntoView = () => {
+        /* jsdom has no layout scrolling */
+      };
     const saved = annotation({
       tagName: 'button',
       selector: 'button:nth-of-type(2)',

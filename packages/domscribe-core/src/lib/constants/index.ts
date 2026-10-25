@@ -58,6 +58,8 @@ export const WS_EVENTS = {
 
   // Context request/response events (relay↔browser bidirectional)
   CONTEXT_REQUEST: 'context:request',
+  TARGET_REQUEST: 'target:request',
+  TARGET_RESPONSE: 'target:response',
   CONTEXT_RESPONSE: 'context:response',
 } as const;
 
