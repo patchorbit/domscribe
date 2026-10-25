@@ -119,6 +119,61 @@ jobs:
       - name: Verify clean installed modules and shared runtime
         run: node scripts/check-packed-vite.mjs ${{ matrix.package-manager }} ${{ matrix.framework }} ${{ matrix.vite }}
 
+  portable-replay:
+    runs-on: ubuntu-latest
+    needs: build-registry
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - id: react-npm-vite7
+            framework: react
+            package-manager: npm
+            vite: '7.3.7'
+          - id: react-pnpm-vite5
+            framework: react
+            package-manager: pnpm
+            vite: '5.4.21'
+          - id: vue-npm-vite7
+            framework: vue
+            package-manager: npm
+            vite: '7.3.7'
+          - id: vue-pnpm-vite5
+            framework: vue
+            package-manager: pnpm
+            vite: '5.4.21'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: package-dist
+          path: dist/packages/
+      - name: Install Chromium
+        run: pnpm --filter @domscribe/test-fixtures exec playwright install --with-deps chromium
+      - name: Replay persisted captures in a fresh browser session
+        run: >-
+          node scripts/verify-instance-replay.mjs
+          --framework=${{ matrix.framework }}
+          --package-manager=${{ matrix.package-manager }}
+          --vite-version=${{ matrix.vite }}
+          --report-dir=${{ runner.temp }}/portable-replay-evidence
+      - name: Retain replay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-replay-${{ matrix.id }}
+          path: ${{ runner.temp }}/portable-replay-evidence/
+          retention-days: 7
+          if-no-files-found: warn
+
   integration:
     runs-on: ubuntu-latest
     needs: build-registry

@@ -1,0 +1,99 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
+export function writeReplayConsumer(consumer, framework) {
+  const source = path.join(consumer, 'src');
+  fs.mkdirSync(source);
+  const entry = framework === 'vue' ? 'main.js' : 'main.jsx';
+  fs.writeFileSync(
+    path.join(consumer, 'index.html'),
+    `<!doctype html><html><head><title>Instance replay regression</title></head><body><div id="root"></div><script type="module" src="/src/${entry}"></script></body></html>`,
+  );
+  fs.writeFileSync(
+    path.join(consumer, 'vite.config.mjs'),
+    `
+import { defineConfig } from 'vite';
+import framework from '@vitejs/plugin-${framework}';
+import { domscribe } from '@domscribe/${framework}/vite';
+export default defineConfig({plugins:[framework(),domscribe({overlay:true,relay:{port:0}})],server:{host:'127.0.0.1',strictPort:true}});
+`,
+  );
+  if (framework === 'vue') {
+    fs.writeFileSync(
+      path.join(source, 'main.js'),
+      `
+import { createApp } from 'vue';
+import App from './App.vue';
+if(import.meta.env.DEV)import('@domscribe/runtime').then(({RuntimeManager})=>window.__runtime=RuntimeManager.getInstance());
+createApp(App).mount('#root');
+`,
+    );
+    fs.writeFileSync(
+      path.join(source, 'Card.vue'),
+      `
+<script setup>
+defineProps({ customer: Object });
+const emit = defineEmits(['edit']);
+</script>
+<template>
+  <article :aria-label="customer.name">
+    <h2>{{ customer.name }}</h2><strong>{{ customer.city }}</strong>
+    <button @click="emit('edit', customer)">Edit</button>
+  </article>
+</template>
+`,
+    );
+    fs.writeFileSync(
+      path.join(source, 'Editor.vue'),
+      `
+<script setup>
+import { ref } from 'vue';
+const props = defineProps({ customer: Object });
+const emit = defineEmits(['save']);
+const city = ref(props.customer.city);
+const confirmed = ref(false);
+</script>
+<template>
+  <section role="dialog" :aria-label="'Edit ' + customer.name">
+    <label>Shipping city<input name="city" v-model="city" /></label>
+    <label><input type="checkbox" v-model="confirmed" />Confirm shipping change</label>
+    <button :disabled="!confirmed" @click="emit('save', customer.id, city)">Save</button>
+  </section>
+</template>
+`,
+    );
+    fs.writeFileSync(
+      path.join(source, 'App.vue'),
+      `
+<script setup>
+import { ref, computed } from 'vue';
+import Card from './Card.vue';
+import Editor from './Editor.vue';
+const customers = ref([{id:'c1',name:'Orion',city:'Seattle'},{id:'c2',name:'Lyra',city:'Portland'},{id:'c3',name:'Vega',city:'Denver'}]);
+const editing = ref(null);
+const reverse = ref(false);
+const sorted = computed(() => [...customers.value].sort((a,b)=>reverse.value?b.name.localeCompare(a.name):a.name.localeCompare(b.name)));
+function save(id, city) { customers.value = customers.value.map(customer => customer.id === id ? {...customer,city} : customer); editing.value = null; }
+</script>
+<template>
+  <main><h1>Customer operations</h1><button @click="reverse = !reverse">Sort</button>
+    <Card v-for="customer in sorted" :key="customer.id" :customer="customer" @edit="editing = $event" />
+    <Editor v-if="editing" :key="editing.id" :customer="editing" @save="save" />
+  </main>
+</template>
+`,
+    );
+  } else {
+    fs.writeFileSync(
+      path.join(source, 'main.jsx'),
+      `
+import React,{useState} from 'react';import{createRoot}from'react-dom/client';
+if(import.meta.env.DEV)import('@domscribe/runtime').then(({RuntimeManager})=>window.__runtime=RuntimeManager.getInstance());
+function Card({customer,onEdit}){return <article aria-label={customer.name}><h2>{customer.name}</h2><strong>{customer.city}</strong><button onClick={()=>onEdit(customer)}>Edit</button></article>}
+function Editor({customer,onSave}){const[city,setCity]=useState(customer.city);const[confirmed,setConfirmed]=useState(false);return <section role="dialog" aria-label={'Edit '+customer.name}><label>Shipping city<input name="city" value={city} onChange={e=>setCity(e.target.value)}/></label><label><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>Confirm shipping change</label><button disabled={!confirmed} onClick={()=>onSave(customer.id,city)}>Save</button></section>}
+function App(){const[customers,setCustomers]=useState([{id:'c1',name:'Orion',city:'Seattle'},{id:'c2',name:'Lyra',city:'Portland'},{id:'c3',name:'Vega',city:'Denver'}]);const[editing,setEditing]=useState(null);const[reverse,setReverse]=useState(false);const sorted=[...customers].sort((a,b)=>reverse?b.name.localeCompare(a.name):a.name.localeCompare(b.name));return <main><h1>Customer operations</h1><button onClick={()=>setReverse(x=>!x)}>Sort</button>{sorted.map(customer=><Card key={customer.id} customer={customer} onEdit={setEditing}/>)}{editing&&<Editor customer={editing} onSave={(id,city)=>{setCustomers(all=>all.map(c=>c.id===id?{...c,city}:c));setEditing(null)}}/>}</main>}
+createRoot(document.getElementById('root')).render(<App/>);
+`,
+    );
+  }
+}
