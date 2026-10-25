@@ -8,6 +8,10 @@ export * from './lib/types/annotation.js';
 export * from './lib/types/config.js';
 export * from './lib/types/manifest.js';
 export * from './lib/types/nullable.js';
+export * from './lib/types/target.js';
+export * from './lib/types/replay.js';
+export { replaySteps } from './lib/utils/replay.js';
+export type { ReplayDriver, ReplayResult } from './lib/utils/replay.js';
 
 // Export utilities
 export {

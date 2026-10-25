@@ -49,8 +49,8 @@ export interface ElementTrackerOptions {
  * fast lookup by manifest entry ID.
  */
 export class ElementTracker {
-  private registry = new Map<string, WeakRef<HTMLElement>>();
-  private componentInstances = new Map<string, WeakRef<object>>();
+  private registry = new Map<string, Set<WeakRef<HTMLElement>>>();
+  private componentInstances = new WeakMap<HTMLElement, WeakRef<object>>();
   private observer: MutationObserver | null = null;
   private options: Required<Omit<ElementTrackerOptions, 'adapter'>> & {
     adapter?: FrameworkAdapter;
@@ -165,7 +165,11 @@ export class ElementTracker {
     }
 
     // Add to registry
-    this.registry.set(entryId, new WeakRef(element));
+    const refs = this.registry.get(entryId) ?? new Set<WeakRef<HTMLElement>>();
+    if (!Array.from(refs).some((ref) => ref.deref() === element)) {
+      refs.add(new WeakRef(element));
+    }
+    this.registry.set(entryId, refs);
 
     // Try to resolve component instance if adapter is available
     if (this.options.adapter) {
@@ -173,7 +177,7 @@ export class ElementTracker {
         const componentInstance =
           this.options.adapter.getComponentInstance(element);
         if (componentInstance && typeof componentInstance === 'object') {
-          this.componentInstances.set(entryId, new WeakRef(componentInstance));
+          this.componentInstances.set(element, new WeakRef(componentInstance));
         }
       } catch (error) {
         if (this.options.debug) {
@@ -199,7 +203,6 @@ export class ElementTracker {
    */
   untrackElement(entryId: ManifestEntryId): void {
     this.registry.delete(entryId);
-    this.componentInstances.delete(entryId);
 
     if (this.options.debug) {
       console.log(
@@ -215,19 +218,22 @@ export class ElementTracker {
    * @returns The element or null if not found
    */
   getElement(entryId: ManifestEntryId): HTMLElement | null {
-    const ref = this.registry.get(entryId);
-    if (!ref) {
-      return null;
-    }
+    const elements = this.getElements(entryId);
+    return elements.length === 1 ? elements[0] : null;
+  }
 
-    const element = ref.deref();
-    if (!element) {
-      // Element was garbage collected, clean up
-      this.untrackElement(entryId);
-      return null;
+  /** All rendered instances of a source entry; a source ID is not an instance ID. */
+  getElements(entryId: ManifestEntryId): HTMLElement[] {
+    const refs = this.registry.get(entryId);
+    if (!refs) return [];
+    const elements: HTMLElement[] = [];
+    for (const ref of refs) {
+      const element = ref.deref();
+      if (element) elements.push(element);
+      else refs.delete(ref);
     }
-
-    return element;
+    if (refs.size === 0) this.registry.delete(entryId);
+    return elements;
   }
 
   /**
@@ -237,7 +243,9 @@ export class ElementTracker {
    * @returns The component instance or null
    */
   getComponentInstance(entryId: ManifestEntryId): unknown | null {
-    const ref = this.componentInstances.get(entryId);
+    const element = this.getElement(entryId);
+    if (!element) return null;
+    const ref = this.componentInstances.get(element);
     if (!ref) {
       return null;
     }
@@ -245,7 +253,7 @@ export class ElementTracker {
     const instance = ref.deref();
     if (!instance) {
       // Instance was garbage collected, clean up
-      this.componentInstances.delete(entryId);
+      this.componentInstances.delete(element);
       return null;
     }
 
@@ -301,7 +309,7 @@ export class ElementTracker {
    */
   clear(): void {
     this.registry.clear();
-    this.componentInstances.clear();
+    this.componentInstances = new WeakMap();
 
     if (this.options.debug) {
       console.log(
@@ -374,11 +382,13 @@ export class ElementTracker {
         const target = mutation.target;
         if (this.isHTMLElement(target)) {
           if (hasDsId(target)) {
+            if (mutation.oldValue)
+              this.untrackInstance(mutation.oldValue, target);
             this.trackElement(target);
           } else {
             const entryId = mutation.oldValue;
             if (entryId) {
-              this.untrackElement(entryId);
+              this.untrackInstance(entryId, target);
             }
           }
         }
@@ -406,11 +416,13 @@ export class ElementTracker {
     if (!this.isHTMLElement(node)) {
       return;
     }
+    // A move produces removal and addition records in the same batch.
+    if (node.isConnected) return;
 
     // Untrack the element if it has data-ds
     const entryId = getDsIdFromElement(node);
     if (entryId) {
-      this.untrackElement(entryId);
+      this.untrackInstance(entryId, node);
     }
 
     // Also check children
@@ -418,9 +430,19 @@ export class ElementTracker {
     for (const child of children) {
       const childId = getDsIdFromElement(child);
       if (childId) {
-        this.untrackElement(childId);
+        this.untrackInstance(childId, child);
       }
     }
+  }
+
+  private untrackInstance(entryId: string, element: HTMLElement): void {
+    const refs = this.registry.get(entryId);
+    if (!refs) return;
+    for (const ref of refs) {
+      if (!ref.deref() || ref.deref() === element) refs.delete(ref);
+    }
+    if (refs.size === 0) this.registry.delete(entryId);
+    this.componentInstances.delete(element);
   }
 
   /**

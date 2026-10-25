@@ -37,6 +37,7 @@ const DEFAULT_STATE: OverlayState = {
 
   // Capture State
   selectedElement: null,
+  selectedTarget: null,
   selectedEntryId: null,
   hoveredElement: null,
   runtimeContext: null,
@@ -60,6 +61,7 @@ export class OverlayStore {
 
   private state: OverlayState;
   private listeners: Set<StateListener> = new Set();
+  private selectionVersion = 0;
 
   private static readonly TAB_OFFSET_KEY = 'domscribe:tabOffsetY';
 
@@ -231,8 +233,12 @@ export class OverlayStore {
     element: HTMLElement | null,
     entryId: string | null = null,
   ): void {
+    this.selectionVersion++;
     this.setState({
       selectedElement: element,
+      selectedTarget: element
+        ? BridgeDispatch.getInstance().describeTarget(element)
+        : null,
       selectedEntryId: entryId,
     });
   }
@@ -241,7 +247,9 @@ export class OverlayStore {
    * Clear selection
    */
   clearSelection(): void {
+    this.selectionVersion++;
     this.setState({
+      selectedTarget: null,
       selectedElement: null,
       selectedEntryId: null,
       runtimeContext: null,
@@ -273,11 +281,16 @@ export class OverlayStore {
    */
   async selectElement(element: HTMLElement): Promise<void> {
     const entryId = element.getAttribute('data-ds');
+    const selectionVersion = ++this.selectionVersion;
+    const selectedTarget = BridgeDispatch.getInstance().describeTarget(element);
 
     // Set the element immediately
     this.setState({
       selectedElement: element,
       selectedEntryId: entryId,
+      selectedTarget,
+      runtimeContext: null,
+      manifestEntry: null,
       mode: 'expanded',
       hoveredElement: null,
     });
@@ -287,7 +300,7 @@ export class OverlayStore {
       const bridge = BridgeDispatch.getInstance();
       const runtimeContext = await bridge.captureContext(element);
 
-      if (runtimeContext) {
+      if (runtimeContext && selectionVersion === this.selectionVersion) {
         this.setState({ runtimeContext });
       }
     } catch (error) {
@@ -305,7 +318,7 @@ export class OverlayStore {
         const relayService = RelayService.getInstance();
         const manifestEntry = await relayService.resolve(entryId);
 
-        if (manifestEntry) {
+        if (manifestEntry && selectionVersion === this.selectionVersion) {
           this.setState({ manifestEntry });
         }
       } catch (error) {
@@ -323,8 +336,13 @@ export class OverlayStore {
    * Submit an annotation for the selected element
    */
   async submitAnnotation(content: string): Promise<Annotation | null> {
-    const { selectedElement, selectedEntryId, runtimeContext, manifestEntry } =
-      this.state;
+    const {
+      selectedElement,
+      selectedTarget,
+      selectedEntryId,
+      runtimeContext,
+      manifestEntry,
+    } = this.state;
 
     if (!selectedElement) {
       throw new Error('No element selected');
@@ -333,6 +351,16 @@ export class OverlayStore {
     this.setState({ isSubmitting: true });
 
     try {
+      if (
+        selectedTarget &&
+        BridgeDispatch.getInstance().resolveTargets({
+          instanceId: selectedTarget.instanceId,
+        }).status !== 'resolved'
+      ) {
+        throw new Error(
+          'Selected element changed or became stale; select it again',
+        );
+      }
       const relayService = RelayService.getInstance();
 
       // Build selector path for the element
@@ -353,6 +381,7 @@ export class OverlayStore {
         interaction: {
           type: InteractionTypeEnum.ELEMENT_ANNOTATION,
           selectedElement: {
+            target: selectedTarget ?? undefined,
             tagName: selectedElement.tagName.toLowerCase(),
             selector,
             dataDs: selectedEntryId ?? undefined,
@@ -470,16 +499,7 @@ export class OverlayStore {
     annotation: Annotation,
   ): Promise<HTMLElement | null> {
     const dataDs = annotation.interaction.selectedElement?.dataDs;
-    const selector = annotation.interaction.selectedElement?.selector;
-
-    // Locate element
-    let element: HTMLElement | null = null;
-    if (dataDs) {
-      element = document.querySelector<HTMLElement>(`[data-ds="${dataDs}"]`);
-    }
-    if (!element && selector) {
-      element = document.querySelector<HTMLElement>(selector);
-    }
+    const element = this.findAnnotationElement(annotation);
     if (!element) return null;
 
     // Re-capture runtime context
@@ -529,16 +549,7 @@ export class OverlayStore {
    * @returns The element if found, null otherwise
    */
   locateElement(annotation: Annotation): HTMLElement | null {
-    const dataDs = annotation.interaction.selectedElement?.dataDs;
-    const selector = annotation.interaction.selectedElement?.selector;
-
-    let element: HTMLElement | null = null;
-    if (dataDs) {
-      element = document.querySelector<HTMLElement>(`[data-ds="${dataDs}"]`);
-    }
-    if (!element && selector) {
-      element = document.querySelector<HTMLElement>(selector);
-    }
+    const element = this.findAnnotationElement(annotation);
     if (!element) return null;
 
     // Scroll into view
@@ -557,5 +568,29 @@ export class OverlayStore {
     }, 2000);
 
     return element;
+  }
+  private findAnnotationElement(annotation: Annotation): HTMLElement | null {
+    const selected = annotation.interaction.selectedElement;
+    if (!selected) return null;
+    try {
+      if (selected.target) {
+        const result = BridgeDispatch.getInstance().resolveTargets({
+          locator: selected.target.locator,
+        });
+        return result.status === 'resolved'
+          ? document.querySelector<HTMLElement>(result.targets[0].selector)
+          : null;
+      }
+      const matches = selected.dataDs
+        ? Array.from(
+            document.querySelectorAll<HTMLElement>('[data-ds]'),
+          ).filter(
+            (element) => element.getAttribute('data-ds') === selected.dataDs,
+          )
+        : Array.from(document.querySelectorAll<HTMLElement>(selected.selector));
+      return matches.length === 1 ? matches[0] : null;
+    } catch {
+      return null;
+    }
   }
 }

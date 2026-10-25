@@ -8,12 +8,19 @@
 import type { FastifyInstance } from 'fastify';
 import websocket from '@fastify/websocket';
 import type { WebSocket } from 'ws';
-import { API_PATHS, WS_EVENTS } from '@domscribe/core';
+import {
+  API_PATHS,
+  WS_EVENTS,
+  TargetQuerySchema,
+  type TargetQueryInput,
+} from '@domscribe/core';
 import type { ManifestReader } from '@domscribe/manifest';
 import type { AnnotationService } from './services/index.js';
 import crypto from 'crypto';
 import {
   WSContextResponseSchema,
+  WSTargetResponseSchema,
+  type RuntimeTargetResponse,
   type WSMessage,
   type WSContextResponse,
 } from '../schema.js';
@@ -30,7 +37,12 @@ export interface WSServer {
   requestContext(
     entryId: string,
     timeoutMs?: number,
+    selection?: Pick<TargetQueryInput, 'instanceId' | 'locator'>,
   ): Promise<WSContextResponse | null>;
+  requestTargets(
+    query: TargetQueryInput,
+    timeoutMs?: number,
+  ): Promise<RuntimeTargetResponse | null>;
   /** Clean up resources */
   close(): void;
 }
@@ -71,6 +83,16 @@ export async function createWSServer(
     string,
     {
       resolve: (value: WSContextResponse | null) => void;
+      socket: WebSocket;
+      timer: ReturnType<typeof setTimeout>;
+    }
+  >();
+
+  const pendingTargets = new Map<
+    string,
+    {
+      socket: WebSocket;
+      resolve: (value: RuntimeTargetResponse | null) => void;
       timer: ReturnType<typeof setTimeout>;
     }
   >();
@@ -99,13 +121,35 @@ export async function createWSServer(
         const msg: WSMessage = JSON.parse(
           typeof raw === 'string' ? raw : raw.toString(),
         );
+        if (msg.event === WS_EVENTS.TARGET_RESPONSE) {
+          const response = WSTargetResponseSchema.parse(msg.data);
+          const pending = pendingTargets.get(response.requestId);
+          if (pending?.socket === socket) {
+            clearTimeout(pending.timer);
+            pendingTargets.delete(response.requestId);
+            pending.resolve(
+              clients.size === 1
+                ? response.result
+                : { status: 'ambiguous_browser', targets: [], total: 0 },
+            );
+          }
+        }
         if (msg.event === WS_EVENTS.CONTEXT_RESPONSE) {
           const response = WSContextResponseSchema.parse(msg.data);
           const pending = pendingRequests.get(response.requestId);
-          if (pending) {
+          if (pending?.socket === socket) {
             clearTimeout(pending.timer);
             pendingRequests.delete(response.requestId);
-            pending.resolve(response);
+            pending.resolve(
+              clients.size === 1
+                ? response
+                : {
+                    requestId: response.requestId,
+                    success: false,
+                    rendered: false,
+                    selectionStatus: 'ambiguous_browser',
+                  },
+            );
           }
         }
       } catch {
@@ -115,6 +159,13 @@ export async function createWSServer(
 
     socket.on('close', () => {
       clients.delete(socket);
+      for (const [id, pending] of pendingTargets) {
+        if (pending.socket === socket) {
+          clearTimeout(pending.timer);
+          pendingTargets.delete(id);
+          pending.resolve(null);
+        }
+      }
       if (debug) {
         console.log(
           `[domscribe-relay][ws] Client disconnected (total: ${clients.size})`,
@@ -186,9 +237,19 @@ export async function createWSServer(
   function requestContext(
     entryId: string,
     timeoutMs = 3000,
+    selection?: Pick<TargetQueryInput, 'instanceId' | 'locator'>,
   ): Promise<WSContextResponse | null> {
     if (clients.size === 0) return Promise.resolve(null);
+    if (clients.size > 1)
+      return Promise.resolve({
+        requestId: crypto.randomUUID(),
+        success: false,
+        rendered: false,
+        selectionStatus: 'ambiguous_browser',
+      });
 
+    const socket = clients.values().next().value;
+    if (!socket) return Promise.resolve(null);
     const requestId = crypto.randomUUID();
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
@@ -196,8 +257,41 @@ export async function createWSServer(
         resolve(null);
       }, timeoutMs);
 
-      pendingRequests.set(requestId, { resolve, timer });
-      broadcast(WS_EVENTS.CONTEXT_REQUEST, { requestId, entryId });
+      pendingRequests.set(requestId, {
+        resolve,
+        timer,
+        socket,
+      });
+      broadcast(WS_EVENTS.CONTEXT_REQUEST, {
+        requestId,
+        entryId,
+        ...selection,
+      });
+    });
+  }
+
+  function requestTargets(
+    input: TargetQueryInput,
+    timeoutMs = 3000,
+  ): Promise<RuntimeTargetResponse | null> {
+    const query = TargetQuerySchema.parse(input);
+    if (clients.size === 0) return Promise.resolve(null);
+    if (clients.size > 1)
+      return Promise.resolve({
+        status: 'ambiguous_browser',
+        targets: [],
+        total: 0,
+      });
+    const socket = clients.values().next().value;
+    if (!socket) return Promise.resolve(null);
+    const requestId = crypto.randomUUID();
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        pendingTargets.delete(requestId);
+        resolve(null);
+      }, timeoutMs);
+      pendingTargets.set(requestId, { socket, resolve, timer });
+      sendMessage(socket, WS_EVENTS.TARGET_REQUEST, { requestId, query });
     });
   }
 
@@ -209,8 +303,14 @@ export async function createWSServer(
     },
 
     requestContext,
+    requestTargets,
 
     close(): void {
+      for (const pending of pendingTargets.values()) {
+        clearTimeout(pending.timer);
+        pending.resolve(null);
+      }
+      pendingTargets.clear();
       // Clear pending context requests
       for (const [, pending] of pendingRequests) {
         clearTimeout(pending.timer);

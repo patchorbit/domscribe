@@ -10,7 +10,13 @@
  * @module @domscribe/runtime/core/runtime-manager
  */
 
-import type { ManifestEntryId, RuntimeContext } from '@domscribe/core';
+import type {
+  ElementTarget,
+  ManifestEntryId,
+  RuntimeContext,
+  TargetQueryInput,
+  TargetResolution,
+} from '@domscribe/core';
 import type { RuntimeOptions, ElementInfo } from './types.js';
 import type { CaptureOptions } from '../capture/types.js';
 import { ElementTracker } from './element-tracker.js';
@@ -19,6 +25,14 @@ import { NoopAdapter } from '../adapters/noop-adapter.js';
 import { RuntimeNotInitializedError, RuntimeError } from '../errors/index.js';
 import { isHTMLElement } from '../utils/validation.js';
 import { FrameworkAdapter } from '../adapters/adapter.interface.js';
+import { TargetRegistry } from '../targets/target-registry.js';
+import {
+  ReplayActionSchema,
+  ReplayTraceSchema,
+  redactPII,
+  type ReplayAction,
+  type ReplayStep,
+} from '@domscribe/core';
 
 /**
  * RuntimeManager singleton class
@@ -30,6 +44,7 @@ export class RuntimeManager {
 
   private elementTracker: ElementTracker | null = null;
   private contextCapturer: ContextCapturer | null = null;
+  private targets: TargetRegistry | null = null;
   private options: Required<
     Omit<RuntimeOptions, 'serialization' | 'styleOptions'>
   > &
@@ -116,6 +131,13 @@ export class RuntimeManager {
 
       // Start observing DOM
       this.elementTracker.observeDOM();
+      if (typeof document !== 'undefined') {
+        this.targets = new TargetRegistry({
+          document,
+          blocked: (element) => this.isElementBlocked(element),
+          redact: this.options.redactPII,
+        });
+      }
 
       // Initialize context capturer
       this.contextCapturer = new ContextCapturer({
@@ -192,6 +214,58 @@ export class RuntimeManager {
         error instanceof Error ? error : undefined,
       );
     }
+  }
+
+  describeTarget(element: HTMLElement): ElementTarget | null {
+    return this.isInitialized
+      ? (this.targets?.describe(element) ?? null)
+      : null;
+  }
+
+  /** Explicit recording only; never scrape form values or record sensitive inputs. */
+  createReplayStep(element: HTMLElement, action: ReplayAction): ReplayStep {
+    const parsed = ReplayActionSchema.parse(action);
+    const target = this.describeTarget(element);
+    if (
+      !target ||
+      element.matches('input[type="password"], input[type="file"]')
+    ) {
+      throw new RuntimeError(
+        'Target is unavailable, blocked, or a sensitive input',
+      );
+    }
+    if (
+      this.options.redactPII &&
+      JSON.stringify(redactPII(parsed)) !== JSON.stringify(parsed)
+    ) {
+      throw new RuntimeError(
+        'Replay input requires redaction and cannot be recorded',
+      );
+    }
+    return ReplayTraceSchema.parse({
+      version: 1,
+      steps: [{ ...parsed, target: target.locator }],
+    }).steps[0];
+  }
+
+  /** Never capture context until a target has resolved to one exact instance. */
+  async queryTargets(
+    query: TargetQueryInput,
+  ): Promise<TargetResolution & { context?: RuntimeContext }> {
+    const result = this.resolveTargets(query);
+    if (result.status !== 'resolved') return result;
+    const element = this.targets?.getElement(result.targets[0].instanceId);
+    if (!element) return { status: 'stale', targets: [], total: 0 };
+    const context = await this.captureContextForElement(element);
+    if (!this.targets?.getElement(result.targets[0].instanceId))
+      return { status: 'stale', targets: [], total: 0 };
+    return { ...result, context: context ?? undefined };
+  }
+
+  resolveTargets(query: TargetQueryInput): TargetResolution {
+    if (!this.isInitialized || !this.targets)
+      return { status: 'not_ready', targets: [], total: 0 };
+    return this.targets.query(query);
   }
 
   /**
@@ -310,6 +384,8 @@ export class RuntimeManager {
    * Cleanup and dispose
    */
   cleanup(): void {
+    this.targets?.dispose();
+    this.targets = null;
     if (this.elementTracker) {
       this.elementTracker.dispose();
       this.elementTracker = null;
@@ -356,7 +432,7 @@ export class RuntimeManager {
 
     return this.options.blockSelectors.some((selector) => {
       try {
-        return element.matches(selector);
+        return element.closest(selector) !== null;
       } catch {
         return false;
       }

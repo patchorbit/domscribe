@@ -1,3 +1,4 @@
+import { TargetsQueryRoute } from './routes/v1/targets-query.route.js';
 /**
  * HTTP Server for Domscribe Relay
  *
@@ -156,6 +157,7 @@ export async function createRelayServer(
 
   // Register routes that depend on WebSocket server
   registerRoute(QueryBySourceRoute, { app, manifestReader, wsServer: ws });
+  TargetsQueryRoute.register({ app, wsServer: ws });
 
   const verifyService = new VerifyService(ws, annotationService);
   registerRoute(VerifyBaselineRoute, { app, verifyService });

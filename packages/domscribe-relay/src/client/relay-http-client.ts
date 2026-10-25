@@ -1,3 +1,8 @@
+import { type TargetQueryInput, type PortableLocator } from '@domscribe/core';
+import {
+  TargetsQueryResponseSchema,
+  type TargetsQueryResponse,
+} from '../schema.js';
 /**
  * RelayHttpClient - Typed HTTP client for the relay server API
  *
@@ -337,7 +342,22 @@ export class RelayHttpClient {
     return ManifestResolveResponseSchema.parse(await response.json());
   }
 
+  async queryTargets(query: TargetQueryInput): Promise<TargetsQueryResponse> {
+    const response = await fetch(
+      new URL('/api/v1/targets/query', this.baseUrl),
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(query),
+      },
+    );
+    if (!response.ok) throw await this.parseError(response);
+    return TargetsQueryResponseSchema.parse(await response.json());
+  }
+
   async queryBySource(params: {
+    instanceId?: string;
+    locator?: PortableLocator;
     file: string;
     line: number;
     column?: number;

@@ -11,7 +11,13 @@
  * @module @domscribe/runtime/bridge/bridge-dispatch
  */
 
-import type { ManifestEntryId, RuntimeContext } from '@domscribe/core';
+import type {
+  ElementTarget,
+  ManifestEntryId,
+  RuntimeContext,
+  TargetQueryInput,
+  TargetResolution,
+} from '@domscribe/core';
 import type { ElementInfo } from '../core/types.js';
 import type { IRuntimeTransport } from './transport.interface.js';
 import { DirectTransport } from './direct-transport.js';
@@ -90,5 +96,19 @@ export class BridgeDispatch {
     } catch {
       return null;
     }
+  }
+
+  /** Same-context target APIs, like element-based capture (no transport guessing). */
+  describeTarget(element: HTMLElement): ElementTarget | null {
+    return RuntimeManager.getInstance().describeTarget(element);
+  }
+
+  queryTargets(
+    query: TargetQueryInput,
+  ): Promise<TargetResolution & { context?: RuntimeContext }> {
+    return RuntimeManager.getInstance().queryTargets(query);
+  }
+  resolveTargets(query: TargetQueryInput): TargetResolution {
+    return RuntimeManager.getInstance().resolveTargets(query);
   }
 }

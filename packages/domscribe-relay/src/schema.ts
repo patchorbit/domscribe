@@ -1,3 +1,10 @@
+import {
+  PortableLocatorSchema,
+  ElementTargetSchema,
+  TargetStatusSchema,
+  TargetResolutionSchema,
+  TargetQuerySchema,
+} from '@domscribe/core';
 /**
  * Shared API schemas — contract between server and client.
  *
@@ -384,6 +391,8 @@ export type StatusResponse = z.infer<typeof StatusResponseSchema>;
 export const WSContextRequestSchema = z.object({
   requestId: z.string(),
   entryId: ManifestEntryIdSchema,
+  instanceId: z.string().min(1).max(128).optional(),
+  locator: PortableLocatorSchema.optional(),
 });
 export type WSContextRequest = z.infer<typeof WSContextRequestSchema>;
 
@@ -391,6 +400,9 @@ export const WSContextResponseSchema = z.object({
   requestId: z.string(),
   success: z.boolean(),
   rendered: z.boolean().optional(),
+  selectionStatus: TargetStatusSchema.optional(),
+  targets: z.array(ElementTargetSchema).max(200).optional(),
+  total: z.number().int().nonnegative().optional(),
   context: RuntimeContextSchema.optional(),
   elementInfo: z
     .object({
@@ -403,6 +415,23 @@ export const WSContextResponseSchema = z.object({
   error: z.string().optional(),
 });
 export type WSContextResponse = z.infer<typeof WSContextResponseSchema>;
+
+export const RuntimeTargetResponseSchema = TargetResolutionSchema.extend({
+  context: RuntimeContextSchema.optional(),
+});
+export type RuntimeTargetResponse = z.infer<typeof RuntimeTargetResponseSchema>;
+export const TargetsQueryResponseSchema = RuntimeTargetResponseSchema.extend({
+  browserConnected: z.boolean(),
+});
+export type TargetsQueryResponse = z.infer<typeof TargetsQueryResponseSchema>;
+export const WSTargetRequestSchema = z.object({
+  requestId: z.string(),
+  query: TargetQuerySchema,
+});
+export const WSTargetResponseSchema = z.object({
+  requestId: z.string(),
+  result: RuntimeTargetResponseSchema,
+});
 
 /* =============================
  * Verify (RFC 0002)
@@ -422,7 +451,9 @@ export const VerifyBaselineResponseSchema = z.object({
     .describe('Opaque handle to pass to the verify check call'),
   entryId: ManifestEntryIdSchema.optional(),
   capturedAt: z.string().optional().describe('ISO 8601 capture timestamp'),
-  browserConnected: z.boolean().describe('Whether a browser client was connected'),
+  browserConnected: z
+    .boolean()
+    .describe('Whether a browser client was connected'),
   hasComponentStyles: z
     .boolean()
     .optional()
@@ -481,31 +512,40 @@ export type VerifyCheckResponse = z.infer<typeof VerifyCheckResponseSchema>;
 /* =============================
  * Query By Source
  * ============================= */
-export const QueryBySourceRequestSchema = z.object({
-  file: z.string().describe('Absolute file path as stored in the manifest'),
-  line: z.number().int().positive().describe('Line number (1-indexed)'),
-  column: z
-    .number()
-    .int()
-    .nonnegative()
-    .optional()
-    .describe('Column number (0-indexed)'),
-  tolerance: z
-    .number()
-    .int()
-    .nonnegative()
-    .optional()
-    .default(0)
-    .describe('Maximum line distance to consider'),
-  includeRuntime: z
-    .boolean()
-    .optional()
-    .default(true)
-    .describe('Whether to query live runtime context from the browser'),
-});
+export const QueryBySourceRequestSchema = z
+  .object({
+    instanceId: z.string().min(1).max(128).optional(),
+    locator: PortableLocatorSchema.optional(),
+    file: z.string().describe('Absolute file path as stored in the manifest'),
+    line: z.number().int().positive().describe('Line number (1-indexed)'),
+    column: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional()
+      .describe('Column number (0-indexed)'),
+    tolerance: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional()
+      .default(0)
+      .describe('Maximum line distance to consider'),
+    includeRuntime: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe('Whether to query live runtime context from the browser'),
+  })
+  .refine((value) => !(value.instanceId && value.locator), {
+    message: 'Use an instanceId or locator, not both',
+  });
 export type QueryBySourceRequest = z.infer<typeof QueryBySourceRequestSchema>;
 
 export const QueryBySourceResponseSchema = z.object({
+  selectionStatus: TargetStatusSchema.optional(),
+  targets: z.array(ElementTargetSchema).max(200).optional(),
+  total: z.number().int().nonnegative().optional(),
   found: z.boolean().describe('Whether a manifest entry was found'),
   entryId: z.string().optional().describe('The matching manifest entry ID'),
   sourceLocation: z

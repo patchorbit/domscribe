@@ -41,6 +41,9 @@ const migrationSteps: Record<number, (data: Record<string, unknown>) => void> =
     2: () => {
       // No-op: v2 → v3 is purely additive.
     },
+    3: () => {
+      // No-op: v3 → v4 adds optional target and replay data.
+    },
   };
 
 /**

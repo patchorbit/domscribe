@@ -17,7 +17,7 @@ import {
 
 describe('ANNOTATION_SCHEMA_VERSION', () => {
   it('is at v3 (RFC 0002 — verifyHistory)', () => {
-    expect(ANNOTATION_SCHEMA_VERSION).toBe(3);
+    expect(ANNOTATION_SCHEMA_VERSION).toBe(4);
   });
 });
 

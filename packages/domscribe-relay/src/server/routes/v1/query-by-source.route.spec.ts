@@ -31,6 +31,7 @@ function createMockWSServer(overrides?: Partial<WSServer>): WSServer {
     broadcast: vi.fn(),
     getClientCount: vi.fn().mockReturnValue(0),
     requestContext: vi.fn().mockResolvedValue(null),
+    requestTargets: vi.fn().mockResolvedValue(null),
     close: vi.fn(),
     ...overrides,
   };
@@ -329,5 +330,36 @@ describe('POST /api/v1/manifest/resolve-by-source', () => {
     });
 
     expect(response.statusCode).toBe(400);
+  });
+  it('forwards an exact instance and preserves strict selection metadata', async () => {
+    vi.mocked(mockWsServer.getClientCount).mockReturnValue(1);
+    vi.mocked(mockWsServer.requestContext).mockImplementation(
+      async (entryId, _timeout, selection) => ({
+        requestId: 'strict-test',
+        success: true,
+        rendered: true,
+        selectionStatus: 'resolved',
+        targets: [],
+        total: 1,
+        context: { componentProps: { customer: selection?.instanceId } },
+      }),
+    );
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/manifest/resolve-by-source',
+      payload: {
+        file: 'src/components/Input.tsx',
+        line: 5,
+        instanceId: 'lyra-instance',
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      selectionStatus: 'resolved',
+      total: 1,
+      runtime: { componentProps: { customer: 'lyra-instance' } },
+    });
+    vi.mocked(mockWsServer.getClientCount).mockReturnValue(0);
+    vi.mocked(mockWsServer.requestContext).mockResolvedValue(null);
   });
 });

@@ -297,3 +297,60 @@ describe('WebSocket Server', () => {
     rmSync(freshServer.tempDir, { recursive: true, force: true });
   });
 });
+
+describe('strict browser target requests', () => {
+  let server: WSTestServer;
+  const sockets: WebSocket[] = [];
+  beforeAll(async () => {
+    server = await createTestWSServer();
+  });
+  afterAll(() => {
+    for (const socket of sockets) socket.close();
+    cleanupWSServer(server);
+  });
+  it('round-trips target ambiguity and binds the response to its browser request', async () => {
+    const socket = await connectClient(server.baseUrl);
+    sockets.push(socket);
+    socket.on('message', (raw) => {
+      const message = JSON.parse(raw.toString());
+      if (message.event === 'target:request')
+        socket.send(
+          JSON.stringify({
+            event: 'target:response',
+            data: {
+              requestId: message.data.requestId,
+              result: { status: 'ambiguous', targets: [], total: 2 },
+            },
+          }),
+        );
+    });
+    const result = await server.ws.requestTargets({ entryId: 'aB3dEf7h' });
+    expect(result).toMatchObject({ status: 'ambiguous', total: 2 });
+    await new Promise<void>((resolve) => {
+      socket.once('close', () => resolve());
+      socket.close();
+    });
+  });
+  it('refuses to choose among connected browser sessions', async () => {
+    const one = await connectClient(server.baseUrl),
+      two = await connectClient(server.baseUrl);
+    sockets.push(one, two);
+    expect(await server.ws.requestTargets({ mode: 'list' })).toMatchObject({
+      status: 'ambiguous_browser',
+      targets: [],
+    });
+    expect(await server.ws.requestContext('aB3dEf7h')).toMatchObject({
+      success: false,
+      selectionStatus: 'ambiguous_browser',
+    });
+    await Promise.all(
+      [one, two].map(
+        (socket) =>
+          new Promise<void>((resolve) => {
+            socket.once('close', () => resolve());
+            socket.close();
+          }),
+      ),
+    );
+  });
+});

@@ -73,7 +73,15 @@ export class QueryBySourceRoute implements RelayRoute {
     }>,
   ) {
     try {
-      const { file, line, column, tolerance, includeRuntime } = request.body;
+      const {
+        file,
+        line,
+        column,
+        tolerance,
+        includeRuntime,
+        instanceId,
+        locator,
+      } = request.body;
 
       // Position-based manifest lookup
       const entry = this.manifestReader.getEntryByPosition(
@@ -103,8 +111,17 @@ export class QueryBySourceRoute implements RelayRoute {
       if (includeRuntime) {
         response.browserConnected = this.wsServer.getClientCount() > 0;
         if (response.browserConnected) {
-          const wsResult = await this.wsServer.requestContext(entry.id);
+          const wsResult =
+            instanceId || locator
+              ? await this.wsServer.requestContext(entry.id, undefined, {
+                  instanceId,
+                  locator,
+                })
+              : await this.wsServer.requestContext(entry.id);
           if (wsResult) {
+            response.selectionStatus = wsResult.selectionStatus;
+            response.targets = wsResult.targets;
+            response.total = wsResult.total;
             response.runtime = {
               rendered: wsResult.rendered ?? false,
               componentProps: wsResult.context?.componentProps,
