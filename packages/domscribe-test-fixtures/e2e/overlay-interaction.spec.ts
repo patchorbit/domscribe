@@ -194,6 +194,10 @@ for (const fixture of overlayFixtures) {
               await fixturePage.navigateToPageId(pageExpectation.pageId);
               await page.waitForTimeout(500);
 
+              if (elementExp.readySelector) {
+                await page.waitForSelector(elementExp.readySelector);
+              }
+
               // Verify the element exists on the page
               const elementHandle = await page.$(elementExp.selector);
               expect(
@@ -251,6 +255,21 @@ for (const fixture of overlayFixtures) {
                     `Missing state key in overlay: ${key}`,
                   ).toContain(key);
                 }
+              }
+
+              // Callback refs measure mounted geometry, which varies with fonts
+              // and viewport size. Compare to the actual DOM, not a fixed value.
+              for (const [key, selector] of Object.entries(
+                elementExp.expectedStateElementHeights ?? {},
+              )) {
+                const height = await page.evaluate((sel) => {
+                  const element = document.querySelector(sel);
+                  if (!element)
+                    throw new Error(`Measurement element not found: ${sel}`);
+                  return element.getBoundingClientRect().height;
+                }, selector);
+                expect(height).toBeGreaterThan(0);
+                expect(Number(context.state[key])).toBeCloseTo(height, 3);
               }
 
               // Validate state values displayed in overlay

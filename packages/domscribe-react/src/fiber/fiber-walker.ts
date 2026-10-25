@@ -75,7 +75,12 @@ export class FiberWalker {
 
     let first = fiber;
     let second = alternate;
-    for (let depth = 0; depth < this.maxDepth; depth++) {
+    // Root selection must cross every framework provider, independently of
+    // the component search depth. Detect cycles instead of truncating a valid
+    // deep tree before reaching its committed root.
+    const visited = new Set<ExtendedReactFiber>();
+    while (!visited.has(first)) {
+      visited.add(first);
       const parentFirst = first.return;
       if (!parentFirst) {
         const root = first.stateNode;

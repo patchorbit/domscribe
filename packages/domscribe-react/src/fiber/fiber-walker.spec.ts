@@ -222,6 +222,83 @@ describe('FiberWalker', () => {
       },
     );
 
+    it('should resolve committed state through deep framework providers independently of component search depth', () => {
+      const walker = new FiberWalker({ maxDepth: 2 });
+      const firstRoot = createFiber({ tag: REACT_FIBER_TAGS.HostRoot });
+      const secondRoot = createFiber({ tag: REACT_FIBER_TAGS.HostRoot });
+      firstRoot.alternate = secondRoot;
+      secondRoot.alternate = firstRoot;
+      const root = { current: secondRoot };
+      firstRoot.stateNode = secondRoot.stateNode = root;
+      let firstParent = firstRoot;
+      let secondParent = secondRoot;
+      for (let index = 0; index < 75; index++) {
+        const firstProvider = createFiber({
+          tag: REACT_FIBER_TAGS.ContextProvider,
+          return: firstParent,
+        });
+        const secondProvider = createFiber({
+          tag: REACT_FIBER_TAGS.ContextProvider,
+          return: secondParent,
+        });
+        firstProvider.alternate = secondProvider;
+        secondProvider.alternate = firstProvider;
+        firstParent.child = firstProvider;
+        secondParent.child = secondProvider;
+        firstParent = firstProvider;
+        secondParent = secondProvider;
+      }
+      const original = createFiber({
+        return: firstParent,
+        memoizedState: { count: 0 },
+      });
+      const alternate = createFiber({
+        return: secondParent,
+        memoizedState: { count: 1 },
+      });
+      original.alternate = alternate;
+      alternate.alternate = original;
+      firstParent.child = original;
+      secondParent.child = alternate;
+      const host = createFiber({
+        tag: REACT_FIBER_TAGS.HostComponent,
+        return: original,
+      });
+
+      const component = walker.findNearestComponentFiber(host);
+
+      expect(component).toBe(alternate);
+      expect(component?.memoizedState).toEqual({ count: 1 });
+    });
+
+    it('should stop safely when alternate ancestry contains a cycle', () => {
+      const walker = new FiberWalker();
+      const firstParent = createFiber({
+        tag: REACT_FIBER_TAGS.ContextProvider,
+      });
+      const secondParent = createFiber({
+        tag: REACT_FIBER_TAGS.ContextProvider,
+      });
+      firstParent.alternate = secondParent;
+      secondParent.alternate = firstParent;
+      firstParent.return = firstParent;
+      secondParent.return = secondParent;
+      const original = createFiber({ return: firstParent });
+      const alternate = createFiber({ return: secondParent });
+      original.alternate = alternate;
+      alternate.alternate = original;
+      firstParent.child = original;
+      secondParent.child = alternate;
+      const host = createFiber({
+        tag: REACT_FIBER_TAGS.HostComponent,
+        return: original,
+      });
+
+      const component = walker.findNearestComponentFiber(host);
+
+      expect(component).toBe(original);
+    });
+
     it('should respect maxDepth limit', () => {
       const walker = new FiberWalker({ maxDepth: 2 });
       const component = createFiber({

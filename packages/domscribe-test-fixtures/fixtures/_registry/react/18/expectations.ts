@@ -28,6 +28,10 @@ export interface ElementExpectation {
   expectedStateKeys?: string[];
   /** Expected state values (subset — assert these key/value pairs match) */
   expectedState?: Record<string, unknown>;
+  /** Selector that must render before capturing asynchronous component state */
+  readySelector?: string;
+  /** State keys whose numeric values must match the selected DOM element heights */
+  expectedStateElementHeights?: Record<string, string>;
 }
 
 /**
@@ -256,16 +260,18 @@ export const react18Expectations: PageExpectation[] = [
         // DynamicContent hooks:
         //   state_0: count = 0
         //   state_1: items = ['Dynamic Item 1', 'Dynamic Item 2', 'Dynamic Item 3']
-        //   state_2: loading = true (useEffect sets true before async completes)
+        //   state_2: loading = false after the async list has rendered
         selector: '.dynamic-content section:nth-of-type(1) .capture-widget',
         label: 'DynamicContent counter widget',
+        readySelector: '.dynamic-content .list-item-with-button',
         componentName: 'DynamicContent',
         expectDataDs: true,
         expectedPropsKeys: [],
         expectedStateKeys: ['state_0', 'state_1', 'state_2'],
         expectedState: {
           state_0: 0, // count
-          state_2: true, // loading (captured during useEffect)
+          state_1: ['Dynamic Item 1', 'Dynamic Item 2', 'Dynamic Item 3'],
+          state_2: false, // loading (the rendered list is ready)
         },
       },
     ],
@@ -451,15 +457,15 @@ export const react18Expectations: PageExpectation[] = [
       },
       {
         // CallbackRefExample is a sub-component
-        // Hooks: useState(0)
+        // Hooks: height = useState(0), updated by the mounted callback ref
         selector: '.ref-patterns section:nth-of-type(2) .capture-widget',
         label: 'Callback ref widget',
         componentName: 'CallbackRefExample',
         expectDataDs: true,
         expectedPropsKeys: [],
         expectedStateKeys: ['state_0'],
-        expectedState: {
-          state_0: 0, // count
+        expectedStateElementHeights: {
+          state_0: '.callback-ref-example .demo-box',
         },
       },
     ],
