@@ -2,7 +2,7 @@
 /** Check that emitted JavaScript and declarations only import declared packages. */
 import assert from 'node:assert/strict';
 import { builtinModules } from 'node:module';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 
@@ -71,6 +71,24 @@ for (const entry of readdirSync('dist/packages', { withFileTypes: true })) {
   const directory = join('dist/packages', entry.name);
   const pkg = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
   if (pkg.private) continue;
+  for (const field of ['distExports', 'distBin']) {
+    if (pkg[field]) {
+      failures.push(
+        `${pkg.name}: ${field} must be synchronized before packing`,
+      );
+    }
+  }
+  function checkTarget(target) {
+    if (typeof target === 'string') {
+      if (!target.includes('*') && !existsSync(join(directory, target))) {
+        failures.push(`${pkg.name}: published target ${target} does not exist`);
+      }
+    } else if (target && typeof target === 'object') {
+      for (const child of Object.values(target)) checkTarget(child);
+    }
+  }
+  checkTarget(pkg.exports);
+  checkTarget(pkg.bin);
   for (const field of [
     'dependencies',
     'optionalDependencies',
