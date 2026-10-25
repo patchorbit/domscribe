@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { AnnotationSchema } from '@domscribe/core';
 import { RuntimeManager } from '@domscribe/runtime';
 import { OverlayStore } from './overlay-store.js';
-
 function annotation(selectedElement: Record<string, unknown>) {
   return AnnotationSchema.parse({
     metadata: {
@@ -34,7 +33,9 @@ describe('annotation target resolution', () => {
       '<article aria-label="Lyra"><button data-ds="aB3dEf7h">Edit</button></article><article aria-label="Vega"><button data-ds="aB3dEf7h">Edit</button></article>';
     let runtime = RuntimeManager.getInstance();
     await runtime.initialize();
-    const target = runtime.describeTarget(document.querySelector('button')!)!;
+    const target = required(
+      runtime.describeTarget(required(document.querySelector('button'))),
+    );
     const saved = annotation({
       tagName: 'button',
       selector: '[data-ds="aB3dEf7h"]',
@@ -72,3 +73,8 @@ describe('annotation target resolution', () => {
     expect(OverlayStore.getInstance().locateElement(saved)).toBeNull();
   });
 });
+
+function required<T>(value: T | null | undefined): T {
+  if (value == null) throw new Error('Expected test fixture element/target');
+  return value;
+}

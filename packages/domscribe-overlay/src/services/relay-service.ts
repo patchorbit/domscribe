@@ -164,7 +164,14 @@ export class RelayService {
 
         let responseData: Record<string, unknown>;
         if (!bridge.isReady()) {
-          responseData = { requestId, success: false, rendered: false };
+          responseData = {
+            requestId,
+            success: false,
+            rendered: false,
+            selectionStatus: 'not_ready',
+            targets: [],
+            total: 0,
+          };
         } else {
           try {
             const selection = await bridge.queryTargets({

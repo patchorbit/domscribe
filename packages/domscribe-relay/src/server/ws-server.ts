@@ -248,6 +248,8 @@ export async function createWSServer(
         selectionStatus: 'ambiguous_browser',
       });
 
+    const socket = clients.values().next().value;
+    if (!socket) return Promise.resolve(null);
     const requestId = crypto.randomUUID();
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
@@ -258,7 +260,7 @@ export async function createWSServer(
       pendingRequests.set(requestId, {
         resolve,
         timer,
-        socket: clients.values().next().value!,
+        socket,
       });
       broadcast(WS_EVENTS.CONTEXT_REQUEST, {
         requestId,
@@ -280,7 +282,8 @@ export async function createWSServer(
         targets: [],
         total: 0,
       });
-    const socket = clients.values().next().value!;
+    const socket = clients.values().next().value;
+    if (!socket) return Promise.resolve(null);
     const requestId = crypto.randomUUID();
     return new Promise((resolve) => {
       const timer = setTimeout(() => {

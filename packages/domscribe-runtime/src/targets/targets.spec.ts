@@ -1,12 +1,10 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RuntimeManager } from '../core/runtime-manager.js';
-
 const fixture = () => {
   document.body.innerHTML =
     '<main><article aria-label="Lyra"><button data-ds="aB3dEf7h">Edit</button></article><article aria-label="Vega"><button data-ds="aB3dEf7h">Edit</button></article></main>';
 };
-
 describe('strict runtime targets', () => {
   let runtime: RuntimeManager;
   beforeEach(async () => {
@@ -25,7 +23,9 @@ describe('strict runtime targets', () => {
     expect(result.status).toBe('ambiguous');
     expect(result.targets).toHaveLength(2);
     expect(result.context).toBeUndefined();
-    const lyra = runtime.describeTarget(document.querySelector('button')!)!;
+    const lyra = required(
+      runtime.describeTarget(required(document.querySelector('button'))),
+    );
     const selected = await runtime.queryTargets({
       instanceId: lyra.instanceId,
     });
@@ -35,17 +35,19 @@ describe('strict runtime targets', () => {
     ).toBe('Lyra');
   });
   it('preserves handles through sorting but refuses detached or recycled targets', async () => {
-    const button = document.querySelector('button')!;
-    const target = runtime.describeTarget(button)!;
-    document.querySelector('main')!.append(button.parentElement!);
+    const button = required(document.querySelector('button'));
+    const target = required(runtime.describeTarget(button));
+    required(document.querySelector('main')).append(
+      required(button.parentElement),
+    );
     expect(
       (await runtime.queryTargets({ instanceId: target.instanceId })).status,
     ).toBe('resolved');
-    button.parentElement!.setAttribute('aria-label', 'Orion');
+    required(button.parentElement).setAttribute('aria-label', 'Orion');
     expect(
       (await runtime.queryTargets({ instanceId: target.instanceId })).status,
     ).toBe('stale');
-    const replacement = runtime.describeTarget(button)!;
+    const replacement = required(runtime.describeTarget(button));
     expect(replacement.instanceId).not.toBe(target.instanceId);
     button.remove();
     expect(
@@ -54,13 +56,15 @@ describe('strict runtime targets', () => {
     ).toBe('stale');
   });
   it('resolves a serialized locator after a fresh runtime and reordered DOM', async () => {
-    const old = runtime.describeTarget(document.querySelector('button')!)!;
+    const old = required(
+      runtime.describeTarget(required(document.querySelector('button'))),
+    );
     const locator = JSON.parse(JSON.stringify(old.locator));
     RuntimeManager.resetInstance();
     fixture();
-    document
-      .querySelector('main')!
-      .prepend(document.querySelectorAll('article')[1]);
+    required(document.querySelector('main')).prepend(
+      document.querySelectorAll('article')[1],
+    );
     runtime = RuntimeManager.getInstance();
     await runtime.initialize();
     expect(
@@ -77,9 +81,9 @@ describe('strict runtime targets', () => {
     ).toBe('Lyra');
   });
   it('refuses duplicate scope identities and changed routes instead of guessing by position', async () => {
-    const locator = runtime.describeTarget(
-      document.querySelector('button')!,
-    )!.locator;
+    const locator = required(
+      runtime.describeTarget(required(document.querySelector('button'))),
+    ).locator;
     document.querySelectorAll('article')[1].setAttribute('aria-label', 'Lyra');
     expect((await runtime.queryTargets({ locator })).status).toBe('ambiguous');
     window.history.replaceState({}, '', '/other');
@@ -90,7 +94,7 @@ describe('strict runtime targets', () => {
       '<section class="private"><button data-ds="aB3dEf7h">Hidden</button></section><button data-ds="bB3dEf7h">person@example.com</button><input data-ds="cB3dEf7h" value="secret input value">';
     await runtime.initialize({ blockSelectors: ['.private'] });
     expect(
-      runtime.describeTarget(document.querySelector('button')!),
+      runtime.describeTarget(required(document.querySelector('button'))),
     ).toBeNull();
     const list = await runtime.queryTargets({ mode: 'list' });
     expect(list.targets).toHaveLength(2);
@@ -100,6 +104,14 @@ describe('strict runtime targets', () => {
       (await runtime.queryTargets({ locator: list.targets[0].locator })).status,
     ).toBe('not_found');
   });
+  it('does not derive locator text from editable or blocked descendants', async () => {
+    document.body.innerHTML =
+      '<label data-ds="aB3dEf7h">Notes<textarea>private textarea value</textarea></label><div data-ds="bB3dEf7h">Public<span class="private">private child text</span></div>';
+    await runtime.initialize({ blockSelectors: ['.private'] });
+    const result = await runtime.queryTargets({ mode: 'list' });
+    expect(JSON.stringify(result)).not.toContain('private textarea value');
+    expect(JSON.stringify(result)).not.toContain('private child text');
+  });
   it('returns not_ready before initialization instead of throwing', async () => {
     runtime.cleanup();
     expect((await runtime.queryTargets({ mode: 'list' })).status).toBe(
@@ -107,7 +119,6 @@ describe('strict runtime targets', () => {
     );
   });
 });
-
 describe('target lifecycle boundaries', () => {
   afterEach(() => {
     RuntimeManager.resetInstance();
@@ -118,11 +129,11 @@ describe('target lifecycle boundaries', () => {
     fixture();
     const runtime = RuntimeManager.getInstance();
     await runtime.initialize();
-    const button = document.querySelector('button')!;
-    const old = runtime.describeTarget(button)!;
+    const button = required(document.querySelector('button'));
+    const old = required(runtime.describeTarget(button));
     button.remove();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    document.querySelector('article')!.append(button);
+    required(document.querySelector('article')).append(button);
     expect(
       (await runtime.queryTargets({ instanceId: old.instanceId })).status,
     ).toBe('stale');
@@ -132,11 +143,52 @@ describe('target lifecycle boundaries', () => {
     fixture();
     const runtime = RuntimeManager.getInstance();
     await runtime.initialize();
-    const button = document.querySelector('button')!;
-    const old = runtime.describeTarget(button)!;
+    const button = required(document.querySelector('button'));
+    const old = required(runtime.describeTarget(button));
     button.setAttribute('data-ds', 'nEw1d123');
     expect(
       (await runtime.queryTargets({ instanceId: old.instanceId })).status,
     ).toBe('stale');
   });
 });
+describe('strict browser selector integrity', () => {
+  afterEach(() => {
+    RuntimeManager.resetInstance();
+    document.body.innerHTML = '';
+  });
+  it('refuses a copied instance selector rather than letting browser actions select another node', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    fixture();
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize();
+    const target = required(
+      runtime.describeTarget(required(document.querySelector('button'))),
+    );
+    document
+      .querySelectorAll('button')[1]
+      .setAttribute('data-ds-instance', target.instanceId);
+    expect(
+      (await runtime.queryTargets({ instanceId: target.instanceId })).status,
+    ).toBe('stale');
+  });
+  it('invalidates a browser selector when only an ancestor identity attribute changes', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    fixture();
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize();
+    const target = required(
+      runtime.describeTarget(required(document.querySelector('button'))),
+    );
+    required(document.querySelector('article')).setAttribute(
+      'aria-label',
+      'Orion',
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector(target.selector)).toBeNull();
+  });
+});
+
+function required<T>(value: T | null | undefined): T {
+  if (value == null) throw new Error('Expected test fixture element/target');
+  return value;
+}

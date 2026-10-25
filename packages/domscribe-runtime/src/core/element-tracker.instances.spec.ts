@@ -1,7 +1,6 @@
 /** @vitest-environment jsdom */
 import { afterEach, describe, expect, it } from 'vitest';
 import { ElementTracker } from './element-tracker.js';
-
 describe('repeated source instances', () => {
   let tracker: ElementTracker | undefined;
   afterEach(() => {
@@ -20,7 +19,7 @@ describe('repeated source instances', () => {
       '<button data-ds="aB3dEf7h">Lyra</button><button data-ds="aB3dEf7h">Vega</button>';
     tracker = new ElementTracker();
     tracker.observeDOM();
-    document.querySelector('button')!.remove();
+    required(document.querySelector('button')).remove();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(tracker.getElement('aB3dEf7h')?.textContent).toBe('Vega');
   });
@@ -29,7 +28,7 @@ describe('repeated source instances', () => {
       '<button data-ds="aB3dEf7h">Lyra</button><button data-ds="aB3dEf7h">Vega</button>';
     tracker = new ElementTracker();
     tracker.observeDOM();
-    const lyra = document.querySelector('button')!;
+    const lyra = required(document.querySelector('button'));
     document.body.append(lyra);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(tracker.getElement('aB3dEf7h')).toBeNull();
@@ -39,3 +38,8 @@ describe('repeated source instances', () => {
     expect(tracker.getElement('nEw1d123')).toBe(lyra);
   });
 });
+
+function required<T>(value: T | null | undefined): T {
+  if (value == null) throw new Error('Expected test fixture element/target');
+  return value;
+}

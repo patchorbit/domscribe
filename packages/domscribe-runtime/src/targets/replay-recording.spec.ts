@@ -1,7 +1,6 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RuntimeManager } from '../core/runtime-manager.js';
-
 describe('explicit replay step recording', () => {
   let runtime: RuntimeManager;
   beforeEach(async () => {
@@ -16,10 +15,13 @@ describe('explicit replay step recording', () => {
     document.body.innerHTML = '';
   });
   it('records a portable target rather than a document-local handle', () => {
-    const step = runtime.createReplayStep(document.querySelector('input')!, {
-      action: 'fill',
-      value: 'Austin',
-    });
+    const step = runtime.createReplayStep(
+      required(document.querySelector('input')),
+      {
+        action: 'fill',
+        value: 'Austin',
+      },
+    );
     expect(step).toMatchObject({
       action: 'fill',
       value: 'Austin',
@@ -37,16 +39,21 @@ describe('explicit replay step recording', () => {
       '.private',
     ])
       expect(() =>
-        runtime.createReplayStep(document.querySelector(selector)!, {
+        runtime.createReplayStep(required(document.querySelector(selector)), {
           action: 'fill',
           value: 'private value',
         }),
       ).toThrow();
     expect(() =>
-      runtime.createReplayStep(document.querySelector('input')!, {
+      runtime.createReplayStep(required(document.querySelector('input')), {
         action: 'fill',
         value: 'person@example.com',
       }),
     ).toThrow();
   });
 });
+
+function required<T>(value: T | null | undefined): T {
+  if (value == null) throw new Error('Expected test fixture element/target');
+  return value;
+}

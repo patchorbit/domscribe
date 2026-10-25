@@ -40,14 +40,21 @@ export class TargetRegistry {
       redact: boolean;
     },
   ) {
-    this.observer = new options.document.defaultView!.MutationObserver(
-      (records) => {
-        // Moves remain connected at the end of the batch; a genuine unmount retires
-        // the handle even if the same DOM object is reinserted in a later task.
-        if (records.some((record) => record.type === 'childList')) this.prune();
-      },
-    );
-    this.observer.observe(options.document, { childList: true, subtree: true });
+    const view = options.document.defaultView;
+    if (!view)
+      throw new Error('A browser document is required for target selection');
+    this.observer = new view.MutationObserver((records) => {
+      // Moves remain connected at the end of the batch; a genuine unmount retires
+      // the handle even if the same DOM object is reinserted in a later task.
+      if (records.length) this.prune();
+    });
+    this.observer.observe(options.document, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: [...IDENTITY_ATTRIBUTES, 'data-ds'],
+    });
   }
 
   private fingerprint(element: HTMLElement): string {
@@ -98,19 +105,18 @@ export class TargetRegistry {
       if (!element) return { status: 'stale', targets: [], total: 0 };
       elements = [element];
     } else if (query.locator) {
-      if (query.locator.pathname !== this.options.document.location.pathname) {
+      const locator = query.locator;
+      if (locator.pathname !== this.options.document.location.pathname) {
         return { status: 'wrong_page', targets: [], total: 0 };
       }
-      if (JSON.stringify(query.locator).includes('[REDACTED')) {
+      if (JSON.stringify(locator).includes('[REDACTED')) {
         return { status: 'not_found', targets: [], total: 0 };
       }
       elements = Array.from(
-        this.options.document.getElementsByTagName(
-          query.locator.element.tagName,
-        ),
+        this.options.document.getElementsByTagName(locator.element.tagName),
       )
         .filter((element): element is HTMLElement => this.eligible(element))
-        .filter((element) => this.matches(element, query.locator!));
+        .filter((element) => this.matches(element, locator));
     } else {
       elements = Array.from(
         this.options.document.querySelectorAll('[data-ds]'),
@@ -130,9 +136,10 @@ export class TargetRegistry {
             : total > 1
               ? 'ambiguous'
               : 'not_found',
-      targets: elements
-        .slice(0, query.limit)
-        .map((element) => this.describe(element)!),
+      targets: elements.slice(0, query.limit).flatMap((element) => {
+        const target = this.describe(element);
+        return target ? [target] : [];
+      }),
       total,
     };
   }
@@ -143,6 +150,10 @@ export class TargetRegistry {
     if (
       !element ||
       !this.eligible(element) ||
+      element.getAttribute(INSTANCE_ATTRIBUTE) !== instanceId ||
+      this.options.document.querySelectorAll(
+        `[${INSTANCE_ATTRIBUTE}="${instanceId}"]`,
+      ).length !== 1 ||
       instance?.fingerprint !== this.fingerprint(element)
     ) {
       this.instances.delete(instanceId);
@@ -196,13 +207,40 @@ export class TargetRegistry {
       const heading = Array.from(element.children).find((child) =>
         /^H[1-6]$/.test(child.tagName),
       );
-      if (heading?.textContent)
-        identity.heading = normalize(heading.textContent).slice(0, 128);
+      if (
+        this.options.document.defaultView &&
+        heading instanceof this.options.document.defaultView.HTMLElement
+      )
+        identity.heading = this.text(heading).slice(0, 128);
     } else if (!element.matches('input, textarea, select')) {
-      const text = normalize(element.textContent ?? '');
+      const text = this.text(element);
       if (text) identity.text = text.slice(0, 128);
     }
     return identity;
+  }
+
+  /** Form/editable values and blocked descendants are never locator identity. */
+  private text(element: HTMLElement): string {
+    const walker = this.options.document.createTreeWalker(
+      element,
+      4 /* SHOW_TEXT */,
+    );
+    const chunks: string[] = [];
+    let node = walker.nextNode();
+    while (node) {
+      const parent = node.parentElement;
+      if (
+        parent &&
+        !parent.closest(
+          'input, textarea, select, [contenteditable], [role="textbox"]',
+        ) &&
+        !this.options.blocked(parent)
+      ) {
+        chunks.push(node.textContent ?? '');
+      }
+      node = walker.nextNode();
+    }
+    return normalize(chunks.join(''));
   }
 
   private locator(element: HTMLElement): PortableLocator {
@@ -237,16 +275,13 @@ export class TargetRegistry {
       )
     )
       return false;
-    if (
-      identity.text !== undefined &&
-      normalize(element.textContent ?? '') !== identity.text
-    )
+    if (identity.text !== undefined && this.text(element) !== identity.text)
       return false;
     if (identity.heading !== undefined) {
       const heading = Array.from(element.children).find((child) =>
         /^H[1-6]$/.test(child.tagName),
       );
-      if (normalize(heading?.textContent ?? '') !== identity.heading)
+      if (!heading || this.text(heading as HTMLElement) !== identity.heading)
         return false;
     }
     return true;
