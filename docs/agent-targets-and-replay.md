@@ -1,6 +1,6 @@
 # Exact instance selection and portable replay
 
-These APIs are on the local `codex/instance-selection-replay` feature branch. They are not part of the published 0.6.1 packages yet.
+These APIs are in the repository following PR #77. They are not part of the published 0.6.1 packages yet.
 
 A `data-ds` ID identifies a source element. Repeated rows can share it. An `instanceId` identifies one live DOM instance and has a strict, transient browser selector. Its `locator` describes the target independently of that session.
 
@@ -71,6 +71,29 @@ NX_DAEMON=false pnpm exec nx run-many -t build,sync-dist \
 node scripts/verify-instance-replay.mjs
 node scripts/verify-instance-replay.mjs --framework=vue --package-manager=pnpm \
   --vite-version=5.4.21 --report-dir=/tmp/vue-replay-evidence
+node scripts/verify-instance-replay.mjs --framework=next --package-manager=pnpm \
+  --framework-version=16.4.3 --report-dir=/tmp/next-replay-evidence
+node scripts/verify-instance-replay.mjs --framework=nuxt --package-manager=npm \
+  --framework-version=3.21.11 --report-dir=/tmp/nuxt-replay-evidence
 ```
 
-The harness installs local tarballs into a temporary consumer, uses the fixture project's existing Playwright dependency and installed Chromium, persists an annotation, closes the browser context, reorders rows in a fresh context, and replays the same four UI steps through the relay. It also verifies source-only ambiguity, exact runtime props, committed editor state after real typing/checking, stale-handle refusal, ambiguity stopping, application page errors, and production DOM instrumentation removal. Evidence is retained in the printed temporary directory. The default remains React 18/npm/Vite 7. CI also verifies React 18/pnpm/Vite 5, Vue 3/npm/Vite 7, and Vue 3/pnpm/Vite 5, with at most two replay jobs running simultaneously. These are four representative combinations, not every framework/manager/version permutation. Each run checks the mapped framework source, actual installed versions, and shared local runtime; Vue uses compiled SFC components. Package installs use local tarballs, with explicit pnpm local-artifact overrides so unpublished branch artifacts cannot be replaced by registry copies. This is not evidence that the new APIs are in the published npm release. Logs and result JSON are retained on success and failure. Traces and screenshots are retained when available, with best-effort failure screenshots after browser startup. Production UI interactions are verified after instrumentation removal. Next/Nuxt browser coverage for the new APIs remains outstanding.
+The harness installs local tarballs into a temporary consumer, uses the fixture project's existing Playwright dependency and installed Chromium, persists an annotation, closes the browser context, reorders rows in a fresh context, and replays the same four UI steps through the relay. Assertions cover exact mapped source/props, committed editor state after typing/checking, stale handles after unmount and across sessions, ambiguity refusal, application console/page/network failures, production instrumentation removal (including conditional editors), and correct production UI updates.
+
+CI runs eight representative combinations, with at most two replay jobs simultaneously:
+
+| Integration                 | Consumer versions         | Package manager |
+| --------------------------- | ------------------------- | --------------- |
+| React/Vite                  | React18.3.1 / Vite7.3.7   | npm             |
+| React/Vite                  | React18.3.1 / Vite5.4.21  | pnpm            |
+| Vue/Vite                    | Vue3.5.44 / Vite7.3.7     | npm             |
+| Vue/Vite                    | Vue3.5.44 / Vite5.4.21    | pnpm            |
+| Next App Router / Webpack   | Next15.5.28 / React19.3.1 | npm             |
+| Next App Router / Turbopack | Next16.4.3 / React19.3.1  | pnpm            |
+| Nuxt SSR                    | Nuxt3.21.11 / Vue3.5.44   | npm             |
+| Nuxt SSR                    | Nuxt4.6.2 / Vue3.5.44     | pnpm            |
+
+The default remains React18/npm/Vite7. Use `--framework-version` for exact Next15/16 or Nuxt3/4 releases; use `--vite-version` for React/Vue consumers. Mixed or unsupported flags are rejected. Native SSR consumers use their framework integrations and normal hydration, not the Vite SPA integration. Nuxt excludes the runtime from Vite prebundling so its native plugin and consumer queries share one runtime on cold startup. Each run checks actual installed versions, expected framework source, and local runtime resolution.
+
+These are representative synthetic regression cases, not the full version/manager/router matrix or a real-app adoption benchmark. Client route transitions, HMR and virtualized lists need separate verification. Package installs use local tarballs, with explicit pnpm local-artifact overrides so unpublished artifacts cannot be replaced by registry copies. This is not evidence that the new APIs are in the published npm release.
+
+Logs and result JSON are retained in the printed temporary directory on success and failure. `--report-dir` copies a compact evidence bundle. Traces and screenshots are retained when available, with best-effort failure screenshots after browser startup. Server startup and builds are bounded, and the harness stops its owned server process group and relay.

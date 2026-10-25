@@ -1,7 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export function writeReplayConsumer(consumer, framework) {
+export function writeReplayConsumer(consumer, appFramework) {
+  const framework =
+    appFramework === 'next'
+      ? 'react'
+      : appFramework === 'nuxt'
+        ? 'vue'
+        : appFramework;
   const source = path.join(consumer, 'src');
   fs.mkdirSync(source);
   const entry = framework === 'vue' ? 'main.js' : 'main.jsx';
@@ -94,6 +100,54 @@ function Editor({customer,onSave}){const[city,setCity]=useState(customer.city);c
 function App(){const[customers,setCustomers]=useState([{id:'c1',name:'Orion',city:'Seattle'},{id:'c2',name:'Lyra',city:'Portland'},{id:'c3',name:'Vega',city:'Denver'}]);const[editing,setEditing]=useState(null);const[reverse,setReverse]=useState(false);const sorted=[...customers].sort((a,b)=>reverse?b.name.localeCompare(a.name):a.name.localeCompare(b.name));return <main><h1>Customer operations</h1><button onClick={()=>setReverse(x=>!x)}>Sort</button>{sorted.map(customer=><Card key={customer.id} customer={customer} onEdit={setEditing}/>)}{editing&&<Editor customer={editing} onSave={(id,city)=>{setCustomers(all=>all.map(c=>c.id===id?{...c,city}:c));setEditing(null)}}/>}</main>}
 createRoot(document.getElementById('root')).render(<App/>);
 `,
+    );
+  }
+  if (appFramework === 'next') {
+    fs.rmSync(path.join(consumer, 'index.html'));
+    fs.rmSync(path.join(consumer, 'vite.config.mjs'));
+    const entry = path.join(source, 'main.jsx');
+    fs.writeFileSync(
+      entry,
+      "'use client';\n" +
+        fs
+          .readFileSync(entry, 'utf8')
+          .replace("import{createRoot}from'react-dom/client';", '')
+          .replace(
+            'if(import.meta.env.DEV)',
+            "if(typeof window!=='undefined' && process.env.NODE_ENV==='development')",
+          )
+          .replace('function App()', 'export default function App()')
+          .replace(
+            "createRoot(document.getElementById('root')).render(<App/>);",
+            '',
+          ),
+    );
+    fs.mkdirSync(path.join(source, 'app'));
+    fs.writeFileSync(
+      path.join(source, 'app/page.jsx'),
+      "import App from '../main.jsx';export default function Page(){return <App/>}\n",
+    );
+    fs.writeFileSync(
+      path.join(source, 'app/layout.jsx'),
+      'export default function Layout({children}){return <html lang="en"><body>{children}</body></html>}\n',
+    );
+    fs.writeFileSync(
+      path.join(consumer, 'next.config.mjs'),
+      "import {withDomscribe} from '@domscribe/next';export default withDomscribe({overlay:true,relay:{port:0}})({reactStrictMode:true,experimental:{cpus:2}});\n",
+    );
+  } else if (appFramework === 'nuxt') {
+    fs.rmSync(path.join(consumer, 'index.html'));
+    fs.rmSync(path.join(consumer, 'vite.config.mjs'));
+    fs.rmSync(path.join(source, 'main.js'));
+    fs.renameSync(path.join(source, 'App.vue'), path.join(source, 'app.vue'));
+    fs.mkdirSync(path.join(source, 'plugins'));
+    fs.writeFileSync(
+      path.join(source, 'plugins/evidence.client.js'),
+      "export default defineNuxtPlugin(async()=>{if(import.meta.dev){const {RuntimeManager}=await import('@domscribe/runtime');window.__runtime=RuntimeManager.getInstance();}});\n",
+    );
+    fs.writeFileSync(
+      path.join(consumer, 'nuxt.config.mjs'),
+      "export default defineNuxtConfig({srcDir:'src/',compatibilityDate:'2026-10-25',devtools:{enabled:false},modules:['@domscribe/nuxt'],domscribe:{overlay:true,relay:{port:0}},app:{head:{title:'Instance replay regression'}}});\n",
     );
   }
 }
