@@ -39,7 +39,7 @@
     "@nx/web": "22.7.12",
     "@swc-node/register": "1.11.1",
     "@swc/core": "1.15.8",
-    "@swc/helpers": "0.5.19",
+    "@swc/helpers": "0.5.23",
     "@types/node": "25.3.3",
     "@vitest/coverage-v8": "4.1.12",
     "@vitest/ui": "4.1.12",
