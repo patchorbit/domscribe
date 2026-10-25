@@ -27,6 +27,7 @@ export const LocatorIdentitySchema = z
 export const PortableLocatorSchema = z
   .object({
     version: z.literal(1),
+    unsupportedReason: z.literal('identity_too_long').optional(),
     pathname: z.string().startsWith('/').max(2048),
     element: LocatorIdentitySchema,
     // Nearest identified ancestor first; these scopes are conjunctive.
@@ -42,6 +43,7 @@ export const ElementTargetSchema = z.object({
   selector: z.string().min(1).max(256),
   locator: PortableLocatorSchema,
   disabled: z.boolean(),
+  inputType: z.string().max(64).optional(),
 });
 export type ElementTarget = z.infer<typeof ElementTargetSchema>;
 
@@ -73,6 +75,7 @@ export const TargetStatusSchema = z.enum([
   'not_found',
   'stale',
   'wrong_page',
+  'unsupported',
   'not_ready',
   'ambiguous_browser',
   'unavailable',

@@ -192,3 +192,50 @@ function required<T>(value: T | null | undefined): T {
   if (value == null) throw new Error('Expected test fixture element/target');
   return value;
 }
+
+describe('reviewed target lifecycle regressions', () => {
+  afterEach(() => {
+    RuntimeManager.resetInstance();
+    document.body.innerHTML = '';
+  });
+  async function setup(html: string) {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML = html;
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize({ blockSelectors: ['.private'] });
+    return runtime;
+  }
+  it('revokes every copied selector attribute when retiring an instance', async () => {
+    const runtime = await setup('<button data-ds="aB3dEf7h">Edit</button>');
+    const button = required(document.querySelector('button'));
+    const target = required(runtime.describeTarget(button));
+    document.body.append(button.cloneNode(true));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelectorAll(target.selector)).toHaveLength(0);
+  });
+  it('makes over-limit identity explicitly unsupported and still invalidates local suffix changes', async () => {
+    const runtime = await setup(
+      '<button data-ds="aB3dEf7h">' + 'x'.repeat(128) + 'A</button>',
+    );
+    const button = required(document.querySelector('button'));
+    const target = required(runtime.describeTarget(button));
+    expect(
+      (await runtime.queryTargets({ locator: target.locator })).status,
+    ).toBe('unsupported');
+    expect(() =>
+      runtime.createReplayStep(button, { action: 'click' }),
+    ).toThrow();
+    button.textContent = 'x'.repeat(128) + 'B';
+    expect(
+      (await runtime.queryTargets({ instanceId: target.instanceId })).status,
+    ).toBe('stale');
+  });
+  it('revokes a pending selector when class-based privacy changes', async () => {
+    const runtime = await setup('<button data-ds="aB3dEf7h">Edit</button>');
+    const button = required(document.querySelector('button'));
+    const target = required(runtime.describeTarget(button));
+    button.className = 'private';
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelector(target.selector)).toBeNull();
+  });
+});

@@ -53,6 +53,23 @@ export async function replaySteps(
           resolution.status === 'resolved' ? 'ambiguous' : resolution.status,
       };
     }
+    const current = resolution.targets[0];
+    const inputType = (
+      current.inputType ??
+      current.locator.element.attributes.type ??
+      ''
+    ).toLowerCase();
+    if (
+      current.locator.element.tagName === 'input' &&
+      (!inputType || ['password', 'file'].includes(inputType))
+    ) {
+      return {
+        status: 'stopped',
+        completed: index,
+        failedStep: index,
+        reason: 'sensitive_target',
+      };
+    }
     try {
       await driver.act(step, resolution.targets[0]);
     } catch {

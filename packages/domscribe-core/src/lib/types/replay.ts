@@ -29,7 +29,19 @@ export const ReplayStepSchema = z
     const { target, ...action } = step;
     if (!ReplayActionSchema.safeParse(action).success)
       ctx.addIssue({ code: 'custom', message: 'Invalid replay action' });
-    if (['password', 'file'].includes(target.element.attributes.type ?? ''))
+    if (
+      target.unsupportedReason ||
+      JSON.stringify(target).includes('[REDACTED')
+    )
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Portable identity cannot be replayed',
+      });
+    if (
+      ['password', 'file'].includes(
+        (target.element.attributes.type ?? '').toLowerCase(),
+      )
+    )
       ctx.addIssue({
         code: 'custom',
         message: 'Sensitive input targets cannot be replayed',

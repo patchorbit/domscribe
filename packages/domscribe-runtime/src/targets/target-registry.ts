@@ -46,20 +46,26 @@ export class TargetRegistry {
     this.observer = new view.MutationObserver((records) => {
       // Moves remain connected at the end of the batch; a genuine unmount retires
       // the handle even if the same DOM object is reinserted in a later task.
-      if (records.length) this.prune();
+      if (
+        records.some(
+          (record) =>
+            record.type !== 'attributes' ||
+            record.attributeName !== INSTANCE_ATTRIBUTE,
+        )
+      )
+        this.prune();
     });
     this.observer.observe(options.document, {
       childList: true,
       subtree: true,
       characterData: true,
       attributes: true,
-      attributeFilter: [...IDENTITY_ATTRIBUTES, 'data-ds'],
     });
   }
 
   private fingerprint(element: HTMLElement): string {
     return JSON.stringify({
-      locator: this.locator(element),
+      locator: this.locator(element, false),
       entryId: element.getAttribute('data-ds'),
     });
   }
@@ -89,10 +95,16 @@ export class TargetRegistry {
       instanceId,
       entryId: element.getAttribute('data-ds') ?? undefined,
       selector: `[${INSTANCE_ATTRIBUTE}="${instanceId}"]`,
-      locator: (this.options.redact
-        ? redactPII(rawLocator)
-        : rawLocator) as PortableLocator,
+      locator: this.boundLocator(
+        (this.options.redact
+          ? redactPII(rawLocator)
+          : rawLocator) as PortableLocator,
+      ),
       disabled: element.matches(':disabled, [aria-disabled="true"]'),
+      inputType:
+        element.tagName === 'INPUT'
+          ? (element as HTMLInputElement).type.toLowerCase()
+          : undefined,
     };
   }
 
@@ -106,6 +118,8 @@ export class TargetRegistry {
       elements = [element];
     } else if (query.locator) {
       const locator = query.locator;
+      if (locator.unsupportedReason)
+        return { status: 'unsupported', targets: [], total: 0 };
       if (locator.pathname !== this.options.document.location.pathname) {
         return { status: 'wrong_page', targets: [], total: 0 };
       }
@@ -156,11 +170,7 @@ export class TargetRegistry {
       ).length !== 1 ||
       instance?.fingerprint !== this.fingerprint(element)
     ) {
-      this.instances.delete(instanceId);
-      if (element && this.handles.get(element) === instanceId) {
-        this.handles.delete(element);
-        element.removeAttribute(INSTANCE_ATTRIBUTE);
-      }
+      if (instance) this.retire(instanceId, element);
       return null;
     }
     return element;
@@ -168,13 +178,26 @@ export class TargetRegistry {
 
   dispose(): void {
     this.observer.disconnect();
-    for (const [id, instance] of this.instances) {
-      const element = instance.element.deref();
-      if (element?.getAttribute(INSTANCE_ATTRIBUTE) === id)
-        element.removeAttribute(INSTANCE_ATTRIBUTE);
-    }
+    for (const [id, instance] of this.instances)
+      this.retire(id, instance.element.deref());
     this.instances.clear();
     this.handles = new WeakMap();
+  }
+
+  private retire(instanceId: string, element?: HTMLElement): void {
+    this.instances.delete(instanceId);
+    if (element && this.handles.get(element) === instanceId)
+      this.handles.delete(element);
+    if (element?.getAttribute(INSTANCE_ATTRIBUTE) === instanceId)
+      element.removeAttribute(INSTANCE_ATTRIBUTE);
+    // Revoke copied selectors too: removing only the original leaves a uniquely
+    // matching clone, which an already-issued browser locator could act on.
+    for (const candidate of Array.from(
+      this.options.document.querySelectorAll(`[${INSTANCE_ATTRIBUTE}]`),
+    )) {
+      if (candidate.getAttribute(INSTANCE_ATTRIBUTE) === instanceId)
+        candidate.removeAttribute(INSTANCE_ATTRIBUTE);
+    }
   }
 
   private prune(): void {
@@ -197,7 +220,7 @@ export class TargetRegistry {
     const attributes: Record<string, string> = {};
     for (const name of IDENTITY_ATTRIBUTES) {
       const value = element.getAttribute(name);
-      if (value) attributes[name] = value.slice(0, 256);
+      if (value) attributes[name] = value;
     }
     const identity: LocatorIdentity = {
       tagName: element.tagName.toLowerCase(),
@@ -211,10 +234,10 @@ export class TargetRegistry {
         this.options.document.defaultView &&
         heading instanceof this.options.document.defaultView.HTMLElement
       )
-        identity.heading = this.text(heading).slice(0, 128);
+        identity.heading = this.text(heading);
     } else if (!element.matches('input, textarea, select')) {
       const text = this.text(element);
-      if (text) identity.text = text.slice(0, 128);
+      if (text) identity.text = text;
     }
     return identity;
   }
@@ -243,7 +266,7 @@ export class TargetRegistry {
     return normalize(chunks.join(''));
   }
 
-  private locator(element: HTMLElement): PortableLocator {
+  private locator(element: HTMLElement, bounded = true): PortableLocator {
     const ancestors: LocatorIdentity[] = [];
     let ancestor = element.parentElement;
     while (
@@ -256,11 +279,50 @@ export class TargetRegistry {
         ancestors.push(identity);
       ancestor = ancestor.parentElement;
     }
-    return {
+    const locator: PortableLocator = {
       version: 1,
       pathname: this.options.document.location.pathname,
       element: this.identity(element),
       ancestors,
+    };
+    return bounded ? this.boundLocator(locator) : locator;
+  }
+
+  private boundLocator(locator: PortableLocator): PortableLocator {
+    let unsupported =
+      !!locator.unsupportedReason || locator.pathname.length > 2048;
+    const bound = (identity: LocatorIdentity): LocatorIdentity => {
+      if (
+        identity.tagName.length > 64 ||
+        (identity.text?.length ?? 0) > 128 ||
+        (identity.heading?.length ?? 0) > 128 ||
+        Object.values(identity.attributes).some(
+          (value) => typeof value === 'string' && value.length > 256,
+        )
+      )
+        unsupported = true;
+      return {
+        ...identity,
+        tagName: identity.tagName.slice(0, 64),
+        attributes: Object.fromEntries(
+          Object.entries(identity.attributes).map(([key, value]) => [
+            key,
+            typeof value === 'string' ? value.slice(0, 256) : undefined,
+          ]),
+        ),
+        text: identity.text?.slice(0, 128),
+        heading: identity.heading?.slice(0, 128),
+      };
+    };
+    const result = {
+      ...locator,
+      pathname: locator.pathname.slice(0, 2048),
+      element: bound(locator.element),
+      ancestors: locator.ancestors.map(bound),
+    };
+    return {
+      ...result,
+      unsupportedReason: unsupported ? 'identity_too_long' : undefined,
     };
   }
 

@@ -12,11 +12,11 @@ Use MCP `domscribe.targets.query` or HTTP `POST /api/v1/targets/query`:
 { "mode": "list", "entryId": "aB3dEf7h", "limit": 50 }
 ```
 
-The response contains `status`, `targets`, `total`, and `browserConnected`. Each target includes `instanceId`, `entryId` when mapped, `selector`, `locator`, and `disabled`. Resolve an entry ID with the existing source-resolution tools for its source file and position.
+The response contains `status`, `targets`, `total`, and `browserConnected`. Each target includes `instanceId`, `entryId` when mapped, `selector`, `locator`, `disabled`, and the effective `inputType` for inputs. Resolve an entry ID with the existing source-resolution tools for its source file and position.
 
 To inspect an instance, send `{"instanceId":"<returned instance ID>"}`. To locate a capture in a new session, send `{"locator":<saved locator>}`. `domscribe.query.bySource` also accepts an optional `instanceId` or `locator` and returns `selectionStatus`, `targets` and `total` alongside its existing fields.
 
-Only `resolved` identifies one exact target and returns its available runtime context. `listed` is discovery, not a selection. `ambiguous`, `not_found`, `stale`, `wrong_page`, `not_ready`, `ambiguous_browser`, and `unavailable` are explicit stopping conditions. Reconnect/retry readiness failures or refine ambiguous targets; do not choose the first candidate. Keep one browser session connected to the relay for these queries.
+Only `resolved` identifies one exact target and returns its available runtime context. `listed` is discovery, not a selection. `ambiguous`, `not_found`, `stale`, `wrong_page`, `not_ready`, `unsupported`, `ambiguous_browser`, and `unavailable` are explicit stopping conditions. Reconnect/retry readiness failures or refine ambiguous targets; do not choose the first candidate. Keep one browser session connected to the relay for these queries.
 
 Handles survive DOM moves. Removed/recycled targets and changed source or identity constraints invalidate them. Never persist a handle as the only identity for a later session. Browser drivers still check visibility, enabled state, overlays and normal actionability; discovery does not imply that an element can be clicked immediately.
 
@@ -36,7 +36,7 @@ const trace = { version: 1, steps: [step] };
 
 Actions are `click`, `fill` with `value`, `check` with `checked`, and `select` with an option `value`. Recording is explicit and does not scrape inputs or install an event recorder. Password/file input recording, blocked targets, and values requiring configured PII redaction are refused. Do not include credentials in manually authored traces.
 
-New overlay annotations store `interaction.selectedElement.target`. An explicit trace can be stored in `context.replay`; creating an annotation alone does not record the preceding interactions. Annotation schema v4 adds these optional fields, and old annotations remain readable. Locating/refreshing an annotation uses its portable target; old annotations only use a unique legacy match.
+New overlay annotations store `interaction.selectedElement.target`. An explicit trace can be stored in `context.replay`; creating an annotation alone does not record the preceding interactions. Annotation schema v4 adds these optional fields, and old annotations remain readable. The live target is captured at selection time; submission refuses a stale/recycled selection. Locating/refreshing an annotation uses its portable target; old annotations only use a unique legacy match.
 
 ## Replay through a real browser driver
 
@@ -55,9 +55,9 @@ const result = await replaySteps(trace, {
 });
 ```
 
-The runner validates the trace, resolves its portable target before every action, and stops at the first uncertainty or driver error. A successful result reports executed actions, not business correctness. Supply your own UI assertions. The runner does not invoke framework handlers or alter component state.
+The runner validates the trace, resolves its portable target before every action, and stops at the first uncertainty or driver error. It checks the freshly resolved effective input type and refuses password/file targets, including inputs whose type changed after recording. A successful result reports executed actions, not business correctness. Supply your own UI assertions. The runner does not invoke framework handlers or alter component state.
 
-Portable locators use a pathname, tag, bounded identity attributes/text and identified ancestor scopes. All captured constraints must match; there are no `nth-child` or first-match fallbacks. They do not navigate to a page or recreate authentication, backend data, uploads or arbitrary application state. Labels/test IDs are useful when repeated rows otherwise have indistinguishable identity. Changed identity can legitimately require a new capture. Redacted locator identity cannot be replayed.
+Portable locators use a pathname, tag, bounded identity attributes/text and identified ancestor scopes. All captured constraints must match; there are no `nth-child` or first-match fallbacks. They do not navigate to a page or recreate authentication, backend data, uploads or arbitrary application state. Labels/test IDs are useful when repeated rows otherwise have indistinguishable identity. Changed identity can legitimately require a new capture. Redacted locator identity cannot be replayed. Over-limit identity is explicitly marked `unsupportedReason: "identity_too_long"`; portable resolution returns `unsupported` and recording refuses it. It is never matched by a truncated prefix. Local handles still compare the full identity.
 
 Current support is the main document's light DOM. Shadow roots and frames are not traversed. This is a foundation for agent integrations, not a general session recorder or a GitHub Action.
 

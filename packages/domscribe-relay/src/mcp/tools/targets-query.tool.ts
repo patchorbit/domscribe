@@ -13,7 +13,7 @@ export class TargetsQueryTool implements McpToolDefinition<
 > {
   name = MCP_TOOLS.TARGETS_QUERY;
   description =
-    'List live rendered instances (mode: list, optional entryId), inspect an exact instanceId, or resolve a captured portable locator in the current browser session. Source IDs can have multiple instances. Only resolved returns context. Missing, stale, ambiguous, not_ready and ambiguous_browser must stop selection; never guess a positional target. Use the resolved strict selector with browser tools for real actions. Instance handles are transient; persist locator for replay. Resolve entryId with domscribe.resolve for source location.';
+    'List live rendered instances (mode: list, optional entryId), inspect an exact instanceId, or resolve a captured portable locator in the current browser session. Source IDs can have multiple instances. Only resolved returns context. Missing, stale, ambiguous, not_ready, unsupported and ambiguous_browser must stop selection; never guess a positional target. Use the resolved strict selector with browser tools for real actions. Instance handles are transient; persist locator for replay. Resolve entryId with domscribe.resolve for source location.';
   inputSchema = TargetQuerySchema;
   outputSchema = TargetsQueryResponseSchema;
   constructor(private readonly client: RelayHttpClient) {}

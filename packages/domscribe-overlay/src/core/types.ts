@@ -4,6 +4,7 @@
 
 import type {
   RuntimeContext,
+  ElementTarget,
   ManifestEntry,
   Annotation,
 } from '@domscribe/core';
@@ -30,6 +31,7 @@ export interface OverlayState {
 
   // Capture State
   selectedElement: HTMLElement | null;
+  selectedTarget: ElementTarget | null;
   selectedEntryId: string | null;
   hoveredElement: HTMLElement | null;
   runtimeContext: RuntimeContext | null;

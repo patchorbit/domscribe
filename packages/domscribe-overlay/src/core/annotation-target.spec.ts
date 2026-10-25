@@ -1,5 +1,6 @@
+import { RelayService } from '../services/relay-service.js';
 /** @vitest-environment jsdom */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AnnotationSchema } from '@domscribe/core';
 import { RuntimeManager } from '@domscribe/runtime';
 import { OverlayStore } from './overlay-store.js';
@@ -71,6 +72,29 @@ describe('annotation target resolution', () => {
       dataDs: 'aB3dEf7h',
     });
     expect(OverlayStore.getInstance().locateElement(saved)).toBeNull();
+  });
+  it('refuses to submit a selection whose row identity was recycled after selection', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML =
+      '<article aria-label="Lyra"><button data-ds="aB3dEf7h">Edit</button></article>';
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize();
+    const relay = RelayService.getInstance();
+    vi.spyOn(relay, 'resolve').mockResolvedValue(null);
+    const create = vi
+      .spyOn(relay, 'createAnnotation')
+      .mockResolvedValue(annotation({ tagName: 'button', selector: 'button' }));
+    const store = OverlayStore.getInstance();
+    await store.selectElement(required(document.querySelector('button')));
+    required(document.querySelector('article')).setAttribute(
+      'aria-label',
+      'Vega',
+    );
+    await expect(store.submitAnnotation('Change Lyra')).rejects.toThrow(
+      /changed|stale/i,
+    );
+    expect(create).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
   });
 });
 

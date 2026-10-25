@@ -120,4 +120,28 @@ describe('portable replay through a browser driver', () => {
     );
     expect(ReplayStepSchema.safeParse(trace.steps[0]).success).toBe(true);
   });
+  it('refuses a freshly resolved sensitive input even when the original trace omitted type', async () => {
+    const run = driver();
+    run.driver.resolve = async () => ({
+      status: 'resolved',
+      targets: [
+        {
+          ...target,
+          inputType: 'password',
+          locator: {
+            ...locator,
+            element: { tagName: 'input', attributes: { type: 'PASSWORD' } },
+          },
+        },
+      ],
+      total: 1,
+    });
+    const result = await replaySteps(trace, run.driver);
+    expect(result).toMatchObject({
+      status: 'stopped',
+      completed: 0,
+      reason: 'sensitive_target',
+    });
+    expect(run.actions).toEqual([]);
+  });
 });
