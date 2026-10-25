@@ -29,7 +29,8 @@ export class FiberWalker {
   findNearestComponentFiber(
     fiber: ExtendedReactFiber,
   ): ExtendedReactFiber | null {
-    return this.walkUp(fiber, (f) => this.isComponentFiber(f));
+    const component = this.walkUp(fiber, (f) => this.isComponentFiber(f));
+    return component ? this.findCurrentFiber(component) : null;
   }
 
   /**
@@ -57,6 +58,105 @@ export class FiberWalker {
   }
 
   // Private helpers
+
+  /**
+   * Resolve a fiber's committed alternate. DOM nodes can keep the original
+   * fiber after React swaps its current and work-in-progress trees.
+   *
+   * Return pointers alone are insufficient after a bailout: parent alternates
+   * can share a child list, or both child alternates can point to one parent.
+   * Follow child membership in those cases, then use the root's current pointer.
+   */
+  private findCurrentFiber(fiber: ExtendedReactFiber): ExtendedReactFiber {
+    const alternate = fiber.alternate;
+    if (!alternate) {
+      return fiber;
+    }
+
+    let first = fiber;
+    let second = alternate;
+    // Root selection must cross every framework provider, independently of
+    // the component search depth. Detect cycles instead of truncating a valid
+    // deep tree before reaching its committed root.
+    const visited = new Set<ExtendedReactFiber>();
+    while (!visited.has(first)) {
+      visited.add(first);
+      const parentFirst = first.return;
+      if (!parentFirst) {
+        const root = first.stateNode;
+        if (
+          first.tag === REACT_FIBER_TAGS.HostRoot &&
+          typeof root === 'object' &&
+          root !== null &&
+          'current' in root &&
+          root.current !== first &&
+          first.alternate &&
+          root.current === first.alternate
+        ) {
+          return alternate;
+        }
+        return fiber;
+      }
+
+      const parentSecond = parentFirst.alternate;
+      if (!parentSecond) {
+        // Hidden Suspense trees can insert a fragment with no alternate.
+        const nextParent = parentFirst.return;
+        if (!nextParent) {
+          return fiber;
+        }
+        first = second = nextParent;
+        continue;
+      }
+
+      if (parentFirst.child === parentSecond.child) {
+        const child = this.findBranchChild(parentFirst, first, second);
+        return child === second && child !== first ? alternate : fiber;
+      }
+
+      if (first.return !== second.return) {
+        first = parentFirst;
+        second = parentSecond;
+        continue;
+      }
+
+      const firstChild = this.findBranchChild(parentFirst, first, second);
+      if (firstChild) {
+        const firstBelongsToFirstParent = firstChild === first;
+        first = firstBelongsToFirstParent ? parentFirst : parentSecond;
+        second = firstBelongsToFirstParent ? parentSecond : parentFirst;
+        continue;
+      }
+
+      const secondChild = this.findBranchChild(parentSecond, first, second);
+      if (!secondChild) {
+        return fiber;
+      }
+      const firstBelongsToSecondParent = secondChild === first;
+      first = firstBelongsToSecondParent ? parentSecond : parentFirst;
+      second = firstBelongsToSecondParent ? parentFirst : parentSecond;
+    }
+
+    // Keep inspection safe for disconnected or unfamiliar Fiber structures.
+    return fiber;
+  }
+
+  private findBranchChild(
+    parent: ExtendedReactFiber,
+    first: ExtendedReactFiber,
+    second: ExtendedReactFiber,
+  ): ExtendedReactFiber | undefined {
+    let child = parent.child;
+    const visited = new Set<ExtendedReactFiber>();
+    while (child && !visited.has(child)) {
+      if (child === first || child === second) {
+        return child;
+      }
+      visited.add(child);
+      child = child.sibling;
+    }
+    return undefined;
+  }
 
   /**
    * Walk up the Fiber tree from a starting fiber

@@ -1,11 +1,11 @@
 {
   "name": "@domscribe/react",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "React adapter for Domscribe",
   "type": "module",
   "main": "src/index.ts",
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "distExports": {
     "./vite": "./vite/index.js",
@@ -18,11 +18,11 @@
     "@domscribe/transform": "workspace:*"
   },
   "devDependencies": {
-    "@types/react": "^18.2.0",
+    "@types/react": "^18.3.31",
     "@types/webpack": "^5.28.5",
-    "happy-dom": "^12.0.0",
-    "react": "^18.2.0",
-    "webpack": "^5.102.0"
+    "happy-dom": "^21.0.4",
+    "react": "^18.3.1",
+    "webpack": "^5.112.2"
   },
   "peerDependencies": {
     "react": ">=16.8.0",

@@ -1,11 +1,11 @@
 {
   "name": "@domscribe/transform",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "AST injection of stable element IDs and bundler plugins for Domscribe",
   "type": "module",
   "main": "src/index.ts",
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "distExports": {
     "./plugins/vite": "./plugins/vite/index.js",
@@ -15,16 +15,16 @@
     "./turbopack-loader": "./plugins/turbopack/turbopack.loader.js"
   },
   "dependencies": {
-    "@babel/parser": "^7.28.4",
-    "@babel/types": "^7.28.4",
+    "@babel/parser": "^7.29.11",
+    "@babel/types": "^7.29.11",
     "@domscribe/core": "workspace:*",
     "@domscribe/manifest": "workspace:*",
     "@domscribe/overlay": "workspace:*",
     "@domscribe/relay": "workspace:*",
-    "acorn": "^8.15.0",
+    "acorn": "^8.19.0",
     "acorn-jsx": "^5.3.2",
-    "acorn-walk": "^8.3.4",
-    "magic-string": "^0.30.19",
+    "acorn-walk": "^8.3.5",
+    "magic-string": "^0.30.21",
     "source-map": "^0.7.6"
   },
   "peerDependencies": {
@@ -49,9 +49,9 @@
   },
   "devDependencies": {
     "@types/webpack": "^5.28.5",
-    "html-webpack-plugin": "^5.6.0",
-    "vue": "^3.5.0",
-    "webpack": "^5.102.0"
+    "html-webpack-plugin": "^5.6.8",
+    "vue": "^3.5.44",
+    "webpack": "^5.112.2"
   },
   "engines": {
     "node": ">=20"

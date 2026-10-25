@@ -1,26 +1,28 @@
 {
   "name": "@domscribe/next",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Next.js integration for Domscribe",
   "type": "module",
   "main": "src/index.ts",
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "distExports": {
     "./auto-init": "./auto-init/index.js",
     "./noop/overlay": "./noop/overlay.js"
   },
   "dependencies": {
-    "@domscribe/transform": "workspace:*",
+    "@domscribe/overlay": "workspace:*",
+    "@domscribe/react": "workspace:*",
     "@domscribe/runtime": "workspace:*",
-    "@domscribe/react": "workspace:*"
+    "@domscribe/transform": "workspace:*"
   },
   "devDependencies": {
-    "@types/react": "^18.2.0",
-    "next": ">=16.2.6",
-    "react": "^19.0.0",
-    "webpack": "^5.102.0"
+    "@types/react": "^18.3.31",
+    "next": "^16.4.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.0.0",
+    "webpack": "^5.112.2"
   },
   "peerDependencies": {
     "next": ">=15.0.0",

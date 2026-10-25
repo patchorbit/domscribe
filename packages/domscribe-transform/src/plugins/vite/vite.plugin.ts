@@ -6,6 +6,7 @@
  *
  * @module @domscribe/transform/plugins/vite/vite-plugin
  */
+import { fileURLToPath } from 'node:url';
 import {
   createFilter,
   type Plugin,
@@ -22,6 +23,8 @@ import {
   isInjectorFileExtension,
 } from '../../core/injector.registry.js';
 import { RelayControl } from '@domscribe/relay';
+
+const OVERLAY_INIT_MODULE_PATH = '/@domscribe/overlay-init.js';
 
 /**
  * Build a JS preamble that sets relay + overlay globals on `window`.
@@ -166,6 +169,30 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
     enforce: 'pre', // Needs to run before other plugins
     apply: 'serve', // Only run in development mode
 
+    resolveId(id, importer) {
+      if (id === OVERLAY_INIT_MODULE_PATH) {
+        return OVERLAY_INIT_MODULE_PATH;
+      }
+      if (
+        importer === OVERLAY_INIT_MODULE_PATH &&
+        id === '@domscribe/overlay'
+      ) {
+        // Resolve from the owning package rather than assuming the consumer
+        // hoists this transitive dependency into its root node_modules.
+        return this.resolve(id, fileURLToPath(import.meta.url), {
+          skipSelf: true,
+        });
+      }
+      return null;
+    },
+
+    load(id) {
+      if (id !== OVERLAY_INIT_MODULE_PATH) {
+        return null;
+      }
+      return `import { initOverlay } from '@domscribe/overlay';\ninitOverlay();`;
+    },
+
     configResolved(config) {
       rootContext = rootDir ?? config.root;
     },
@@ -254,7 +281,11 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
         let sourceMapConsumer: SourceMapConsumer | undefined;
         if (sourceMap) {
           const smStart = performance.now();
-          sourceMapConsumer = await new SourceMapConsumer(sourceMap);
+          // The serialized input preserves nullable sourcesContent entries
+          // supported by Vite but missing from source-map's object typings.
+          sourceMapConsumer = await new SourceMapConsumer(
+            JSON.stringify(sourceMap),
+          );
           timings.sourceMapConsumerMs = performance.now() - smStart;
         }
 
@@ -425,11 +456,12 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
         });
 
         // Import and initialize overlay
-        // Use /node_modules/ path so browser can resolve it via Vite's dev server
+        // Keep the overlay in Vite's module pipeline so it shares runtime
+        // dependencies with the adapter, including in isolated pnpm installs.
         tags.push({
           tag: 'script',
           attrs: { type: 'module' },
-          children: `import('/node_modules/@domscribe/overlay/index.js').then(m => m.initOverlay()).catch(e => console.warn('[domscribe] Failed to load overlay:', e.message));`,
+          children: `import('${OVERLAY_INIT_MODULE_PATH}').catch(e => console.warn('[domscribe] Failed to load overlay:', e.message));`,
           injectTo: 'body',
         });
       }

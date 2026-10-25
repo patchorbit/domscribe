@@ -62,7 +62,7 @@
   ],
   "targetDefaults": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^sync-dist"],
       "inputs": ["production", "^production"]
     },
     "test": {

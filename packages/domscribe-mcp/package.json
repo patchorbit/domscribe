@@ -1,14 +1,14 @@
 {
   "name": "@domscribe/mcp",
-  "version": "0.6.0",
-  "description": "MCP server for Domscribe — connects editors and agents to runtime context",
+  "version": "0.6.1",
+  "description": "MCP server for Domscribe \u2014 connects editors and agents to runtime context",
   "type": "module",
   "main": "src/bin/domscribe-mcp.ts",
   "distBin": {
     "domscribe-mcp": "./bin/domscribe-mcp.js"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "dependencies": {
     "@domscribe/relay": "workspace:*"

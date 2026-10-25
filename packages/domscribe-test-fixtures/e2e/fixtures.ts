@@ -46,10 +46,15 @@ export const test = base.extend<object, { _serverPool: void }>({
    * when the worker exits.
    */
   _serverPool: [
+    // eslint-disable-next-line no-empty-pattern -- This auto worker fixture has no dependencies.
     async ({}, use) => {
       await use();
       await Promise.all(
-        [...servers.values()].map((s) => s.close().catch(() => {})),
+        [...servers.values()].map((s) =>
+          s.close().catch(() => {
+            // Continue closing the other servers if one already exited.
+          }),
+        ),
       );
       servers.clear();
     },

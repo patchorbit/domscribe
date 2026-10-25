@@ -1,21 +1,20 @@
 {
   "name": "@domscribe/nuxt",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Nuxt module for Domscribe",
   "type": "module",
   "main": "src/index.ts",
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "dependencies": {
+    "@domscribe/overlay": "workspace:*",
     "@domscribe/relay": "workspace:*",
-    "@domscribe/transform": "workspace:*",
     "@domscribe/runtime": "workspace:*",
-    "@domscribe/vue": "workspace:*"
-  },
-  "devDependencies": {
-    "@nuxt/kit": "^4.0.0",
-    "@nuxt/schema": "^4.0.0"
+    "@domscribe/transform": "workspace:*",
+    "@domscribe/vue": "workspace:*",
+    "@nuxt/kit": "^4.6.2",
+    "@nuxt/schema": "^4.6.2"
   },
   "peerDependencies": {
     "nuxt": ">=3.0.0"

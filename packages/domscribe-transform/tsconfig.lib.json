@@ -13,7 +13,9 @@
     "module": "nodenext",
     "moduleResolution": "nodenext"
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts"
+  ],
   "exclude": [
     "vite.config.ts",
     "vite.config.mts",
@@ -35,7 +37,9 @@
     "**/generated",
     "**/tmp",
     "**/test-output",
-    "**/.nx"
+    "**/.nx",
+    "src/**/__test-utils__/**",
+    "src/**/*.bench.ts"
   ],
   "references": [
     {
