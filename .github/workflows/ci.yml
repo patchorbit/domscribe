@@ -33,6 +33,9 @@ jobs:
 
       - run: pnpm audit --audit-level=high
 
+      - name: Verify browser harness build cleanup
+        run: node --test scripts/fixtures/replay-process.test.mjs
+
       - run: pnpm exec nx run-many -t lint test build typecheck --exclude domscribe-test-fixtures
 
       - name: Update coverage badge
@@ -131,19 +134,35 @@ jobs:
           - id: react-npm-vite7
             framework: react
             package-manager: npm
-            vite: '7.3.7'
+            version-args: '--vite-version=7.3.7'
           - id: react-pnpm-vite5
             framework: react
             package-manager: pnpm
-            vite: '5.4.21'
+            version-args: '--vite-version=5.4.21'
           - id: vue-npm-vite7
             framework: vue
             package-manager: npm
-            vite: '7.3.7'
+            version-args: '--vite-version=7.3.7'
           - id: vue-pnpm-vite5
             framework: vue
             package-manager: pnpm
-            vite: '5.4.21'
+            version-args: '--vite-version=5.4.21'
+          - id: next15-npm-webpack
+            framework: next
+            package-manager: npm
+            version-args: '--framework-version=15.5.28'
+          - id: next16-pnpm-turbopack
+            framework: next
+            package-manager: pnpm
+            version-args: '--framework-version=16.4.3'
+          - id: nuxt3-npm
+            framework: nuxt
+            package-manager: npm
+            version-args: '--framework-version=3.21.11'
+          - id: nuxt4-pnpm
+            framework: nuxt
+            package-manager: pnpm
+            version-args: '--framework-version=4.6.2'
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -163,7 +182,7 @@ jobs:
           node scripts/verify-instance-replay.mjs
           --framework=${{ matrix.framework }}
           --package-manager=${{ matrix.package-manager }}
-          --vite-version=${{ matrix.vite }}
+          ${{ matrix.version-args }}
           --report-dir=${{ runner.temp }}/portable-replay-evidence
       - name: Retain replay evidence
         if: always()

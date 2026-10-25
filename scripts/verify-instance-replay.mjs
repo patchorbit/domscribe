@@ -8,22 +8,37 @@ import net from 'node:net';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import { writeReplayConsumer } from './fixtures/replay-consumer.mjs';
+import { replayProject } from './fixtures/replay-project.mjs';
+import {
+  startOwnedProcess,
+  stopOwnedProcess,
+  runOwnedBuild,
+} from './fixtures/replay-process.mjs';
 
 const { values } = parseArgs({
   options: {
     framework: { type: 'string', default: 'react' },
     'package-manager': { type: 'string', default: 'npm' },
-    'vite-version': { type: 'string', default: '7.3.7' },
+    'vite-version': { type: 'string' },
     'report-dir': { type: 'string' },
+    'framework-version': { type: 'string' },
   },
 });
 const framework = values.framework,
   manager = values['package-manager'],
-  viteVersion = values['vite-version'];
-assert(['react', 'vue'].includes(framework), 'framework must be react or vue');
+  viteVersion = values['vite-version'] ?? '7.3.7';
+const project = replayProject(
+  framework,
+  values['framework-version'],
+  viteVersion,
+);
+assert(
+  !(project.ssr && values['vite-version']),
+  'vite-version is only supported for react/vue',
+);
 assert(
   ['npm', 'pnpm'].includes(manager),
   'package-manager must be npm or pnpm',
@@ -43,32 +58,17 @@ const consumer = path.join(work, 'consumer');
 fs.mkdirSync(consumer, { recursive: true });
 const packs = path.join(work, 'packages');
 fs.mkdirSync(packs);
-const names = [
-  'core',
-  'manifest',
-  'runtime',
-  'relay',
-  'overlay',
-  'transform',
-  framework,
-  'verify',
-];
-const dependencies =
-  framework === 'react'
-    ? {
-        react: '18.3.1',
-        'react-dom': '18.3.1',
-        vite: viteVersion,
-        '@vitejs/plugin-react': '4.7.0',
-      }
-    : { vue: '3.5.44', vite: viteVersion, '@vitejs/plugin-vue': '6.0.4' };
-let server, browser;
+const names = project.artifacts;
+const dependencies = project.dependencies;
+let server, browser, log;
 const evidence = {
   at: new Date().toISOString(),
   node: process.version,
   framework,
   packageManager: manager,
-  requestedVite: viteVersion,
+  requestedVite: project.ssr ? undefined : viteVersion,
+  requestedFrameworkVersion: project.ssr ? project.requestedVersion : undefined,
+  bundler: project.bundler,
   installMode: 'local-tarballs',
   localArtifactOverrides: manager === 'pnpm',
   work,
@@ -77,6 +77,10 @@ const evidence = {
 };
 const check = (name, details) =>
   evidence.checks.push({ name, pass: true, ...details });
+async function stopServer() {
+  await stopOwnedProcess(server);
+  server = undefined;
+}
 try {
   for (const name of names) {
     const artifact = path.join(root, 'dist/packages', `domscribe-${name}`);
@@ -160,8 +164,9 @@ try {
     await new Promise((resolve) => server.close(resolve));
     return port;
   }
-  async function until(fn) {
-    for (let i = 0; i < 100; i++) {
+  async function until(fn, timeoutMs = 10000) {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
       try {
         const value = await fn();
         if (value) return value;
@@ -183,15 +188,21 @@ try {
   );
   const installed = JSON.parse(
     fs.readFileSync(
-      path.join(consumer, 'node_modules/vite/package.json'),
+      path.join(
+        consumer,
+        'node_modules',
+        project.versionPackage,
+        'package.json',
+      ),
       'utf8',
     ),
   );
-  assert.equal(installed.version, viteVersion);
-  evidence.installedVite = installed.version;
+  assert.equal(installed.version, project.requestedVersion);
+  evidence.installedVite = project.ssr ? undefined : installed.version;
+  evidence.appFrameworkVersion = project.ssr ? installed.version : undefined;
   evidence.frameworkVersion = JSON.parse(
     fs.readFileSync(
-      path.join(consumer, 'node_modules', framework, 'package.json'),
+      path.join(consumer, 'node_modules', project.ui, 'package.json'),
       'utf8',
     ),
   ).version;
@@ -201,7 +212,7 @@ try {
   const runtimePath = fs.realpathSync(
     consumerRequire.resolve('@domscribe/runtime'),
   );
-  for (const name of ['overlay', framework]) {
+  for (const name of new Set(['overlay', project.ui, framework])) {
     const packageRequire = createRequire(
       consumerRequire.resolve(`@domscribe/${name}`),
     );
@@ -211,14 +222,35 @@ try {
       `${name} must use the same local runtime`,
     );
   }
-  const vite = path.join(consumer, 'node_modules/vite/bin/vite.js');
-  const port = await freePort(),
-    log = fs.openSync(path.join(work, 'vite.log'), 'a');
-  server = spawn(process.execPath, [vite, '--port', String(port)], {
-    cwd: consumer,
-    stdio: ['ignore', log, log],
-  });
-  await until(async () => (await fetch(`http://127.0.0.1:${port}`)).ok);
+  const cli = path.join(consumer, 'node_modules', project.cli);
+  const port = await freePort();
+  log = fs.openSync(path.join(work, 'server.log'), 'a');
+  const serverEnv = {
+    ...process.env,
+    NEXT_TELEMETRY_DISABLED: '1',
+    NUXT_TELEMETRY_DISABLED: '1',
+    RAYON_NUM_THREADS: '2',
+    HOST: '127.0.0.1',
+    PORT: String(port),
+    NODE_OPTIONS: '--max-old-space-size=4096',
+  };
+  function startServer(entry, args) {
+    return startOwnedProcess(process.execPath, [entry, ...args], {
+      cwd: consumer,
+      env: serverEnv,
+      stdio: ['ignore', log, log],
+    });
+  }
+  server = startServer(cli, project.devArgs(port));
+  await until(
+    async () =>
+      (
+        await fetch(`http://127.0.0.1:${port}`, {
+          signal: AbortSignal.timeout(1000),
+        })
+      ).ok,
+    project.ssr ? 120000 : 10000,
+  );
   browser = await chromium.launch({
     headless: true,
     args: ['--disable-dev-shm-usage'],
@@ -227,7 +259,29 @@ try {
   let context = await browser.newContext();
   let page = await context.newPage();
   const errors = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+  evidence.pageErrors = errors;
+  const consoleErrors = [],
+    networkErrors = [];
+  evidence.consoleErrors = consoleErrors;
+  evidence.networkErrors = networkErrors;
+  function observePage(page) {
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('console', (message) => {
+      if (message.type() === 'error') consoleErrors.push(message.text());
+    });
+    page.on('requestfailed', (request) => {
+      if (request.failure()?.errorText !== 'net::ERR_ABORTED')
+        networkErrors.push({
+          url: request.url(),
+          error: request.failure()?.errorText,
+        });
+    });
+    page.on('response', (response) => {
+      if (response.status() >= 400)
+        networkErrors.push({ url: response.url(), status: response.status() });
+    });
+  }
+  observePage(page);
   await page.goto(`http://127.0.0.1:${port}`);
   await page.waitForFunction(() => window.__runtime?.isReady());
   const relayPort = await page.evaluate(() => window.__DOMSCRIBE_RELAY_PORT__);
@@ -253,9 +307,7 @@ try {
     column: source.entry.start.column,
   });
   assert(
-    source.entry.file.endsWith(
-      framework === 'vue' ? '/src/Card.vue' : '/src/main.jsx',
-    ),
+    source.entry.file.endsWith(project.expectedSource),
     'Mapped source must belong to the selected framework fixture',
   );
   evidence.mappedSource = source.entry.file;
@@ -301,11 +353,11 @@ try {
   assert.equal(liveEditor.context.componentProps.customer.name, 'Lyra');
   const editorState = liveEditor.context.componentState;
   assert.equal(
-    framework === 'vue' ? editorState.city : editorState.state_0,
+    project.ui === 'vue' ? editorState.city : editorState.state_0,
     'Austin',
   );
   assert.equal(
-    framework === 'vue' ? editorState.confirmed : editorState.state_1,
+    project.ui === 'vue' ? editorState.confirmed : editorState.state_1,
     true,
   );
   check('exact editor instance exposes committed typed and checked state', {
@@ -314,6 +366,11 @@ try {
   const save = page.getByRole('button', { name: 'Save', exact: true });
   await record(save, { action: 'click' });
   await save.click();
+  assert.equal(
+    (await client.queryTargets({ instanceId: field.instanceId })).status,
+    'stale',
+  );
+  check('unmounted editor handle is stale after saving', {});
   const trace = { version: 1, steps };
   const annotation = await client.createAnnotation({
     mode: 'element-click',
@@ -343,7 +400,7 @@ try {
   await context.close();
   context = await browser.newContext();
   page = await context.newPage();
-  page.on('pageerror', (error) => errors.push(error.message));
+  observePage(page);
   await page.goto(`http://127.0.0.1:${port}`);
   await page.waitForFunction(() => window.__runtime?.isReady());
   await until(
@@ -405,24 +462,34 @@ try {
   assert.equal(stopped.completed, 0);
   check('ambiguous replay stops before any action', {});
   assert.deepEqual(errors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(networkErrors, []);
   check('no application page errors', { errors });
   await page.screenshot({ path: path.join(work, 'replayed.png') });
   await context.close();
-  const build = execFileSync(process.execPath, [vite, 'build'], {
+  await stopServer();
+  await runOwnedBuild(process.execPath, [cli, ...project.buildArgs], {
     cwd: consumer,
-    encoding: 'utf8',
+    env: { ...serverEnv, NODE_ENV: 'production' },
+    logPath: path.join(work, 'production-build.log'),
   });
-  fs.writeFileSync(path.join(work, 'production-build.log'), build);
-  server.kill('SIGTERM');
-  await new Promise((resolve) => server.once('exit', resolve));
-  server = spawn(
-    process.execPath,
-    [vite, 'preview', '--host', '127.0.0.1', '--port', String(port)],
-    { cwd: consumer, stdio: ['ignore', log, log] },
+  server = startServer(
+    project.productionEntry
+      ? path.join(consumer, project.productionEntry)
+      : cli,
+    project.productionArgs(port),
   );
-  await until(async () => (await fetch(`http://127.0.0.1:${port}`)).ok);
+  await until(
+    async () =>
+      (
+        await fetch(`http://127.0.0.1:${port}`, {
+          signal: AbortSignal.timeout(1000),
+        })
+      ).ok,
+    project.ssr ? 120000 : 10000,
+  );
   const production = await browser.newPage();
-  production.on('pageerror', (error) => errors.push(error.message));
+  observePage(production);
   await production.goto(`http://127.0.0.1:${port}`);
   await production
     .getByRole('heading', { name: 'Customer operations' })
@@ -465,6 +532,8 @@ try {
     'Seattle',
   );
   assert.deepEqual(errors, []);
+  assert.deepEqual(consoleErrors, []);
+  assert.deepEqual(networkErrors, []);
   check(
     'production UI still updates only the selected customer without page errors',
     {},
@@ -486,7 +555,8 @@ try {
   process.exitCode = 1;
 } finally {
   await browser?.close();
-  server?.kill('SIGTERM');
+  await stopServer();
+  if (log !== undefined) fs.closeSync(log);
   const lock = path.join(consumer, '.domscribe/relay.lock');
   if (fs.existsSync(lock)) {
     const relay = JSON.parse(fs.readFileSync(lock, 'utf8'));
@@ -508,7 +578,7 @@ try {
       'replayed.png',
       'production-build.log',
       'install.log',
-      'vite.log',
+      'server.log',
       ...(evidence.failureScreenshots ?? []),
     ]) {
       const from = path.join(work, name);

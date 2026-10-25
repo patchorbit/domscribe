@@ -43,6 +43,15 @@ export const domscribeModule: NuxtModule<DomscribeNuxtOptions> =
       const debug = options.debug ?? false;
       const forceTransform = !!process.env.DOMSCRIBE_FORCE_TRANSFORM;
 
+      // Nuxt can import its native plugin's runtime as raw ESM while Vite
+      // prebundles an application's runtime import on a cold start. Those
+      // module copies have separate RuntimeManager singletons. Keep both
+      // imports on the same ESM path so queries see the initialized adapter.
+      const optimizeDeps = (nuxt.options.vite.optimizeDeps ??= {});
+      optimizeDeps.exclude = [
+        ...new Set([...(optimizeDeps.exclude ?? []), '@domscribe/runtime']),
+      ];
+
       // 1. Start relay to discover actual host/port.
       //    Nuxt bypasses Vite's transformIndexHtml, so the Vite plugin's
       //    HTML injection never fires. We start the relay here and inject

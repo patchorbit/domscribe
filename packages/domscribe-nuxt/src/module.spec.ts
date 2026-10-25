@@ -7,6 +7,7 @@ interface MockNuxt {
   options: {
     dev: boolean;
     rootDir: string;
+    vite: { optimizeDeps?: { exclude?: string[] } };
     app: {
       head: {
         script: Array<{ innerHTML: string }>;
@@ -94,6 +95,7 @@ function createMockNuxt(overrides?: Partial<MockNuxt['options']>): MockNuxt {
     options: {
       dev: true,
       rootDir: '/test/project',
+      vite: {},
       app: {
         head: {
           script: [],
@@ -158,6 +160,22 @@ describe('domscribeModule', () => {
   });
 
   describe('setup', () => {
+    it('keeps one runtime module identity for native plugin and consumer queries on cold Vite startup', async () => {
+      const nuxt = createMockNuxt({
+        vite: { optimizeDeps: { exclude: ['existing-package'] } },
+      });
+      await callSetup({ relay: { autoStart: false } }, nuxt);
+      expect(nuxt.options.vite.optimizeDeps?.exclude).toEqual([
+        'existing-package',
+        '@domscribe/runtime',
+      ]);
+      await callSetup({ relay: { autoStart: false } }, nuxt);
+      expect(nuxt.options.vite.optimizeDeps?.exclude).toEqual([
+        'existing-package',
+        '@domscribe/runtime',
+      ]);
+    });
+
     describe('dev-mode guard', () => {
       it('should skip setup in production without force-transform', async () => {
         const nuxt = createMockNuxt({ dev: false });
