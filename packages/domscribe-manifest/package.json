@@ -1,16 +1,16 @@
 {
   "name": "@domscribe/manifest",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Append-only DOM-to-source manifest for Domscribe",
   "type": "module",
   "main": "src/index.ts",
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "dependencies": {
     "@domscribe/core": "workspace:*",
-    "xxhash-wasm": "^1.0.2",
-    "zod": "^4.3.6"
+    "xxhash-wasm": "^1.1.0",
+    "zod": "^4.6.7"
   },
   "engines": {
     "node": ">=20"

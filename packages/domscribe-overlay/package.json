@@ -1,10 +1,10 @@
 {
   "name": "@domscribe/overlay",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "type": "module",
   "main": "src/index.ts",
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "distExports": {
     "./auto-init": "./auto-init.js"
@@ -12,14 +12,14 @@
   "description": "Framework-agnostic overlay UI for Domscribe pixel-to-code workflows",
   "dependencies": {
     "@domscribe/core": "workspace:*",
-    "@domscribe/runtime": "workspace:*",
     "@domscribe/relay": "workspace:*",
-    "lit": "^3.1.0"
+    "@domscribe/runtime": "workspace:*",
+    "lit": "^3.3.3",
+    "tslib": "^2.8.1"
   },
   "devDependencies": {
-    "happy-dom": "^12.0.0"
+    "happy-dom": "^21.0.4"
   },
-  "peerDependencies": {},
   "peerDependenciesMeta": {},
   "engines": {
     "node": ">=20"

@@ -1,15 +1,15 @@
 {
   "name": "@domscribe/verify",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Pure-TS visual-snapshot comparator for Domscribe. Lifted verbatim from the RFC 0001 falsifier harness; powers both the test-fixtures suite and the verify_after_edit MCP tool (RFC 0002).",
   "type": "module",
   "main": "src/index.ts",
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "dependencies": {
     "@domscribe/core": "workspace:*",
-    "pixelmatch": "^7.1.0",
+    "pixelmatch": "^7.2.0",
     "pngjs": "^7.0.0"
   },
   "devDependencies": {

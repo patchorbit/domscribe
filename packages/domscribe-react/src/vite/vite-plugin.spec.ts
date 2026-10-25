@@ -2,14 +2,12 @@ import { describe, it, expect, vi } from 'vitest';
 import type { Plugin, IndexHtmlTransformResult, HtmlTagDescriptor } from 'vite';
 
 vi.mock('@domscribe/transform/plugins/vite', () => ({
-  domscribe: vi.fn(
-    (options?: Record<string, unknown>): Plugin => ({
-      name: 'vite-plugin-domscribe-transform',
-      transformIndexHtml: options?._baseTags
-        ? () => ({ html: '', tags: options._baseTags as HtmlTagDescriptor[] })
-        : undefined,
-    }),
-  ),
+  domscribe: vi.fn((options?: Record<string, unknown>): Plugin => ({
+    name: 'vite-plugin-domscribe-transform',
+    transformIndexHtml: options?._baseTags
+      ? () => ({ html: '', tags: options._baseTags as HtmlTagDescriptor[] })
+      : undefined,
+  })),
 }));
 
 import { domscribe } from './vite-plugin.js';
@@ -36,6 +34,43 @@ describe('domscribe (react/vite)', () => {
       const result = resolveId.call({}, '/@domscribe/react-init.js');
 
       expect(result).toBe('/@domscribe/react-init.js');
+    });
+
+    it('should resolve runtime dependencies from the adapter package for the virtual init module', async () => {
+      const plugin = domscribe();
+      const resolveId = plugin.resolveId as (...args: unknown[]) => unknown;
+      const resolve = vi
+        .fn()
+        .mockResolvedValue({ id: '/installed/runtime/index.js' });
+
+      const result = await resolveId.call(
+        { resolve },
+        '@domscribe/runtime',
+        '/@domscribe/react-init.js',
+        {},
+      );
+
+      expect(result).toEqual({ id: '/installed/runtime/index.js' });
+      expect(resolve).toHaveBeenCalledWith(
+        '@domscribe/runtime',
+        expect.stringContaining('/vite/vite-plugin.'),
+        { skipSelf: true },
+      );
+    });
+
+    it('should leave application imports to Vite resolution', () => {
+      const plugin = domscribe();
+      const resolveId = plugin.resolveId as (...args: unknown[]) => unknown;
+      const resolve = vi.fn();
+
+      const result = resolveId.call(
+        { resolve },
+        '@domscribe/runtime',
+        '/app/src/main.ts',
+      );
+
+      expect(result).toBeNull();
+      expect(resolve).not.toHaveBeenCalled();
     });
 
     it('should return null for unrelated IDs', () => {

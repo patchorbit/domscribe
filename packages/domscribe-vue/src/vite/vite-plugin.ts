@@ -2,6 +2,7 @@
  * Vue-aware Domscribe Vite plugin
  * @module @domscribe/vue/vite/vite-plugin
  */
+import { fileURLToPath } from 'node:url';
 import type { Plugin, IndexHtmlTransformResult, HtmlTagDescriptor } from 'vite';
 import { domscribe as baseDomscribe } from '@domscribe/transform/plugins/vite';
 import type { DomscribeVuePluginOptions } from './types.js';
@@ -10,10 +11,10 @@ import type { DomscribeVuePluginOptions } from './types.js';
  * URL path for the virtual init module.
  *
  * When the browser fetches this path, Vite's dev server routes it through
- * the plugin pipeline (resolveId → load → transform). The transform step
- * rewrites bare specifiers (`@domscribe/runtime`, `@domscribe/vue`) to
- * pre-bundled paths — the same ones the overlay resolves to internally —
- * so RuntimeManager shares a single singleton across all consumers.
+ * the plugin pipeline (resolveId → load → transform). Dependencies resolve
+ * from this adapter's package location, then Vite rewrites the imports through
+ * its normal module pipeline. The overlay uses the same pipeline so both
+ * reference one RuntimeManager singleton, including in isolated installs.
  *
  * Direct `/node_modules/` paths bypass pre-bundling and create separate
  * module instances with separate singletons, which breaks runtime capture.
@@ -51,11 +52,22 @@ export function domscribe(options?: DomscribeVuePluginOptions): Plugin {
 
   basePlugin.name = 'vite-plugin-domscribe-vue';
 
-  basePlugin.resolveId = function (id, ...args) {
+  basePlugin.resolveId = function (id, importer, ...args) {
     if (id === INIT_MODULE_PATH) {
       return INIT_MODULE_PATH;
     }
-    return baseResolveId?.call(this, id, ...args) ?? null;
+    if (
+      importer === INIT_MODULE_PATH &&
+      (id === '@domscribe/runtime' || id === '@domscribe/vue')
+    ) {
+      // Virtual modules have no package location. Resolve their dependencies
+      // from this adapter so isolated installs (pnpm) can find them, while
+      // letting Vite keep its normal dependency optimization and deduplication.
+      return this.resolve(id, fileURLToPath(import.meta.url), {
+        skipSelf: true,
+      });
+    }
+    return baseResolveId?.call(this, id, importer, ...args) ?? null;
   };
 
   basePlugin.load = function (id, ...args) {
@@ -76,8 +88,8 @@ export function domscribe(options?: DomscribeVuePluginOptions): Plugin {
         styleOptions: rt.styleOptions,
       });
 
-      // Bare specifiers here get rewritten by Vite's transform pipeline
-      // to pre-bundled paths, matching what the overlay resolves internally
+      // Vite resolves these imports from the owning package and rewrites
+      // them through the same module pipeline used by the overlay.
       return [
         `import { RuntimeManager } from '@domscribe/runtime';`,
         `import { createVueAdapter } from '@domscribe/vue';`,

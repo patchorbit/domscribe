@@ -211,6 +211,42 @@ async function setupPlugin(options: VitePluginOptions = {}): Promise<Plugin> {
 // Tests
 // ============================================================================
 
+describe('overlay virtual module', () => {
+  it('resolves the overlay from the transform package for pnpm consumers', async () => {
+    const plugin = domscribe();
+    const resolveId = plugin.resolveId as (...args: unknown[]) => unknown;
+    const resolve = vi
+      .fn()
+      .mockResolvedValue({ id: '/installed/overlay/index.js' });
+
+    const result = await resolveId.call(
+      { resolve },
+      '@domscribe/overlay',
+      '/@domscribe/overlay-init.js',
+      {},
+    );
+
+    expect(result).toEqual({ id: '/installed/overlay/index.js' });
+    expect(resolve).toHaveBeenCalledWith(
+      '@domscribe/overlay',
+      expect.stringContaining('/plugins/vite/vite.plugin.'),
+      { skipSelf: true },
+    );
+  });
+
+  it('loads overlay initialization through the Vite module pipeline', () => {
+    const plugin = domscribe();
+    const load = plugin.load as (id: string) => string | null;
+
+    const result = load.call({}, '/@domscribe/overlay-init.js');
+
+    expect(result).toContain(
+      "import { initOverlay } from '@domscribe/overlay'",
+    );
+    expect(result).toContain('initOverlay()');
+  });
+});
+
 describe('domscribe Vite plugin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -659,7 +695,7 @@ describe('domscribe Vite plugin', () => {
 
       // Assert
       expect(mockSourceMapConsumerConstructor).toHaveBeenCalledWith(
-        mockSourceMap,
+        JSON.stringify(mockSourceMap),
       );
     });
 

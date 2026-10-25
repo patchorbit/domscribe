@@ -2,6 +2,7 @@
  * React-aware Domscribe Vite plugin
  * @module @domscribe/react/vite/vite-plugin
  */
+import { fileURLToPath } from 'node:url';
 import type { Plugin, IndexHtmlTransformResult, HtmlTagDescriptor } from 'vite';
 import { domscribe as baseDomscribe } from '@domscribe/transform/plugins/vite';
 import type { DomscribeReactPluginOptions } from './types.js';
@@ -10,10 +11,10 @@ import type { DomscribeReactPluginOptions } from './types.js';
  * URL path for the virtual init module.
  *
  * When the browser fetches this path, Vite's dev server routes it through
- * the plugin pipeline (resolveId → load → transform). The transform step
- * rewrites bare specifiers (`@domscribe/runtime`, `@domscribe/react`) to
- * pre-bundled paths — the same ones the overlay resolves to internally —
- * so RuntimeManager shares a single singleton across all consumers.
+ * the plugin pipeline (resolveId → load → transform). Dependencies resolve
+ * from this adapter's package location, then Vite rewrites the imports through
+ * its normal module pipeline. The overlay uses the same pipeline so both
+ * reference one RuntimeManager singleton, including in isolated installs.
  *
  * Direct `/node_modules/` paths bypass pre-bundling and create separate
  * module instances with separate singletons, which breaks runtime capture.
@@ -52,11 +53,22 @@ export function domscribe(options?: DomscribeReactPluginOptions): Plugin {
 
   basePlugin.name = 'vite-plugin-domscribe-react';
 
-  basePlugin.resolveId = function (id, ...args) {
+  basePlugin.resolveId = function (id, importer, ...args) {
     if (id === INIT_MODULE_PATH) {
       return INIT_MODULE_PATH;
     }
-    return baseResolveId?.call(this, id, ...args) ?? null;
+    if (
+      importer === INIT_MODULE_PATH &&
+      (id === '@domscribe/runtime' || id === '@domscribe/react')
+    ) {
+      // Virtual modules have no package location. Resolve their dependencies
+      // from this adapter so isolated installs (pnpm) can find them, while
+      // letting Vite keep its normal dependency optimization and deduplication.
+      return this.resolve(id, fileURLToPath(import.meta.url), {
+        skipSelf: true,
+      });
+    }
+    return baseResolveId?.call(this, id, importer, ...args) ?? null;
   };
 
   basePlugin.load = function (id, ...args) {
@@ -83,8 +95,8 @@ export function domscribe(options?: DomscribeReactPluginOptions): Plugin {
           `const _resolvers = new Map(Object.entries(_r).map(([k,v])=>[k,new Map(Object.entries(v).map(([i,n])=>[Number(i),n]))]));`
         : `const _resolvers = new Map();`;
 
-      // Bare specifiers here get rewritten by Vite's transform pipeline
-      // to pre-bundled paths, matching what the overlay resolves internally.
+      // Vite resolves these imports from the owning package and rewrites
+      // them through the same module pipeline used by the overlay.
       // This module also handles overlay init as a fallback for SSR setups
       // where transformIndexHtml doesn't fire (e.g. React Router 7).
       return [
@@ -105,10 +117,9 @@ export function domscribe(options?: DomscribeReactPluginOptions): Plugin {
         `}).catch(e => console.warn('[domscribe] Failed to init React runtime:', e.message));`,
         ``,
         `// Init overlay if configured (SSR fallback — transformIndexHtml may not fire).`,
-        `// Uses bare specifier so Vite resolves to the same pre-bundled module instance`,
-        `// that RuntimeManager uses, ensuring singleton sharing.`,
+        `// The virtual overlay module uses the same Vite dependency pipeline.`,
         `if (typeof window !== 'undefined' && window.__DOMSCRIBE_OVERLAY_OPTIONS__) {`,
-        `  import('@domscribe/overlay').then(m => m.initOverlay()).catch(() => {});`,
+        `  import('/@domscribe/overlay-init.js').catch(() => {});`,
         `}`,
       ].join('\n');
     }

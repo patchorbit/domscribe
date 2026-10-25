@@ -13,36 +13,51 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           filter: tree:0
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
 
       - run: npx nx run-many -t lint test build typecheck --exclude domscribe-test-fixtures
 
+      - run: pnpm audit --audit-level=high
+
+      - run: pnpm exec nx run-many -t sync-dist --exclude domscribe-test-fixtures
+
+      - run: node scripts/check-dist-dependencies.mjs
+
+      - name: Verify clean installed packages before publishing
+        run: |
+          for manager in npm pnpm; do
+            for framework in react vue; do
+              node scripts/check-packed-vite.mjs "$manager" "$framework" 5.4.21
+              node scripts/check-packed-vite.mjs "$manager" "$framework" 7.3.7
+            done
+          done
+
   publish:
     runs-on: ubuntu-latest
     needs: checks
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           filter: tree:0
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 

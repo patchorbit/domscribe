@@ -52,6 +52,176 @@ describe('FiberWalker', () => {
       expect(result).toBeNull();
     });
 
+    it('should follow committed alternates after odd and even state updates', () => {
+      const walker = new FiberWalker();
+      const firstRoot = createFiber({ tag: REACT_FIBER_TAGS.HostRoot });
+      const secondRoot = createFiber({ tag: REACT_FIBER_TAGS.HostRoot });
+      const root = { current: firstRoot };
+      firstRoot.stateNode = secondRoot.stateNode = root;
+      firstRoot.alternate = secondRoot;
+      secondRoot.alternate = firstRoot;
+      const firstComponent = createFiber({
+        return: firstRoot,
+        memoizedState: { count: 0 },
+      });
+      const secondComponent = createFiber({
+        return: secondRoot,
+        memoizedState: { count: 1 },
+      });
+      firstComponent.alternate = secondComponent;
+      secondComponent.alternate = firstComponent;
+      firstRoot.child = firstComponent;
+      secondRoot.child = secondComponent;
+      // React keeps the original host fiber on the DOM node across commits.
+      const host = createFiber({
+        tag: REACT_FIBER_TAGS.HostComponent,
+        return: firstComponent,
+      });
+
+      expect(walker.findNearestComponentFiber(host)?.memoizedState).toEqual({
+        count: 0,
+      });
+      root.current = secondRoot;
+      expect(walker.findNearestComponentFiber(host)?.memoizedState).toEqual({
+        count: 1,
+      });
+      firstComponent.memoizedState = { count: 2 };
+      root.current = firstRoot;
+      expect(walker.findNearestComponentFiber(host)?.memoizedState).toEqual({
+        count: 2,
+      });
+      secondComponent.memoizedState = { count: 3 };
+      root.current = secondRoot;
+      expect(walker.findNearestComponentFiber(host)?.memoizedState).toEqual({
+        count: 3,
+      });
+    });
+
+    it('should retain the shared current child when a parent bails out', () => {
+      const walker = new FiberWalker();
+      const previousRoot = createFiber({ tag: REACT_FIBER_TAGS.HostRoot });
+      const currentRoot = createFiber({ tag: REACT_FIBER_TAGS.HostRoot });
+      const root = { current: currentRoot };
+      previousRoot.stateNode = currentRoot.stateNode = root;
+      previousRoot.alternate = currentRoot;
+      currentRoot.alternate = previousRoot;
+      const previousComponent = createFiber({
+        return: previousRoot,
+        memoizedState: { count: 0 },
+      });
+      const currentComponent = createFiber({
+        return: previousRoot,
+        memoizedState: { count: 1 },
+      });
+      previousComponent.alternate = currentComponent;
+      currentComponent.alternate = previousComponent;
+      // Both root copies reuse the committed child, whose return is unchanged.
+      previousRoot.child = currentRoot.child = currentComponent;
+      const host = createFiber({
+        tag: REACT_FIBER_TAGS.HostComponent,
+        return: previousComponent,
+      });
+
+      const component = walker.findNearestComponentFiber(host);
+
+      expect(component).toBe(currentComponent);
+      expect(component?.memoizedState).toEqual({ count: 1 });
+    });
+
+    it.each(['original', 'alternate', 'other'] as const)(
+      'should use child membership when alternate returns share a parent (%s child)',
+      (firstChild) => {
+        const walker = new FiberWalker();
+        const firstRoot = createFiber({ tag: REACT_FIBER_TAGS.HostRoot });
+        const secondRoot = createFiber({ tag: REACT_FIBER_TAGS.HostRoot });
+        const firstParent = createFiber({
+          tag: REACT_FIBER_TAGS.Fragment,
+          return: firstRoot,
+        });
+        const secondParent = createFiber({
+          tag: REACT_FIBER_TAGS.Fragment,
+          return: secondRoot,
+        });
+        firstRoot.alternate = secondRoot;
+        secondRoot.alternate = firstRoot;
+        firstParent.alternate = secondParent;
+        secondParent.alternate = firstParent;
+        firstRoot.child = firstParent;
+        secondRoot.child = secondParent;
+        const original = createFiber({
+          return: firstParent,
+          memoizedState: { count: 0 },
+        });
+        const alternate = createFiber({
+          return: firstParent,
+          memoizedState: { count: 1 },
+        });
+        original.alternate = alternate;
+        alternate.alternate = original;
+        firstParent.child =
+          firstChild === 'original'
+            ? original
+            : firstChild === 'alternate'
+              ? alternate
+              : createFiber();
+        secondParent.child = firstChild === 'alternate' ? original : alternate;
+        const root = {
+          current: firstChild === 'alternate' ? firstRoot : secondRoot,
+        };
+        firstRoot.stateNode = secondRoot.stateNode = root;
+        const host = createFiber({
+          tag: REACT_FIBER_TAGS.HostComponent,
+          return: original,
+        });
+
+        const component = walker.findNearestComponentFiber(host);
+
+        expect(component).toBe(alternate);
+      },
+    );
+
+    it.each([false, true])(
+      'should follow the committed root through an inserted fragment without an alternate (alternate current: %s)',
+      (alternateIsCurrent) => {
+        const walker = new FiberWalker();
+        const root = createFiber({ tag: REACT_FIBER_TAGS.HostRoot });
+        const alternateRoot = createFiber({ tag: REACT_FIBER_TAGS.HostRoot });
+        root.alternate = alternateRoot;
+        alternateRoot.alternate = root;
+        const container = {
+          current: alternateIsCurrent ? alternateRoot : root,
+        };
+        root.stateNode = alternateRoot.stateNode = container;
+        const fragment = createFiber({
+          tag: REACT_FIBER_TAGS.Fragment,
+          return: root,
+        });
+        const original = createFiber({
+          return: fragment,
+          memoizedState: { count: 0 },
+        });
+        const alternate = createFiber({
+          return: fragment,
+          memoizedState: { count: 1 },
+        });
+        original.alternate = alternate;
+        alternate.alternate = original;
+        fragment.child = original;
+        root.child = fragment;
+        const host = createFiber({
+          tag: REACT_FIBER_TAGS.HostComponent,
+          return: original,
+        });
+
+        const component = walker.findNearestComponentFiber(host);
+
+        expect(component).toBe(alternateIsCurrent ? alternate : original);
+        expect(component?.memoizedState).toEqual({
+          count: alternateIsCurrent ? 1 : 0,
+        });
+      },
+    );
+
     it('should respect maxDepth limit', () => {
       const walker = new FiberWalker({ maxDepth: 2 });
       const component = createFiber({
