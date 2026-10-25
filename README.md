@@ -449,6 +449,9 @@ nx run-many -t build test lint typecheck
 
 Conventions are in `.claude/rules/`. PRs welcome.
 
+For an isolated browser replay check through the Docker Node SDK, see the
+[Docker Cloud replay smoke test](./docs/docker-cloud-replay.md).
+
 ---
 
 ## License

@@ -29,6 +29,7 @@
   },
   "private": true,
   "devDependencies": {
+    "@docker/sandboxes": "0.53.0",
     "@eslint/js": "^10.0.1",
     "@nx/devkit": "22.7.12",
     "@nx/eslint": "22.7.12",
@@ -135,7 +136,8 @@
       "nx>follow-redirects": "^1.16.1",
       "nx>brace-expansion": "^5.0.12",
       "nx>smol-toml": "^1.9.1",
-      "postcss-selector-parser@<7.1.6": "^7.1.7"
+      "postcss-selector-parser@<7.1.6": "^7.1.7",
+      "@docker/sandboxes@0.53.0>undici": "6.29.1"
     }
   }
 }
