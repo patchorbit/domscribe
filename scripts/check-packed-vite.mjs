@@ -54,7 +54,7 @@ function run(command, args, cwd = temporary, capture = false) {
   assert.equal(
     result.status,
     0,
-    `${command} ${args.join(' ')} failed; see ${logPath}`,
+    `${command} ${args.join(' ')} failed; see ${logPath}\n${readFileSync(logPath, 'utf8').slice(-5000)}`,
   );
   return result.stdout;
 }
@@ -151,6 +151,7 @@ try {
       userconfig,
       '--ignore-scripts',
       '--access=public',
+      '--tag=local-regression',
     ]);
   }
 
