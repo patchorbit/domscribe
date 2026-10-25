@@ -6,6 +6,8 @@
 import { ManifestEntryIdSchema, ManifestEntrySchema } from './manifest.js';
 import { z } from 'zod';
 import { PATTERNS } from '../constants/index.js';
+import { ElementTargetSchema } from './target.js';
+import { ReplayTraceSchema } from './replay.js';
 
 export enum AnnotationStatusEnum {
   QUEUED = 'queued',
@@ -222,8 +224,9 @@ export const VerifyResultSchema = z.object({
  * - v3: added optional `context.verifyHistory` (an array of `VerifyResult`
  *   records from `verify_after_edit` MCP calls), per RFC 0002. Older
  *   clients silently ignore the field.
+ * - v4: optional selectedElement.target and context.replay for portable replay.
  */
-export const ANNOTATION_SCHEMA_VERSION = 3;
+export const ANNOTATION_SCHEMA_VERSION = 4;
 
 export const AnnotationMetadataSchema = z.object({
   id: AnnotationIdSchema,
@@ -242,6 +245,9 @@ export const AnnotationMetadataSchema = z.object({
 });
 
 export const SelectedElementSchema = z.object({
+  target: ElementTargetSchema.optional().describe(
+    'Exact live instance and portable locator for later sessions',
+  ),
   tagName: z.string().describe('HTML tag name'),
   selector: z.string().describe('CSS selector path to the element'),
   dataDs: z.string().optional().describe('Domscribe element ID if transformed'),
@@ -285,6 +291,9 @@ export const AnnotationInteractionSchema = z.object({
 });
 
 export const AnnotationContextSchema = z.object({
+  replay: ReplayTraceSchema.optional().describe(
+    'Explicit browser steps with portable targets; not a recording of application state',
+  ),
   pageUrl: z.string().describe('URL of the page'),
   pageTitle: z.string().describe('Title of the page'),
   viewport: ViewportSchema.describe('Viewport dimensions'),

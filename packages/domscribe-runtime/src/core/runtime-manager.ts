@@ -26,6 +26,13 @@ import { RuntimeNotInitializedError, RuntimeError } from '../errors/index.js';
 import { isHTMLElement } from '../utils/validation.js';
 import { FrameworkAdapter } from '../adapters/adapter.interface.js';
 import { TargetRegistry } from '../targets/target-registry.js';
+import {
+  ReplayActionSchema,
+  ReplayTraceSchema,
+  redactPII,
+  type ReplayAction,
+  type ReplayStep,
+} from '@domscribe/core';
 
 /**
  * RuntimeManager singleton class
@@ -215,20 +222,50 @@ export class RuntimeManager {
       : null;
   }
 
+  /** Explicit recording only; never scrape form values or record sensitive inputs. */
+  createReplayStep(element: HTMLElement, action: ReplayAction): ReplayStep {
+    const parsed = ReplayActionSchema.parse(action);
+    const target = this.describeTarget(element);
+    if (
+      !target ||
+      element.matches('input[type="password"], input[type="file"]')
+    ) {
+      throw new RuntimeError(
+        'Target is unavailable, blocked, or a sensitive input',
+      );
+    }
+    if (
+      this.options.redactPII &&
+      JSON.stringify(redactPII(parsed)) !== JSON.stringify(parsed)
+    ) {
+      throw new RuntimeError(
+        'Replay input requires redaction and cannot be recorded',
+      );
+    }
+    return ReplayTraceSchema.parse({
+      version: 1,
+      steps: [{ ...parsed, target: target.locator }],
+    }).steps[0];
+  }
+
   /** Never capture context until a target has resolved to one exact instance. */
   async queryTargets(
     query: TargetQueryInput,
   ): Promise<TargetResolution & { context?: RuntimeContext }> {
-    if (!this.isInitialized || !this.targets)
-      return { status: 'not_ready', targets: [], total: 0 };
-    const result = this.targets.query(query);
+    const result = this.resolveTargets(query);
     if (result.status !== 'resolved') return result;
-    const element = this.targets.getElement(result.targets[0].instanceId);
+    const element = this.targets?.getElement(result.targets[0].instanceId);
     if (!element) return { status: 'stale', targets: [], total: 0 };
     const context = await this.captureContextForElement(element);
     if (!this.targets?.getElement(result.targets[0].instanceId))
       return { status: 'stale', targets: [], total: 0 };
     return { ...result, context: context ?? undefined };
+  }
+
+  resolveTargets(query: TargetQueryInput): TargetResolution {
+    if (!this.isInitialized || !this.targets)
+      return { status: 'not_ready', targets: [], total: 0 };
+    return this.targets.query(query);
   }
 
   /**

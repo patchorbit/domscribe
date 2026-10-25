@@ -353,6 +353,9 @@ export class OverlayStore {
         interaction: {
           type: InteractionTypeEnum.ELEMENT_ANNOTATION,
           selectedElement: {
+            target:
+              BridgeDispatch.getInstance().describeTarget(selectedElement) ??
+              undefined,
             tagName: selectedElement.tagName.toLowerCase(),
             selector,
             dataDs: selectedEntryId ?? undefined,
@@ -470,16 +473,7 @@ export class OverlayStore {
     annotation: Annotation,
   ): Promise<HTMLElement | null> {
     const dataDs = annotation.interaction.selectedElement?.dataDs;
-    const selector = annotation.interaction.selectedElement?.selector;
-
-    // Locate element
-    let element: HTMLElement | null = null;
-    if (dataDs) {
-      element = document.querySelector<HTMLElement>(`[data-ds="${dataDs}"]`);
-    }
-    if (!element && selector) {
-      element = document.querySelector<HTMLElement>(selector);
-    }
+    const element = this.findAnnotationElement(annotation);
     if (!element) return null;
 
     // Re-capture runtime context
@@ -529,16 +523,7 @@ export class OverlayStore {
    * @returns The element if found, null otherwise
    */
   locateElement(annotation: Annotation): HTMLElement | null {
-    const dataDs = annotation.interaction.selectedElement?.dataDs;
-    const selector = annotation.interaction.selectedElement?.selector;
-
-    let element: HTMLElement | null = null;
-    if (dataDs) {
-      element = document.querySelector<HTMLElement>(`[data-ds="${dataDs}"]`);
-    }
-    if (!element && selector) {
-      element = document.querySelector<HTMLElement>(selector);
-    }
+    const element = this.findAnnotationElement(annotation);
     if (!element) return null;
 
     // Scroll into view
@@ -557,5 +542,29 @@ export class OverlayStore {
     }, 2000);
 
     return element;
+  }
+  private findAnnotationElement(annotation: Annotation): HTMLElement | null {
+    const selected = annotation.interaction.selectedElement;
+    if (!selected) return null;
+    try {
+      if (selected.target) {
+        const result = BridgeDispatch.getInstance().resolveTargets({
+          locator: selected.target.locator,
+        });
+        return result.status === 'resolved'
+          ? document.querySelector<HTMLElement>(result.targets[0].selector)
+          : null;
+      }
+      const matches = selected.dataDs
+        ? Array.from(
+            document.querySelectorAll<HTMLElement>('[data-ds]'),
+          ).filter(
+            (element) => element.getAttribute('data-ds') === selected.dataDs,
+          )
+        : Array.from(document.querySelectorAll<HTMLElement>(selected.selector));
+      return matches.length === 1 ? matches[0] : null;
+    } catch {
+      return null;
+    }
   }
 }
