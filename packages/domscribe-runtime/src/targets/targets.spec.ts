@@ -238,4 +238,16 @@ describe('reviewed target lifecycle regressions', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(document.querySelector(target.selector)).toBeNull();
   });
+  it('revokes copied selectors when synchronous re-description retires the original identity', async () => {
+    const runtime = await setup('<button data-ds="aB3dEf7h">Edit</button>');
+    const button = required(document.querySelector('button'));
+    const old = required(runtime.describeTarget(button));
+    document.body.append(button.cloneNode(true));
+    button.textContent = 'Changed';
+    runtime.describeTarget(button);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.querySelectorAll(old.selector)).toHaveLength(0);
+    runtime.cleanup();
+    expect(document.querySelectorAll(old.selector)).toHaveLength(0);
+  });
 });

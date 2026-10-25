@@ -79,7 +79,7 @@ export class TargetRegistry {
       instanceId &&
       this.instances.get(instanceId)?.fingerprint !== fingerprint
     ) {
-      this.instances.delete(instanceId);
+      this.retire(instanceId, element);
       instanceId = undefined;
     }
     if (!instanceId) {

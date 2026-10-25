@@ -1,6 +1,6 @@
 # Instance Selection and Replay Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Select the correct rendered instance and replay captured targets in a fresh browser session without guessing.
 
@@ -31,9 +31,9 @@
 
 **Interfaces:** `PortableLocator`, `ElementTarget`, `TargetQuery`, `TargetResolution`; `RuntimeManager.queryTargets(query)` and `describeTarget(element)`; target registry resolves exact/portable targets without context capture.
 
-- [ ] Write and run failing real-DOM tests: three shared IDs resolve ambiguously; exact Lyra selection survives sort; removal/recycling invalidates a handle; portable locator resolves after fresh DOM creation; duplicate/changed scope and wrong route fail; privacy filtering excludes blocked targets.
-- [ ] Implement bounded locator matching, instance lifecycle, strict source lookup and runtime APIs. Preserve legacy count/entry-ID contracts.
-- [ ] Run runtime and core suites; commit the tested contracts and registry.
+- [x] Write and run failing real-DOM tests: three shared IDs resolve ambiguously; exact Lyra selection survives sort; removal/recycling invalidates a handle; portable locator resolves after fresh DOM creation; duplicate/changed scope and wrong route fail; privacy filtering excludes blocked targets.
+- [x] Implement bounded locator matching, instance lifecycle, strict source lookup and runtime APIs. Preserve legacy count/entry-ID contracts.
+- [x] Run runtime and core suites; commit the tested contracts and registry.
 
 ### Task 2: Replay and annotation persistence
 
@@ -41,9 +41,9 @@
 
 **Interfaces:** `ReplayTrace`, `ReplayStep`, `ReplayDriver`, `replaySteps(trace, driver)`; `RuntimeManager.createReplayStep(element, action)`; optional `SelectedElement.target` stores an `ElementTarget`.
 
-- [ ] Write and run failing tests: resolve each portable step anew, stop on ambiguity or action error, reject unsafe/redacted recording, preserve legacy annotations, and locate the intended repeated annotation after remount.
-- [ ] Implement schema validation, driver sequencing and annotation integration. Legacy source/selector fallback is unique-only.
-- [ ] Run core/runtime/overlay suites; commit the replay and annotation paths.
+- [x] Write and run failing tests: resolve each portable step anew, stop on ambiguity or action error, reject unsafe/redacted recording, preserve legacy annotations, and locate the intended repeated annotation after remount.
+- [x] Implement schema validation, driver sequencing and annotation integration. Legacy source/selector fallback is unique-only.
+- [x] Run core/runtime/overlay suites; commit the replay and annotation paths.
 
 ### Task 3: Relay and agent target queries
 
@@ -51,14 +51,14 @@
 
 **Interfaces:** `POST /api/v1/targets/query`, `domscribe.targets.query`, `WSServer.requestTargets(query)`; source query optionally accepts `instanceId` or `locator`, returns target status/candidates.
 
-- [ ] Write and run failing boundary tests for request validation, ambiguous selection, exact instance context, multiple-browser refusal and MCP serialization.
-- [ ] Implement request/response plumbing using published-style serializable contracts, and source query selection forwarding.
-- [ ] Run relay/core/runtime/overlay suites and affected builds/lint; commit.
+- [x] Write and run failing boundary tests for request validation, ambiguous selection, exact instance context, multiple-browser refusal and MCP serialization.
+- [x] Implement request/response plumbing using published-style serializable contracts, and source query selection forwarding.
+- [x] Run relay/core/runtime/overlay suites and affected builds/lint; commit.
 
 ### Task 4: Real-browser replay and review
 
 **Files:** add focused consumer/browser regression harness and usage documentation.
 
-- [ ] Build local packages, install them into an isolated consumer, capture UI steps, recreate Chromium context, replay through real browser actions, assert wrong-row ambiguity is refused and selected row is correct.
-- [ ] Run configured full unit suites and affected lint/build checks uncached with bounded workers. Record actual tested scope and failures.
-- [ ] Obtain a fresh whole-branch review, address material findings with regression tests, and commit final documentation/evidence references. Do not merge or publish.
+- [x] Build local packages, install them into an isolated consumer, capture UI steps, recreate Chromium context, replay through real browser actions, assert wrong-row ambiguity is refused and selected row is correct.
+- [x] Run configured full unit suites and affected lint/build checks uncached with bounded workers. Record actual tested scope and failures.
+- [x] Obtain a fresh whole-branch review, address material findings with regression tests, and commit final documentation/evidence references. Do not merge or publish.
