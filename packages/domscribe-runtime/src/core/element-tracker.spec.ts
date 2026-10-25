@@ -868,9 +868,9 @@ describe('ElementTracker', () => {
 
       mockDomUtils.hasDsId.mockReturnValue(false);
       mockDomUtils.getAllDsElements.mockReturnValue([child1, child2]);
-      mockDomUtils.getDsIdFromElement
-        .mockReturnValueOnce('elem001')
-        .mockReturnValueOnce('elem002');
+      mockDomUtils.getDsIdFromElement.mockImplementation(
+        (element: HTMLElement) => element.getAttribute('data-ds'),
+      );
 
       // Need to setup hasDsId for children
       const originalHasDsId = mockDomUtils.hasDsId;
@@ -923,9 +923,9 @@ describe('ElementTracker', () => {
       tracker.trackElement(child2);
 
       mockDomUtils.getAllDsElements.mockReturnValue([child1, child2]);
-      mockDomUtils.getDsIdFromElement
-        .mockReturnValueOnce('elem001')
-        .mockReturnValueOnce('elem002');
+      mockDomUtils.getDsIdFromElement.mockImplementation(
+        (element: HTMLElement) => element.getAttribute('data-ds'),
+      );
 
       const mutation = createMutationRecord('childList', [], [parent]);
 

@@ -10,7 +10,13 @@
  * @module @domscribe/runtime/core/runtime-manager
  */
 
-import type { ManifestEntryId, RuntimeContext } from '@domscribe/core';
+import type {
+  ElementTarget,
+  ManifestEntryId,
+  RuntimeContext,
+  TargetQueryInput,
+  TargetResolution,
+} from '@domscribe/core';
 import type { RuntimeOptions, ElementInfo } from './types.js';
 import type { CaptureOptions } from '../capture/types.js';
 import { ElementTracker } from './element-tracker.js';
@@ -19,6 +25,7 @@ import { NoopAdapter } from '../adapters/noop-adapter.js';
 import { RuntimeNotInitializedError, RuntimeError } from '../errors/index.js';
 import { isHTMLElement } from '../utils/validation.js';
 import { FrameworkAdapter } from '../adapters/adapter.interface.js';
+import { TargetRegistry } from '../targets/target-registry.js';
 
 /**
  * RuntimeManager singleton class
@@ -30,6 +37,7 @@ export class RuntimeManager {
 
   private elementTracker: ElementTracker | null = null;
   private contextCapturer: ContextCapturer | null = null;
+  private targets: TargetRegistry | null = null;
   private options: Required<
     Omit<RuntimeOptions, 'serialization' | 'styleOptions'>
   > &
@@ -116,6 +124,13 @@ export class RuntimeManager {
 
       // Start observing DOM
       this.elementTracker.observeDOM();
+      if (typeof document !== 'undefined') {
+        this.targets = new TargetRegistry({
+          document,
+          blocked: (element) => this.isElementBlocked(element),
+          redact: this.options.redactPII,
+        });
+      }
 
       // Initialize context capturer
       this.contextCapturer = new ContextCapturer({
@@ -192,6 +207,28 @@ export class RuntimeManager {
         error instanceof Error ? error : undefined,
       );
     }
+  }
+
+  describeTarget(element: HTMLElement): ElementTarget | null {
+    return this.isInitialized
+      ? (this.targets?.describe(element) ?? null)
+      : null;
+  }
+
+  /** Never capture context until a target has resolved to one exact instance. */
+  async queryTargets(
+    query: TargetQueryInput,
+  ): Promise<TargetResolution & { context?: RuntimeContext }> {
+    if (!this.isInitialized || !this.targets)
+      return { status: 'not_ready', targets: [], total: 0 };
+    const result = this.targets.query(query);
+    if (result.status !== 'resolved') return result;
+    const element = this.targets.getElement(result.targets[0].instanceId);
+    if (!element) return { status: 'stale', targets: [], total: 0 };
+    const context = await this.captureContextForElement(element);
+    if (!this.targets?.getElement(result.targets[0].instanceId))
+      return { status: 'stale', targets: [], total: 0 };
+    return { ...result, context: context ?? undefined };
   }
 
   /**
@@ -310,6 +347,8 @@ export class RuntimeManager {
    * Cleanup and dispose
    */
   cleanup(): void {
+    this.targets?.dispose();
+    this.targets = null;
     if (this.elementTracker) {
       this.elementTracker.dispose();
       this.elementTracker = null;
@@ -356,7 +395,7 @@ export class RuntimeManager {
 
     return this.options.blockSelectors.some((selector) => {
       try {
-        return element.matches(selector);
+        return element.closest(selector) !== null;
       } catch {
         return false;
       }
