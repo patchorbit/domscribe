@@ -30,8 +30,8 @@
 
 - [x] Add representative bounded CI cases and accurate docs for passing paths; rerun default React/Vue regressions.
 - [x] Run affected configured checks and obtain independent review; address material findings with regressions.
-- [ ] Push focused PR, inspect latest CI, and record final status.
-- [ ] Update continuity ledger with exact evidence and remaining realistic-app/lifecycle gaps. Do not claim readiness or measured user advantage prematurely.
+- [x] Push focused PR, inspect latest CI, and record status in the continuity ledger.
+- [x] Update continuity ledger with exact evidence and remaining realistic-app/lifecycle gaps. Do not claim readiness or measured user advantage prematurely.
 
 ## Execution evidence
 
@@ -41,4 +41,4 @@
 - All eight representative consumer combinations passed eight browser checks each. No console/page/network errors. Latest process-helper reruns: Next16/pnpm, Nuxt3/npm and Vue/pnpm also passed eight each.
 - Full uncached configured unit suite passed2114 tests in11 projects (test dependencies already built; excluded dependency tasks to avoid concurrent artifact mutation).
 - Independent review found one P2: direct-child build timeout could leave workers. Reproduced surviving worker on timeout and cleaned it; replaced with detached owned-group async build, TERM/KILL deadline and retained logs. Two process regression tests pass; focused re-review has no material findings. Applied bounded polling to avoid a termination-signal race in its Linux test.
-- Whole-branch readiness/push and real-site navigation evidence remain in progress.
+- PR78 pushed with fresh CI; inspect current checks in the continuity ledger. Real-site verification passed four dev capture/replay/navigation checks, three production checks, and four controlled HMR/mobile checks. HMR manifest propagation required bounded source-resolution retry; documented this limit. All temporary website source/config changes were restored; no website commit or deployment.
