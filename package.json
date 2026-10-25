@@ -41,8 +41,8 @@
     "@swc/core": "1.15.8",
     "@swc/helpers": "0.5.19",
     "@types/node": "25.3.3",
-    "@vitest/coverage-v8": "4.1.12",
-    "@vitest/ui": "4.1.12",
+    "@vitest/coverage-v8": "5.0.5",
+    "@vitest/ui": "5.0.5",
     "ajv": "^8.20.0",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
@@ -58,7 +58,7 @@
     "verdaccio": "^6.11.1",
     "vite": "^7.3.7",
     "vite-plugin-dts": "~4.5.4",
-    "vitest": "4.1.12"
+    "vitest": "5.0.5"
   },
   "workspaces": [
     "packages/*",
