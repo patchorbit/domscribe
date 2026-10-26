@@ -193,6 +193,202 @@ function required<T>(value: T | null | undefined): T {
   return value;
 }
 
+describe('semantic row identity', () => {
+  afterEach(() => {
+    RuntimeManager.resetInstance();
+    document.body.innerHTML = '';
+  });
+
+  it('revokes a retained table button when its visible business row is recycled', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML =
+      '<table><tbody><tr><td>Invoice 1042</td><td><button data-ds="aB3dEf7h">Retry</button></td></tr></tbody></table>';
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize();
+    const button = required(document.querySelector('button'));
+    const target = required(runtime.describeTarget(button));
+    required(document.querySelector('td')).textContent = 'Invoice 2048';
+    expect(
+      (await runtime.queryTargets({ instanceId: target.instanceId })).status,
+    ).toBe('stale');
+    expect(document.querySelector(target.selector)).toBeNull();
+  });
+
+  it.each([
+    [
+      'table',
+      '<table><tbody>',
+      '</tbody></table>',
+      '<tr><td>',
+      '</td><td><button data-ds="aB3dEf7h">Edit</button></td></tr>',
+    ],
+    [
+      'list',
+      '<ul>',
+      '</ul>',
+      '<li><span>',
+      '</span><button data-ds="aB3dEf7h">Edit</button></li>',
+    ],
+    [
+      'ARIA row',
+      '<div role="table">',
+      '</div>',
+      '<div role="row"><span>',
+      '</span><button data-ds="aB3dEf7h">Edit</button></div>',
+    ],
+    [
+      'ARIA list item',
+      '<div role="list">',
+      '</div>',
+      '<div role="listitem"><span>',
+      '</span><button data-ds="aB3dEf7h">Edit</button></div>',
+    ],
+  ])(
+    'replays a %s action using sibling business text after a fresh session and reorder',
+    async (_, open, close, rowOpen, rowClose) => {
+      window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+      document.body.innerHTML =
+        open +
+        rowOpen +
+        'Lyra' +
+        rowClose +
+        rowOpen +
+        'Vega' +
+        rowClose +
+        close;
+      let runtime = RuntimeManager.getInstance();
+      await runtime.initialize();
+      const target = required(
+        runtime.describeTarget(required(document.querySelector('button'))),
+      );
+      const locator = JSON.parse(JSON.stringify(target.locator));
+      RuntimeManager.resetInstance();
+      document.body.innerHTML =
+        open +
+        rowOpen +
+        'Vega' +
+        rowClose +
+        rowOpen +
+        'Lyra' +
+        rowClose +
+        close;
+      runtime = RuntimeManager.getInstance();
+      await runtime.initialize();
+      const result = await runtime.queryTargets({ locator });
+      expect(result.status).toBe('resolved');
+      expect(document.querySelector(result.targets[0].selector)).toBe(
+        document.querySelectorAll('button')[1],
+      );
+    },
+  );
+
+  it('preserves a row handle on moves but refuses duplicate visible row identity', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML =
+      '<ul><li>Lyra<button data-ds="aB3dEf7h">Edit</button></li><li>Vega<button data-ds="aB3dEf7h">Edit</button></li></ul>';
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize();
+    const button = required(document.querySelector('button'));
+    const target = required(runtime.describeTarget(button));
+    required(document.querySelector('ul')).append(
+      required(button.parentElement),
+    );
+    expect(
+      (await runtime.queryTargets({ instanceId: target.instanceId })).status,
+    ).toBe('resolved');
+    required(document.querySelector('ul')).append(
+      required(button.parentElement).cloneNode(true),
+    );
+    expect(
+      (await runtime.queryTargets({ locator: target.locator })).status,
+    ).toBe('ambiguous');
+  });
+
+  it('does not confuse row cell text that has the same concatenated value', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML =
+      '<table><tbody><tr><td>AB</td><td>C</td><td><button data-ds="aB3dEf7h">Edit</button></td></tr></tbody></table>';
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize();
+    const target = required(
+      runtime.describeTarget(required(document.querySelector('button'))),
+    );
+    document.querySelectorAll('td')[0].textContent = 'A';
+    document.querySelectorAll('td')[1].textContent = 'BC';
+    expect(
+      (await runtime.queryTargets({ instanceId: target.instanceId })).status,
+    ).toBe('stale');
+    expect(
+      (await runtime.queryTargets({ locator: target.locator })).status,
+    ).toBe('not_found');
+  });
+
+  it('omits private and editable row descendants and ignores form value changes', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML =
+      '<ul><li>Invoice 1042<span class="private">hidden billing detail</span><textarea>draft secret</textarea><span contenteditable>editable secret</span><input value="private value"><button data-ds="aB3dEf7h">Retry</button></li></ul>';
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize({ blockSelectors: ['.private'] });
+    const target = required(
+      runtime.describeTarget(required(document.querySelector('button'))),
+    );
+    const serialized = JSON.stringify(target.locator);
+    for (const secret of [
+      'hidden billing detail',
+      'draft secret',
+      'editable secret',
+      'private value',
+    ])
+      expect(serialized).not.toContain(secret);
+    required(document.querySelector('input')).value = 'new private value';
+    required(document.querySelector('textarea')).value = 'another draft';
+    expect(
+      (await runtime.queryTargets({ instanceId: target.instanceId })).status,
+    ).toBe('resolved');
+    expect(
+      (await runtime.queryTargets({ locator: target.locator })).status,
+    ).toBe('resolved');
+  });
+
+  it('redacts row identity and refuses portable replay of the redacted identity', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML =
+      '<ul><li>person@example.com<button data-ds="aB3dEf7h">Edit</button></li></ul>';
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize();
+    const target = required(
+      runtime.describeTarget(required(document.querySelector('button'))),
+    );
+    expect(JSON.stringify(target.locator)).not.toContain('person@example.com');
+    expect(
+      (await runtime.queryTargets({ locator: target.locator })).status,
+    ).toBe('not_found');
+  });
+
+  it('refuses over-limit row identity and invalidates changes beyond its bounded prefix', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML =
+      '<ul><li><span>' +
+      'x'.repeat(128) +
+      'A</span><button data-ds="aB3dEf7h">Edit</button></li></ul>';
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize();
+    const button = required(document.querySelector('button'));
+    const target = required(runtime.describeTarget(button));
+    expect(
+      (await runtime.queryTargets({ locator: target.locator })).status,
+    ).toBe('unsupported');
+    expect(() =>
+      runtime.createReplayStep(button, { action: 'click' }),
+    ).toThrow();
+    required(document.querySelector('span')).textContent =
+      'x'.repeat(128) + 'B';
+    expect(
+      (await runtime.queryTargets({ instanceId: target.instanceId })).status,
+    ).toBe('stale');
+  });
+});
+
 describe('reviewed target lifecycle regressions', () => {
   afterEach(() => {
     RuntimeManager.resetInstance();

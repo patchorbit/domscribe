@@ -19,6 +19,7 @@ const IDENTITY_ATTRIBUTES = [
   'role',
 ] as const;
 const INSTANCE_ATTRIBUTE = 'data-ds-instance';
+const SEMANTIC_ROW_SELECTOR = 'tr, li, [role="row"], [role="listitem"]';
 const normalize = (value: string) => value.replace(/\s+/g, ' ').trim();
 interface Instance {
   element: WeakRef<HTMLElement>;
@@ -227,6 +228,11 @@ export class TargetRegistry {
       attributes,
     };
     if (scope) {
+      // Repeated row actions often have no label/ID on their container. Keep
+      // sibling business text as a constraint, including in local fingerprints,
+      // so a virtualized DOM slot cannot silently become another entity.
+      if (element.matches(SEMANTIC_ROW_SELECTOR))
+        identity.text = this.text(element, true);
       const heading = Array.from(element.children).find((child) =>
         /^H[1-6]$/.test(child.tagName),
       );
@@ -243,7 +249,7 @@ export class TargetRegistry {
   }
 
   /** Form/editable values and blocked descendants are never locator identity. */
-  private text(element: HTMLElement): string {
+  private text(element: HTMLElement, segments = false): string {
     const walker = this.options.document.createTreeWalker(
       element,
       4 /* SHOW_TEXT */,
@@ -263,7 +269,11 @@ export class TargetRegistry {
       }
       node = walker.nextNode();
     }
-    return normalize(chunks.join(''));
+    // Preserve segment boundaries for row identity: cells "AB"/"C" must not
+    // collide with "A"/"BC". Values/editable/private text remain excluded.
+    return segments
+      ? JSON.stringify(chunks.map(normalize).filter(Boolean))
+      : normalize(chunks.join(''));
   }
 
   private locator(element: HTMLElement, bounded = true): PortableLocator {
@@ -275,7 +285,11 @@ export class TargetRegistry {
       ancestors.length < 4
     ) {
       const identity = this.identity(ancestor, true);
-      if (Object.keys(identity.attributes).length || identity.heading)
+      if (
+        Object.keys(identity.attributes).length ||
+        identity.heading ||
+        identity.text
+      )
         ancestors.push(identity);
       ancestor = ancestor.parentElement;
     }
@@ -329,6 +343,7 @@ export class TargetRegistry {
   private matchesIdentity(
     element: HTMLElement,
     identity: LocatorIdentity,
+    scope = false,
   ): boolean {
     if (element.tagName.toLowerCase() !== identity.tagName) return false;
     if (
@@ -337,7 +352,11 @@ export class TargetRegistry {
       )
     )
       return false;
-    if (identity.text !== undefined && this.text(element) !== identity.text)
+    if (
+      identity.text !== undefined &&
+      this.text(element, scope && element.matches(SEMANTIC_ROW_SELECTOR)) !==
+        identity.text
+    )
       return false;
     if (identity.heading !== undefined) {
       const heading = Array.from(element.children).find((child) =>
@@ -353,7 +372,7 @@ export class TargetRegistry {
     if (!this.matchesIdentity(element, locator.element)) return false;
     let ancestor = element.parentElement;
     for (const scope of locator.ancestors) {
-      while (ancestor && !this.matchesIdentity(ancestor, scope))
+      while (ancestor && !this.matchesIdentity(ancestor, scope, true))
         ancestor = ancestor.parentElement;
       if (!ancestor) return false;
       ancestor = ancestor.parentElement;

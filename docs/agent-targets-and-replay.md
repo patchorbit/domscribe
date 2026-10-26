@@ -20,6 +20,8 @@ Only `resolved` identifies one exact target and returns its available runtime co
 
 Handles survive DOM moves. Removed/recycled targets and changed source or identity constraints invalidate them. Never persist a handle as the only identity for a later session. Browser drivers still check visibility, enabled state, overlays and normal actionability; discovery does not imply that an element can be clicked immediately.
 
+Semantic table rows and list items (`tr`, `li`, `[role="row"]`, and `[role="listitem"]`) also constrain actions using their non-private, non-editable text. An ordinary row with a customer name beside an unlabeled Edit button can therefore be identified without adding a test ID. Row text changes retire local handles, including when a virtualized or position-keyed list retains the same action DOM node. Text segments remain separate so differently divided cell values cannot collide by concatenation. Input values and blocked/editable descendants are excluded. Duplicate rows remain ambiguous; long or redacted identity still stops portable replay. Changes to other visible row content may conservatively require a new capture.
+
 ## Explicit recording
 
 In the instrumented page's JavaScript context:
@@ -70,9 +72,9 @@ NX_DAEMON=false pnpm exec nx run-many -t build,sync-dist \
   --exclude domscribe-test-fixtures --parallel=2 --skipNxCache
 node scripts/verify-instance-replay.mjs
 node scripts/verify-instance-replay.mjs --framework=vue --package-manager=pnpm \
-  --vite-version=5.4.21 --report-dir=/tmp/vue-replay-evidence
+  --vite-version=5.4.21 --scope=list --report-dir=/tmp/vue-replay-evidence
 node scripts/verify-instance-replay.mjs --framework=next --package-manager=pnpm \
-  --framework-version=16.4.3 --report-dir=/tmp/next-replay-evidence
+  --framework-version=16.4.3 --scope=table --report-dir=/tmp/next-replay-evidence
 node scripts/verify-instance-replay.mjs --framework=nuxt --package-manager=npm \
   --framework-version=3.21.11 --report-dir=/tmp/nuxt-replay-evidence
 ```
@@ -93,6 +95,10 @@ CI runs eight representative combinations, with at most two replay jobs simultan
 | Nuxt SSR                    | Nuxt4.6.2 / Vue3.5.44     | pnpm            |
 
 The default remains React18/npm/Vite7. Use `--framework-version` for exact Next15/16 or Nuxt3/4 releases; use `--vite-version` for React/Vue consumers. Mixed or unsupported flags are rejected. Native SSR consumers use their framework integrations and normal hydration, not the Vite SPA integration. Nuxt excludes the runtime from Vite prebundling so its native plugin and consumer queries share one runtime on cold startup. Each run checks actual installed versions, expected framework source, and local runtime resolution.
+
+`--scope=article` keeps the original labeled-card fixture. `--scope=table` and `--scope=list` use sibling business text with no added row label or test ID. They deliberately retain position-keyed action nodes during a customer replacement and verify that old handles/selectors retire, old portable identity does not resolve, the new runtime props belong to the replacement, and only that customer's UI data changes. CI runs the Vue/pnpm/Vite5 case as a list and the Next16/pnpm case as a table. The other six cases retain article coverage.
+
+The [real-application acceptance matrix](./real-app-acceptance.md) records separate maintained-application tests and their installation/actionability limits.
 
 These are representative synthetic regression cases, not the full version/manager/router matrix or an adoption benchmark. Additional local testing on the Domscribe website (Next16.4.3 / React19.2.4) verified exact installation-tab source/state among six repeated instances, persisted replay after a fresh browser session, safe page-navigation failure, mobile navigation state/replay after reload, and controlled HMR identity changes without resurrecting retired handles. Its production build and UI also worked without instrumentation. This is one maintained app, not evidence for every router, virtualized list, framework version, or agent workflow advantage. Package installs use local tarballs, with explicit pnpm local-artifact overrides so unpublished artifacts cannot be replaced by registry copies. This is not evidence that the new APIs are in the published npm release.
 
