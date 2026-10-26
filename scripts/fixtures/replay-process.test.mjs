@@ -85,8 +85,66 @@ test(
         for (const pid of JSON.parse(fs.readFileSync(marker, 'utf8'))) {
           try {
             process.kill(pid, 'SIGKILL');
-          } catch {}
+          } catch {
+            /* Best-effort cleanup/readiness; the owned process may already be gone. */
+          }
         }
+      fs.rmSync(cwd, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  'cancellation stops a running command group before its ordinary deadline',
+  { timeout: 5000 },
+  async () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'replay-cancel-test-'));
+    const marker = path.join(cwd, 'pid');
+    const controller = new AbortController();
+    let pid;
+    try {
+      const pending = runOwnedBuild(
+        process.execPath,
+        [
+          '-e',
+          `require('node:fs').writeFileSync(${JSON.stringify(marker)},String(process.pid));process.on('SIGTERM',()=>{});setInterval(()=>{},1000);`,
+        ],
+        {
+          cwd,
+          logPath: path.join(cwd, 'log'),
+          timeoutMs: 1000,
+          graceMs: 50,
+          signal: controller.signal,
+        },
+      );
+      while (!fs.existsSync(marker))
+        await new Promise((r) => setTimeout(r, 10));
+      pid = Number(fs.readFileSync(marker, 'utf8'));
+      const started = Date.now();
+      controller.abort();
+      await assert.rejects(pending, /cancelled/);
+      assert(
+        Date.now() - started < 750,
+        'cancellation must not wait for the normal deadline',
+      );
+      let alive = false;
+      try {
+        alive = !fs
+          .readFileSync(`/proc/${pid}/stat`, 'utf8')
+          .split(') ')[1]
+          .startsWith('Z');
+      } catch (e) {
+        if (e.code !== 'ENOENT') throw e;
+      }
+      assert.equal(alive, false);
+    } finally {
+      if (pid) {
+        try {
+          process.kill(pid, 'SIGKILL');
+        } catch {
+          /* Best-effort cleanup/readiness; the owned process may already be gone. */
+        }
+      }
       fs.rmSync(cwd, { recursive: true, force: true });
     }
   },

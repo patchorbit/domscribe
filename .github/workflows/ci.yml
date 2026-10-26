@@ -40,9 +40,11 @@ jobs:
         run: |
           pnpm exec tsx --test scripts/cloud/*.test.ts
           pnpm exec tsc -p scripts/cloud/tsconfig.cloud.json
-          pnpm exec eslint scripts/cloud/*.ts --max-warnings=0
+          pnpm exec eslint scripts/cloud/*.ts scripts/cloud/repair-*.mjs scripts/fixtures/replay-process*.mjs --max-warnings=0
+          for file in scripts/cloud/repair-*.mjs; do node --check "$file"; done
           bash -n scripts/cloud/bootstrap.sh
           pnpm exec tsx scripts/cloud/run.ts --help
+          pnpm exec tsx scripts/cloud/repair-run.ts --help
 
       - run: pnpm exec nx run-many -t lint test build typecheck --exclude domscribe-test-fixtures
 
