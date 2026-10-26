@@ -185,7 +185,17 @@ jobs:
         with:
           name: package-dist
           path: dist/packages/
+      # GitHub's Ubuntu mirror can stall before Playwright reaches its own download.
+      # Keep signed apt sources and fail normally if dependencies cannot be installed.
+      - name: Bound package mirror network waits
+        run: |
+          sudo tee /etc/apt/apt.conf.d/99-domscribe-network-timeouts > /dev/null <<'APT'
+          Acquire::Retries "1";
+          Acquire::http::Timeout "15";
+          Acquire::https::Timeout "15";
+          APT
       - name: Install Chromium
+        timeout-minutes: 5
         run: pnpm --filter @domscribe/test-fixtures exec playwright install --with-deps chromium
       - name: Replay persisted captures in a fresh browser session
         run: >-
@@ -289,7 +299,15 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Bound package mirror network waits
+        run: |
+          sudo tee /etc/apt/apt.conf.d/99-domscribe-network-timeouts > /dev/null <<'APT'
+          Acquire::Retries "1";
+          Acquire::http::Timeout "15";
+          Acquire::https::Timeout "15";
+          APT
       - name: Install Playwright browsers
+        timeout-minutes: 5
         run: pnpm --filter @domscribe/test-fixtures exec playwright install --with-deps chromium
 
       - name: Download registry storage
