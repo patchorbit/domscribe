@@ -199,6 +199,71 @@ describe('semantic row identity', () => {
     document.body.innerHTML = '';
   });
 
+  it('keeps complete local identity and refuses portable ancestor overflow instead of dropping business scope', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML =
+      '<article aria-label="Invoice 1042"><ul><li><div role="group"><div role="group"><div role="group"><button data-ds="aB3dEf7h">Edit</button></div></div></div></li></ul></article>';
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize();
+    const target = required(
+      runtime.describeTarget(required(document.querySelector('button'))),
+    );
+    expect(
+      (await runtime.queryTargets({ locator: target.locator })).status,
+    ).toBe('unsupported');
+    required(document.querySelector('article')).setAttribute(
+      'aria-label',
+      'Invoice 2048',
+    );
+    expect(
+      (await runtime.queryTargets({ instanceId: target.instanceId })).status,
+    ).toBe('stale');
+    expect(document.querySelector(target.selector)).toBeNull();
+  });
+
+  it.each([
+    [
+      'email',
+      '<span>person</span><span>@example.com</span>',
+      'person',
+      '<span>another</span><span>@example.com</span>',
+    ],
+    [
+      'card',
+      '<span>4111</span><span>1111</span><span>1111</span><span>1111</span>',
+      '4111',
+      '<span>5555</span><span>5555</span><span>5555</span><span>4444</span>',
+    ],
+    [
+      'phone',
+      '<span>415</span><span>555</span><span>2671</span>',
+      '2671',
+      '<span>212</span><span>555</span><span>0199</span>',
+    ],
+  ])(
+    'redacts split %s before segment encoding while retaining raw local invalidation',
+    async (_, content, secretPart, replacement) => {
+      window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+      document.body.innerHTML =
+        '<ul><li><section>' +
+        content +
+        '</section><button data-ds="aB3dEf7h">Edit</button></li></ul>';
+      const runtime = RuntimeManager.getInstance();
+      await runtime.initialize();
+      const target = required(
+        runtime.describeTarget(required(document.querySelector('button'))),
+      );
+      expect(JSON.stringify(target.locator)).not.toContain(secretPart);
+      expect(
+        (await runtime.queryTargets({ locator: target.locator })).status,
+      ).toBe('not_found');
+      required(document.querySelector('section')).innerHTML = replacement;
+      expect(
+        (await runtime.queryTargets({ instanceId: target.instanceId })).status,
+      ).toBe('stale');
+    },
+  );
+
   it('revokes a retained table button when its visible business row is recycled', async () => {
     window.__DOMSCRIBE_RELAY_PORT__ = 6412;
     document.body.innerHTML =

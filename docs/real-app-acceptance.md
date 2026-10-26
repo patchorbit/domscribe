@@ -26,4 +26,6 @@ The repository consumer harness also exercises a Next16/pnpm semantic table and 
 
 Unit regressions cover native and ARIA table/list scopes, sibling-identity changes, stable moves, duplicate identities, text-segment collisions, private/editable values, redaction and over-limit identity. Five initial tests failed against the original runtime, including an old invoice handle incorrectly remaining `resolved`. A browser table run against the old artifacts also stopped instead of completing portable replay.
 
+Independent review reproduced two additional gaps before delivery: a new row scope displaced outer business identity at the four-scope boundary, and segment encoding allowed split PII to evade pattern matching. Regression tests now require complete local ancestor fingerprints, explicit portable overflow refusal and pre-encoding redaction of split email/card/phone values while still invalidating local handles when that raw identity changes.
+
 These results establish a limited acceptance matrix, not support for every framework, router, virtualizer or business workflow. Long/redacted or indistinguishable rows may require new application labels or a new capture. Shadow DOM, frames, general session restoration and native cloud repair remain outside these tests. Release readiness and real developer demand require separate evidence.

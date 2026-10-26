@@ -22,6 +22,8 @@ Handles survive DOM moves. Removed/recycled targets and changed source or identi
 
 Semantic table rows and list items (`tr`, `li`, `[role="row"]`, and `[role="listitem"]`) also constrain actions using their non-private, non-editable text. An ordinary row with a customer name beside an unlabeled Edit button can therefore be identified without adding a test ID. Row text changes retire local handles, including when a virtualized or position-keyed list retains the same action DOM node. Text segments remain separate so differently divided cell values cannot collide by concatenation. Input values and blocked/editable descendants are excluded. Duplicate rows remain ambiguous; long or redacted identity still stops portable replay. Changes to other visible row content may conservatively require a new capture.
 
+PII is checked before segment encoding, including email/card/phone values split across text nodes; sensitive row identity is redacted as a whole and cannot be replayed. Local fingerprints retain complete raw ancestor constraints privately. If more than four identified ancestor scopes are needed, the portable locator is explicitly unsupported rather than silently dropping an outer business identity. The same applies when raw identity exceeds size limits even if redaction would shorten it.
+
 ## Explicit recording
 
 In the instrumented page's JavaScript context:
