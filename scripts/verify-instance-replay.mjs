@@ -21,12 +21,18 @@ import {
 const { values } = parseArgs({
   options: {
     framework: { type: 'string', default: 'react' },
+    scope: { type: 'string', default: 'article' },
     'package-manager': { type: 'string', default: 'npm' },
     'vite-version': { type: 'string' },
     'report-dir': { type: 'string' },
     'framework-version': { type: 'string' },
   },
 });
+const scope = values.scope;
+assert(
+  ['article', 'table', 'list'].includes(scope),
+  'scope must be article, table or list',
+);
 const framework = values.framework,
   manager = values['package-manager'],
   viteVersion = values['vite-version'] ?? '7.3.7';
@@ -65,6 +71,7 @@ const evidence = {
   at: new Date().toISOString(),
   node: process.version,
   framework,
+  scope,
   packageManager: manager,
   requestedVite: project.ssr ? undefined : viteVersion,
   requestedFrameworkVersion: project.ssr ? project.requestedVersion : undefined,
@@ -155,7 +162,7 @@ try {
     );
     throw error;
   }
-  writeReplayConsumer(consumer, framework);
+  writeReplayConsumer(consumer, framework, scope);
 
   async function freePort() {
     const server = net.createServer();
@@ -170,7 +177,9 @@ try {
       try {
         const value = await fn();
         if (value) return value;
-      } catch {}
+      } catch {
+        // A starting server/relay may reject requests until its next poll.
+      }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     throw new Error('Timed out waiting for dev server/browser readiness');
@@ -290,17 +299,26 @@ try {
     async () =>
       (await client.queryTargets({ mode: 'list' })).status === 'listed',
   );
-  const edit = page
-    .getByRole('article', { name: 'Lyra', exact: true })
-    .getByRole('button', { name: 'Edit' });
+  function customer(page, name) {
+    return scope === 'article'
+      ? page.getByRole('article', { name, exact: true })
+      : page
+          .getByRole(scope === 'table' ? 'row' : 'listitem')
+          .filter({ has: page.getByText(name, { exact: true }) });
+  }
+  const edit = customer(page, 'Lyra').getByRole('button', { name: 'Edit' });
   const selected = await edit.evaluate((element) =>
     window.__runtime.describeTarget(element),
   );
-  const source = await (
-    await fetch(
+  assert(selected?.entryId, 'The selected action must be instrumented');
+  const source = await until(async () => {
+    const response = await fetch(
       `http://127.0.0.1:${relayPort}/api/v1/manifest/resolve?id=${selected.entryId}`,
-    )
-  ).json();
+    );
+    const result = await response.json();
+    // The runtime can connect before the manifest's batched write/poll lands.
+    return response.ok && result.entry ? result : null;
+  });
   const bySource = await client.queryBySource({
     file: source.entry.file,
     line: source.entry.start.line,
@@ -426,24 +444,15 @@ try {
   assert.equal(replay.status, 'completed');
   assert.equal(replay.completed, 4);
   assert.equal(
-    await page
-      .getByRole('article', { name: 'Lyra', exact: true })
-      .locator('strong')
-      .innerText(),
+    await customer(page, 'Lyra').locator('strong').innerText(),
     'Austin',
   );
   assert.equal(
-    await page
-      .getByRole('article', { name: 'Orion', exact: true })
-      .locator('strong')
-      .innerText(),
+    await customer(page, 'Orion').locator('strong').innerText(),
     'Seattle',
   );
   assert.equal(
-    await page
-      .getByRole('article', { name: 'Vega', exact: true })
-      .locator('strong')
-      .innerText(),
+    await customer(page, 'Vega').locator('strong').innerText(),
     'Denver',
   );
   check(
@@ -461,6 +470,64 @@ try {
   assert.equal(stopped.reason, 'ambiguous');
   assert.equal(stopped.completed, 0);
   check('ambiguous replay stops before any action', {});
+  if (scope !== 'article') {
+    const edit = customer(page, 'Lyra').getByRole('button', { name: 'Edit' });
+    const retained = await edit.elementHandle();
+    const before = await edit.evaluate((element) =>
+      window.__runtime.describeTarget(element),
+    );
+    await page
+      .getByRole('button', { name: 'Recycle Lyra', exact: true })
+      .click();
+    const replacement = customer(page, 'Aster').getByRole('button', {
+      name: 'Edit',
+    });
+    assert(
+      await replacement.evaluate(
+        (element, retained) => element === retained,
+        retained,
+      ),
+      'Fixture must genuinely reuse the same action DOM node',
+    );
+    assert.equal(
+      (await client.queryTargets({ instanceId: before.instanceId })).status,
+      'stale',
+    );
+    assert.equal(await page.locator(before.selector).count(), 0);
+    assert.equal(
+      (await client.queryTargets({ locator: before.locator })).status,
+      'not_found',
+    );
+    const current = await replacement.evaluate((element) =>
+      window.__runtime.describeTarget(element),
+    );
+    const live = await client.queryTargets({ instanceId: current.instanceId });
+    assert.equal(live.context.componentProps.customer.id, 'c4');
+    assert.equal(live.context.componentProps.customer.name, 'Aster');
+    await replacement.click();
+    await page.getByRole('textbox', { name: 'Shipping city' }).fill('Tucson');
+    await page
+      .getByRole('checkbox', { name: 'Confirm shipping change' })
+      .check();
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    assert.equal(
+      await customer(page, 'Aster').locator('strong').innerText(),
+      'Tucson',
+    );
+    assert.equal(
+      await customer(page, 'Orion').locator('strong').innerText(),
+      'Seattle',
+    );
+    assert.equal(
+      await customer(page, 'Vega').locator('strong').innerText(),
+      'Denver',
+    );
+    await retained.dispose();
+    check(
+      'recycled action node retires its old target; recaptured runtime and UI address only the new business entity',
+      { old: 'c2', current: 'c4' },
+    );
+  }
   assert.deepEqual(errors, []);
   assert.deepEqual(consoleErrors, []);
   assert.deepEqual(networkErrors, []);
@@ -498,8 +565,7 @@ try {
     await production.locator('[data-ds], [data-ds-instance]').count(),
     0,
   );
-  await production
-    .getByRole('article', { name: 'Lyra', exact: true })
+  await customer(production, 'Lyra')
     .getByRole('button', { name: 'Edit' })
     .click();
   await production
@@ -518,17 +584,11 @@ try {
     .check();
   await production.getByRole('button', { name: 'Save', exact: true }).click();
   assert.equal(
-    await production
-      .getByRole('article', { name: 'Lyra', exact: true })
-      .locator('strong')
-      .innerText(),
+    await customer(production, 'Lyra').locator('strong').innerText(),
     'Dallas',
   );
   assert.equal(
-    await production
-      .getByRole('article', { name: 'Orion', exact: true })
-      .locator('strong')
-      .innerText(),
+    await customer(production, 'Orion').locator('strong').innerText(),
     'Seattle',
   );
   assert.deepEqual(errors, []);
@@ -563,7 +623,9 @@ try {
     if (relay.workspaceRoot === consumer) {
       try {
         process.kill(relay.pid, 'SIGTERM');
-      } catch {}
+      } catch {
+        // The owned server group may already have stopped its relay.
+      }
     }
   }
   fs.writeFileSync(

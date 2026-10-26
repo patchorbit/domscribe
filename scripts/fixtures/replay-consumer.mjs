@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export function writeReplayConsumer(consumer, appFramework) {
+export function writeReplayConsumer(consumer, appFramework, scope = 'article') {
   const framework =
     appFramework === 'next'
       ? 'react'
@@ -101,6 +101,55 @@ function App(){const[customers,setCustomers]=useState([{id:'c1',name:'Orion',cit
 createRoot(document.getElementById('root')).render(<App/>);
 `,
     );
+  }
+  if (scope !== 'article') {
+    const table = scope === 'table';
+    if (framework === 'vue') {
+      const cardPath = path.join(source, 'Card.vue');
+      const card = fs.readFileSync(cardPath, 'utf8');
+      fs.writeFileSync(
+        cardPath,
+        card.replace(
+          /<article :aria-label="customer.name">[\s\S]*?<\/article>/,
+          table
+            ? '<tr><td>{{ customer.name }}</td><td><strong>{{ customer.city }}</strong></td><td><button @click="emit(\'edit\', customer)">Edit</button></td></tr>'
+            : '<li><span>{{ customer.name }}</span><strong>{{ customer.city }}</strong><button @click="emit(\'edit\', customer)">Edit</button></li>',
+        ),
+      );
+      const appPath = path.join(source, 'App.vue');
+      let app = fs.readFileSync(appPath, 'utf8');
+      app = app.replace(
+        '<Card v-for="customer in sorted" :key="customer.id" :customer="customer" @edit="editing = $event" />',
+        (table ? '<table><tbody>' : '<ul>') +
+          '<Card v-for="(customer, index) in sorted" :key="index" :customer="customer" @edit="editing = $event" />' +
+          (table ? '</tbody></table>' : '</ul>'),
+      );
+      app = app.replace(
+        '<button @click="reverse = !reverse">Sort</button>',
+        "<button @click=\"reverse = !reverse\">Sort</button><button @click=\"customers = customers.map(c => c.id === 'c2' ? {id: 'c4',name: 'Aster',city: 'Boston'} : c)\">Recycle Lyra</button>",
+      );
+      fs.writeFileSync(appPath, app);
+    } else {
+      const appPath = path.join(source, 'main.jsx');
+      let app = fs.readFileSync(appPath, 'utf8');
+      app = app.replace(
+        '<article aria-label={customer.name}><h2>{customer.name}</h2><strong>{customer.city}</strong><button onClick={()=>onEdit(customer)}>Edit</button></article>',
+        table
+          ? '<tr><td>{customer.name}</td><td><strong>{customer.city}</strong></td><td><button onClick={()=>onEdit(customer)}>Edit</button></td></tr>'
+          : '<li><span>{customer.name}</span><strong>{customer.city}</strong><button onClick={()=>onEdit(customer)}>Edit</button></li>',
+      );
+      app = app.replace(
+        '{sorted.map(customer=><Card key={customer.id} customer={customer} onEdit={setEditing}/>)}',
+        (table ? '<table><tbody>' : '<ul>') +
+          '{sorted.map((customer,index)=><Card key={index} customer={customer} onEdit={setEditing}/>)}' +
+          (table ? '</tbody></table>' : '</ul>'),
+      );
+      app = app.replace(
+        '<button onClick={()=>setReverse(x=>!x)}>Sort</button>',
+        "<button onClick={()=>setReverse(x=>!x)}>Sort</button><button onClick={()=>setCustomers(all=>all.map(c=>c.id==='c2'?{id:'c4',name:'Aster',city:'Boston'}:c))}>Recycle Lyra</button>",
+      );
+      fs.writeFileSync(appPath, app);
+    }
   }
   if (appFramework === 'next') {
     fs.rmSync(path.join(consumer, 'index.html'));

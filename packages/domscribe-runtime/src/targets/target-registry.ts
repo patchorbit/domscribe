@@ -19,6 +19,7 @@ const IDENTITY_ATTRIBUTES = [
   'role',
 ] as const;
 const INSTANCE_ATTRIBUTE = 'data-ds-instance';
+const SEMANTIC_ROW_SELECTOR = 'tr, li, [role="row"], [role="listitem"]';
 const normalize = (value: string) => value.replace(/\s+/g, ' ').trim();
 interface Instance {
   element: WeakRef<HTMLElement>;
@@ -63,9 +64,12 @@ export class TargetRegistry {
     });
   }
 
-  private fingerprint(element: HTMLElement): string {
+  private fingerprint(
+    element: HTMLElement,
+    locator = this.locator(element),
+  ): string {
     return JSON.stringify({
-      locator: this.locator(element, false),
+      locator,
       entryId: element.getAttribute('data-ds'),
     });
   }
@@ -73,7 +77,16 @@ export class TargetRegistry {
   describe(element: HTMLElement): ElementTarget | null {
     if (!this.eligible(element)) return null;
     const rawLocator = this.locator(element);
-    const fingerprint = this.fingerprint(element);
+    const fingerprint = this.fingerprint(element, rawLocator);
+    const portableLocator = this.options.redact
+      ? (redactPII(this.locator(element, true)) as PortableLocator)
+      : rawLocator;
+    // Redaction may shorten identity, but cannot turn raw overflow into a
+    // supported locator. It must also happen before any exported truncation.
+    const locator = this.boundLocator({
+      ...portableLocator,
+      unsupportedReason: this.boundLocator(rawLocator).unsupportedReason,
+    });
     let instanceId = this.handles.get(element);
     if (
       instanceId &&
@@ -95,11 +108,7 @@ export class TargetRegistry {
       instanceId,
       entryId: element.getAttribute('data-ds') ?? undefined,
       selector: `[${INSTANCE_ATTRIBUTE}="${instanceId}"]`,
-      locator: this.boundLocator(
-        (this.options.redact
-          ? redactPII(rawLocator)
-          : rawLocator) as PortableLocator,
-      ),
+      locator,
       disabled: element.matches(':disabled, [aria-disabled="true"]'),
       inputType:
         element.tagName === 'INPUT'
@@ -216,7 +225,11 @@ export class TargetRegistry {
     );
   }
 
-  private identity(element: HTMLElement, scope = false): LocatorIdentity {
+  private identity(
+    element: HTMLElement,
+    scope = false,
+    redactSegments = false,
+  ): LocatorIdentity {
     const attributes: Record<string, string> = {};
     for (const name of IDENTITY_ATTRIBUTES) {
       const value = element.getAttribute(name);
@@ -227,6 +240,11 @@ export class TargetRegistry {
       attributes,
     };
     if (scope) {
+      // Repeated row actions often have no label/ID on their container. Keep
+      // sibling business text as a constraint, including in local fingerprints,
+      // so a virtualized DOM slot cannot silently become another entity.
+      if (element.matches(SEMANTIC_ROW_SELECTOR))
+        identity.text = this.text(element, true, redactSegments);
       const heading = Array.from(element.children).find((child) =>
         /^H[1-6]$/.test(child.tagName),
       );
@@ -243,7 +261,11 @@ export class TargetRegistry {
   }
 
   /** Form/editable values and blocked descendants are never locator identity. */
-  private text(element: HTMLElement): string {
+  private text(
+    element: HTMLElement,
+    segments = false,
+    redactSegments = false,
+  ): string {
     const walker = this.options.document.createTreeWalker(
       element,
       4 /* SHOW_TEXT */,
@@ -263,19 +285,35 @@ export class TargetRegistry {
       }
       node = walker.nextNode();
     }
-    return normalize(chunks.join(''));
+    if (segments && redactSegments) {
+      // JSON punctuation can split an email/card across otherwise adjacent
+      // text nodes. Detect it before encoding, and never export its pieces.
+      for (const text of [
+        normalize(chunks.join('')),
+        normalize(chunks.join(' ')),
+      ])
+        if (redactPII(text) !== text) return '[REDACTED_ROW]';
+    }
+    // Preserve segment boundaries for row identity: cells "AB"/"C" must not
+    // collide with "A"/"BC". Values/editable/private text remain excluded.
+    return segments
+      ? JSON.stringify(chunks.map(normalize).filter(Boolean))
+      : normalize(chunks.join(''));
   }
 
-  private locator(element: HTMLElement, bounded = true): PortableLocator {
+  private locator(
+    element: HTMLElement,
+    redactSegments = false,
+  ): PortableLocator {
     const ancestors: LocatorIdentity[] = [];
     let ancestor = element.parentElement;
-    while (
-      ancestor &&
-      ancestor !== this.options.document.body &&
-      ancestors.length < 4
-    ) {
-      const identity = this.identity(ancestor, true);
-      if (Object.keys(identity.attributes).length || identity.heading)
+    while (ancestor && ancestor !== this.options.document.body) {
+      const identity = this.identity(ancestor, true, redactSegments);
+      if (
+        Object.keys(identity.attributes).length ||
+        identity.heading ||
+        identity.text
+      )
         ancestors.push(identity);
       ancestor = ancestor.parentElement;
     }
@@ -285,12 +323,14 @@ export class TargetRegistry {
       element: this.identity(element),
       ancestors,
     };
-    return bounded ? this.boundLocator(locator) : locator;
+    return locator;
   }
 
   private boundLocator(locator: PortableLocator): PortableLocator {
     let unsupported =
-      !!locator.unsupportedReason || locator.pathname.length > 2048;
+      !!locator.unsupportedReason ||
+      locator.pathname.length > 2048 ||
+      locator.ancestors.length > 4;
     const bound = (identity: LocatorIdentity): LocatorIdentity => {
       if (
         identity.tagName.length > 64 ||
@@ -318,7 +358,7 @@ export class TargetRegistry {
       ...locator,
       pathname: locator.pathname.slice(0, 2048),
       element: bound(locator.element),
-      ancestors: locator.ancestors.map(bound),
+      ancestors: locator.ancestors.slice(0, 4).map(bound),
     };
     return {
       ...result,
@@ -329,6 +369,7 @@ export class TargetRegistry {
   private matchesIdentity(
     element: HTMLElement,
     identity: LocatorIdentity,
+    scope = false,
   ): boolean {
     if (element.tagName.toLowerCase() !== identity.tagName) return false;
     if (
@@ -337,7 +378,11 @@ export class TargetRegistry {
       )
     )
       return false;
-    if (identity.text !== undefined && this.text(element) !== identity.text)
+    if (
+      identity.text !== undefined &&
+      this.text(element, scope && element.matches(SEMANTIC_ROW_SELECTOR)) !==
+        identity.text
+    )
       return false;
     if (identity.heading !== undefined) {
       const heading = Array.from(element.children).find((child) =>
@@ -353,7 +398,7 @@ export class TargetRegistry {
     if (!this.matchesIdentity(element, locator.element)) return false;
     let ancestor = element.parentElement;
     for (const scope of locator.ancestors) {
-      while (ancestor && !this.matchesIdentity(ancestor, scope))
+      while (ancestor && !this.matchesIdentity(ancestor, scope, true))
         ancestor = ancestor.parentElement;
       if (!ancestor) return false;
       ancestor = ancestor.parentElement;

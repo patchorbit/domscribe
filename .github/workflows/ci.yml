@@ -156,7 +156,7 @@ jobs:
           - id: vue-pnpm-vite5
             framework: vue
             package-manager: pnpm
-            version-args: '--vite-version=5.4.21'
+            version-args: '--vite-version=5.4.21 --scope=list'
           - id: next15-npm-webpack
             framework: next
             package-manager: npm
@@ -164,7 +164,7 @@ jobs:
           - id: next16-pnpm-turbopack
             framework: next
             package-manager: pnpm
-            version-args: '--framework-version=16.4.3'
+            version-args: '--framework-version=16.4.3 --scope=table'
           - id: nuxt3-npm
             framework: nuxt
             package-manager: npm
