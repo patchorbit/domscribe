@@ -83,7 +83,7 @@ node scripts/verify-instance-replay.mjs --framework=nuxt --package-manager=npm \
 
 The harness installs local tarballs into a temporary consumer, uses the fixture project's existing Playwright dependency and installed Chromium, persists an annotation, closes the browser context, reorders rows in a fresh context, and replays the same four UI steps through the relay. Assertions cover exact mapped source/props, committed editor state after typing/checking, stale handles after unmount and across sessions, ambiguity refusal, application console/page/network failures, production instrumentation removal (including conditional editors), and correct production UI updates.
 
-CI runs eight representative combinations, with at most two replay jobs simultaneously:
+CI runs ten representative combinations, with at most two replay jobs simultaneously:
 
 | Integration                 | Consumer versions         | Package manager |
 | --------------------------- | ------------------------- | --------------- |
@@ -91,6 +91,8 @@ CI runs eight representative combinations, with at most two replay jobs simultan
 | React/Vite                  | React18.3.1 / Vite5.4.21  | pnpm            |
 | Vue/Vite                    | Vue3.5.44 / Vite7.3.7     | npm             |
 | Vue/Vite                    | Vue3.5.44 / Vite5.4.21    | pnpm            |
+| React/Vite                  | React18.3.1 / Vite8.3.5   | pnpm            |
+| Vue/Vite                    | Vue3.5.44 / Vite8.0.10    | npm             |
 | Next App Router / Webpack   | Next15.5.28 / React19.3.1 | npm             |
 | Next App Router / Turbopack | Next16.4.3 / React19.3.1  | pnpm            |
 | Nuxt SSR                    | Nuxt3.21.11 / Vue3.5.44   | npm             |
@@ -98,7 +100,9 @@ CI runs eight representative combinations, with at most two replay jobs simultan
 
 The default remains React18/npm/Vite7. Use `--framework-version` for exact Next15/16 or Nuxt3/4 releases; use `--vite-version` for React/Vue consumers. Mixed or unsupported flags are rejected. Native SSR consumers use their framework integrations and normal hydration, not the Vite SPA integration. Nuxt excludes the runtime from Vite prebundling so its native plugin and consumer queries share one runtime on cold startup. Each run checks actual installed versions, expected framework source, and local runtime resolution.
 
-`--scope=article` keeps the original labeled-card fixture. `--scope=table` and `--scope=list` use sibling business text with no added row label or test ID. They deliberately retain position-keyed action nodes during a customer replacement and verify that old handles/selectors retire, old portable identity does not resolve, the new runtime props belong to the replacement, and only that customer's UI data changes. CI runs the Vue/pnpm/Vite5 case as a list and the Next16/pnpm case as a table. The other six cases retain article coverage.
+`--scope=article` keeps the original labeled-card fixture. `--scope=table` and `--scope=list` use sibling business text with no added row label or test ID. They deliberately retain position-keyed action nodes during a customer replacement and verify that old handles/selectors retire, old portable identity does not resolve, the new runtime props belong to the replacement, and only that customer's UI data changes. CI runs Vue/pnpm/Vite5 and Vue/npm/Vite8 as lists, and Next16/pnpm and React/pnpm/Vite8 as tables. The other six cases retain article coverage.
+
+Vite8 consumers use the compatible official React6.1.2/Vue6.0.6 plugins. Older Vite5–7 fixture paths keep their existing plugins. [Vite8](https://vite.dev/blog/announcing-vite8) requires Node20.19+ or22.12+; qualification here uses Node24.22.1. The installed-package checks separately install only the adapter, framework and Vite through an isolated local registry, without adding transitive packages or dependency overrides. They typecheck a normal Vite configuration and check that virtual browser modules serve one shared runtime. Vite8 peer support and these APIs remain unpublished until the next package release; npm0.6.1 still declares Vite5–7 support.
 
 The [real-application acceptance matrix](./real-app-acceptance.md) records separate maintained-application tests and their installation/actionability limits.
 
