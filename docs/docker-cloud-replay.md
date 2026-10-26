@@ -60,4 +60,4 @@ bash -n scripts/cloud/bootstrap.sh
 
 The SDK is a private development dependency, pinned at 0.53.0. Its `undici` dependency is narrowly overridden to 6.29.1 to include the upstream security patch; it does not enter Domscribe's public package exports.
 
-The next milestone is an agent attempting a realistic, deliberately broken UI task in this environment, with evidence that its fix changes the expected behavior. GitHub issue ingestion, repository write credentials and opening fix PRs are separate work after that experiment.
+The next experiment is the [agent repair pilot](./cloud-agent-repair-pilot.md), with independent grading of the exported fix. Its local and cloud results are reported separately. GitHub issue ingestion, repository write credentials and opening fix PRs remain separate work.

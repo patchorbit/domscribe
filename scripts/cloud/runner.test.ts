@@ -53,7 +53,8 @@ interface FakeOptions {
 }
 function fake(options: FakeOptions = {}) {
   const calls: string[] = [];
-  let launchInput: KitLaunchOptions | undefined,
+  let launchKit: string | undefined,
+    launchInput: KitLaunchOptions | undefined,
     createdOptions: CallOptions | undefined,
     cleanupSignal: AbortSignal | undefined,
     executionSignal: AbortSignal | undefined;
@@ -153,6 +154,7 @@ function fake(options: FakeOptions = {}) {
     kits: {
       async launch(_kit, input, call) {
         calls.push('launch');
+        launchKit = _kit;
         launchInput = input;
         createdOptions = call;
         if (options.launchError)
@@ -186,6 +188,9 @@ function fake(options: FakeOptions = {}) {
     client,
     calls,
     bytes,
+    get launchKit() {
+      return launchKit;
+    },
     get launchInput() {
       return launchInput;
     },
@@ -359,4 +364,53 @@ test('cancellation during streaming detaches and deletes the accepted sandbox wi
   assert(f.calls.includes('deleted'));
   assert(controller.signal.aborted);
   assert(f.cleanupSignal && !f.cleanupSignal.aborted);
+});
+
+test('controlled agent workload launches the selected kit with a secret reference and retains required extra evidence', async () => {
+  const f = fake();
+  f.bytes.set(
+    'repair-report.json',
+    Buffer.from('{"kind":"controller-evidence"}'),
+  );
+  const r = await exercise(f, {
+    kit: 'codex',
+    secretReferences: ['secrets/00000000-0000-4000-8000-000000000000'],
+    extraArtifacts: ['repair-report.json'],
+  });
+  assert.equal(r.status, 'passed');
+  assert.equal(f.launchKit, 'codex');
+  assert.deepEqual(f.launchInput?.storage, {
+    secrets: ['secrets/00000000-0000-4000-8000-000000000000'],
+  });
+  assert(r.artifacts.includes('repair-report.json'));
+});
+test('agent evidence cannot overwrite local journals or escape the evidence directory', async () => {
+  for (const extraArtifacts of [
+    ['cloud-result.json'],
+    ['../escape'],
+    ['bootstrap.log'],
+  ]) {
+    const f = fake();
+    const r = await exercise(f, { extraArtifacts });
+    assert.equal(r.status, 'failed');
+    assert(!f.calls.includes('launch'));
+  }
+});
+test('missing requested repair evidence fails even when the ordinary replay smoke passes', async () => {
+  const f = fake();
+  const r = await exercise(f, { extraArtifacts: ['repair-report.json'] });
+  assert.equal(r.status, 'failed');
+  assert.equal(r.cloud.deletion, 'confirmed');
+});
+test('agent launches require a provider resource reference, never a token value', async () => {
+  for (const secretReferences of [
+    [],
+    ['sk-never-transmit-test-value'],
+    ['secrets/../../other'],
+  ]) {
+    const f = fake();
+    const r = await exercise(f, { kit: 'codex', secretReferences });
+    assert.equal(r.status, 'failed');
+    assert(!f.calls.includes('launch'));
+  }
 });

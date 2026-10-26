@@ -99,6 +99,7 @@ export interface CloudRunReport {
   source: { repository: string; commit: string };
   sdkVersion?: string;
   cloud: {
+    kit?: 'shell' | 'codex';
     name?: string;
     uid?: string;
     resources: 'medium';
@@ -111,6 +112,9 @@ export interface CloudRunReport {
   browser?: Record<string, unknown>;
 }
 export interface RunOptions {
+  kit?: 'shell' | 'codex';
+  secretReferences?: readonly string[];
+  extraArtifacts?: readonly string[];
   commit: string;
   reportDir: string;
   bootstrap: string;
@@ -254,6 +258,7 @@ export async function runCloudReplay(
     source: { repository: SOURCE_REPOSITORY, commit: options.commit },
     sdkVersion: options.sdkVersion,
     cloud: {
+      kit: options.kit ?? 'shell',
       resources: 'medium',
       ttlMs: 30 * 60 * 1000,
       deletion: 'not_created',
@@ -267,6 +272,9 @@ export async function runCloudReplay(
     phase = 'input',
     output: number | undefined,
     writable = false;
+  let artifacts: readonly string[] = ARTIFACTS;
+  const extraArtifacts = options.extraArtifacts ?? [];
+  const secretReferences = options.secretReferences ?? [];
   const timeout = options.timeoutMs ?? 25 * 60 * 1000,
     cleanupMs = options.cleanupMs ?? 60000;
   const save = () => {
@@ -287,6 +295,45 @@ export async function runCloudReplay(
     options.onProgress?.(next);
   };
   try {
+    ensure(
+      ['shell', 'codex'].includes(options.kit ?? 'shell'),
+      'Unsupported controlled workload kit',
+    );
+    ensure(
+      Array.isArray(secretReferences) &&
+        secretReferences.every(
+          (ref) =>
+            typeof ref === 'string' &&
+            /^secrets\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(
+              ref,
+            ),
+        ),
+      'Provider references must be secret resource names',
+    );
+    ensure(
+      (options.kit ?? 'shell') === 'codex'
+        ? secretReferences.length === 1
+        : secretReferences.length === 0,
+      'Codex requires one provider reference; shell smoke requires none',
+    );
+    ensure(
+      Array.isArray(extraArtifacts) &&
+        extraArtifacts.length <= 8 &&
+        new Set(extraArtifacts).size === extraArtifacts.length &&
+        extraArtifacts.every(
+          (name) =>
+            typeof name === 'string' &&
+            /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,79}$/.test(name) &&
+            ![
+              ...ARTIFACTS,
+              'cloud-result.json',
+              'cloud-result.json.tmp',
+              'bootstrap.log',
+            ].includes(name),
+        ),
+      'Unsafe, duplicate or reserved extra artifact',
+    );
+    artifacts = [...ARTIFACTS, ...extraArtifacts];
     ensure(
       /^[a-f0-9]{40}$/.test(options.commit),
       'Use an exact lowercase40-character source commit',
@@ -311,12 +358,15 @@ export async function runCloudReplay(
     report.cloud.deletion = 'unknown_creation';
     save();
     owned = await client.kits.launch(
-      'shell',
+      options.kit ?? 'shell',
       {
         displayName: `domscribe-replay-${report.runId}`,
         resources: 'medium',
         lifecycle: { timeoutMs: report.cloud.ttlMs, onTimeout: 'delete' },
         labels: { domscribeRunId: report.runId },
+        ...(secretReferences.length
+          ? { storage: { secrets: [...secretReferences] } }
+          : {}),
       },
       {
         ...execution,
@@ -415,7 +465,7 @@ export async function runCloudReplay(
       phase = 'artifacts';
       const transfer = call(60000);
       let total = 0;
-      for (const name of ARTIFACTS) {
+      for (const name of artifacts) {
         try {
           const bytes = await running.files.read(
             `${REMOTE_REPORT}/${name}`,
@@ -442,7 +492,7 @@ export async function runCloudReplay(
       }
       if (report.failures.length === 0) {
         try {
-          for (const name of REQUIRED_ARTIFACTS)
+          for (const name of [...REQUIRED_ARTIFACTS, ...extraArtifacts])
             ensure(
               report.artifacts.includes(name),
               `Missing required artifact: ${name}`,
