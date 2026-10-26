@@ -177,7 +177,9 @@ try {
       try {
         const value = await fn();
         if (value) return value;
-      } catch {}
+      } catch {
+        // A starting server/relay may reject requests until its next poll.
+      }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     throw new Error('Timed out waiting for dev server/browser readiness');
@@ -621,7 +623,9 @@ try {
     if (relay.workspaceRoot === consumer) {
       try {
         process.kill(relay.pid, 'SIGTERM');
-      } catch {}
+      } catch {
+        // The owned server group may already have stopped its relay.
+      }
     }
   }
   fs.writeFileSync(

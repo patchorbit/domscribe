@@ -10,6 +10,8 @@ Sprint 1 tests useful workflows in maintained applications alongside controlled 
 
 The TodoMVC workflows passed on October26 with Vue3.5.33, Vue Router4.6.4, plugin-vue6.0.6, Vite7.3.7, Node24.22.1 and Chromium156.0.8078.4. Application components and their handlers were unchanged; test setup adds Domscribe's Vite plugin and a development-only runtime inspection hook in an isolated worktree. The app stores tasks in component memory, so the driver explicitly recreates prerequisite data through UI after a fresh session. That preparation is not evidence of automatic state restoration.
 
+The website's three functional checks passed on October26 with Next16.4.3/React19.2.4 and Chromium156.0.8078.4. There were no page exceptions. Local production hosting returned two metrics-script 404s (`/_vercel/insights/script.js` and `/_vercel/speed-insights/script.js`), retained separately from the functional results; do not describe this local run as having zero console/network errors. Deployment-hosted metrics are a separate website-health check.
+
 ## Installation and browser-action limits
 
 The upstream TodoMVC frozen npm install succeeded with its Vite8.0.10 lockfile. Adding Domscribe then failed with `ERESOLVE`: Domscribe's Vue integration declares Vite5–7 support. The successful integration test explicitly pinned Vite7.3.7 in the isolated harness. This is a supported-version test with a workaround, **not a clean Vite8 installation success**. Vite8 support needs separate compatibility work and fresh tests before changing peer ranges.
