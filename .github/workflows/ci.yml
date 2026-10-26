@@ -36,6 +36,9 @@ jobs:
       - name: Verify browser harness build cleanup
         run: node --test scripts/fixtures/replay-process.test.mjs
 
+      - name: Verify browser runner mirror preparation
+        run: node --test scripts/fixtures/browser-mirrors.test.mjs
+
       - name: Verify Docker cloud runner offline
         run: |
           pnpm exec tsx --test scripts/cloud/*.test.ts
@@ -193,7 +196,14 @@ jobs:
         with:
           name: package-dist
           path: dist/packages/
+      # Prefer the runner's existing Ubuntu archive mirrors over its slow Azure mirror.
+      # Preserve package sources, signatures and Azure as a final fallback.
+      - name: Prepare browser dependency mirrors
+        run: |
+          node scripts/fixtures/browser-mirrors.mjs /etc/apt/apt-mirrors.txt "${RUNNER_TEMP}/domscribe-apt-mirrors.txt"
+          sudo install -m 644 "${RUNNER_TEMP}/domscribe-apt-mirrors.txt" /etc/apt/apt-mirrors.txt
       - name: Install Chromium
+        timeout-minutes: 5
         run: pnpm --filter @domscribe/test-fixtures exec playwright install --with-deps chromium
       - name: Replay persisted captures in a fresh browser session
         run: >-
@@ -297,7 +307,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Prepare browser dependency mirrors
+        run: |
+          node scripts/fixtures/browser-mirrors.mjs /etc/apt/apt-mirrors.txt "${RUNNER_TEMP}/domscribe-apt-mirrors.txt"
+          sudo install -m 644 "${RUNNER_TEMP}/domscribe-apt-mirrors.txt" /etc/apt/apt-mirrors.txt
       - name: Install Playwright browsers
+        timeout-minutes: 5
         run: pnpm --filter @domscribe/test-fixtures exec playwright install --with-deps chromium
 
       - name: Download registry storage
