@@ -180,6 +180,23 @@ try {
     '<!doctype html><html><body><h1>Installed package regression</h1></body></html>',
   );
   run(manager, ['install', '--ignore-scripts'], consumer);
+  const typedConfig = join(consumer, 'vite.config.mts');
+  writeFileSync(
+    typedConfig,
+    `import { defineConfig } from 'vite';\nimport { domscribe } from '@domscribe/${framework}/vite';\nexport default defineConfig({plugins:[domscribe({relay:{autoStart:false}})]});\n`,
+  );
+  run(process.execPath, [
+    require.resolve('typescript/bin/tsc'),
+    '--noEmit',
+    '--skipLibCheck',
+    '--module',
+    'NodeNext',
+    '--moduleResolution',
+    'NodeNext',
+    '--target',
+    'ES2022',
+    typedConfig,
+  ]);
   run(process.execPath, [
     join(workspace, 'scripts/check-installed-vite.mjs'),
     consumer,
