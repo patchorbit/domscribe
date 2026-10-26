@@ -36,6 +36,14 @@ jobs:
       - name: Verify browser harness build cleanup
         run: node --test scripts/fixtures/replay-process.test.mjs
 
+      - name: Verify Docker cloud runner offline
+        run: |
+          pnpm exec tsx --test scripts/cloud/*.test.ts
+          pnpm exec tsc -p scripts/cloud/tsconfig.cloud.json
+          pnpm exec eslint scripts/cloud/*.ts --max-warnings=0
+          bash -n scripts/cloud/bootstrap.sh
+          pnpm exec tsx scripts/cloud/run.ts --help
+
       - run: pnpm exec nx run-many -t lint test build typecheck --exclude domscribe-test-fixtures
 
       - name: Update coverage badge
