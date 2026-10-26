@@ -116,7 +116,7 @@ jobs:
       matrix:
         package-manager: [npm, pnpm]
         framework: [react, vue]
-        vite: ['5.4.21', '7.3.7']
+        vite: ['5.4.21', '7.3.7', '8.3.5']
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -157,6 +157,14 @@ jobs:
             framework: vue
             package-manager: pnpm
             version-args: '--vite-version=5.4.21 --scope=list'
+          - id: react-pnpm-vite8
+            framework: react
+            package-manager: pnpm
+            version-args: '--vite-version=8.3.5 --scope=table'
+          - id: vue-npm-vite8
+            framework: vue
+            package-manager: npm
+            version-args: '--vite-version=8.0.10 --scope=list'
           - id: next15-npm-webpack
             framework: next
             package-manager: npm

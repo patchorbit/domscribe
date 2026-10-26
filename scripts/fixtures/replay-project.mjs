@@ -31,7 +31,14 @@ export function replayProject(framework, version, viteVersion) {
   else
     Object.assign(dependencies, {
       vite: viteVersion,
-      [`@vitejs/plugin-${ui}`]: ui === 'react' ? '4.7.0' : '6.0.4',
+      [`@vitejs/plugin-${ui}`]:
+        ui === 'react'
+          ? viteVersion.startsWith('8.')
+            ? '6.1.2'
+            : '4.7.0'
+          : viteVersion.startsWith('8.')
+            ? '6.0.6'
+            : '6.0.4',
     });
   const next15 = framework === 'next' && frameworkVersion.startsWith('15.');
   const cli =

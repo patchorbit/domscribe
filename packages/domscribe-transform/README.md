@@ -14,9 +14,11 @@ npm install -D @domscribe/transform
 
 | Bundler   | Plugin                                 | Parser                   |
 | --------- | -------------------------------------- | ------------------------ |
-| Vite 5-7  | `@domscribe/transform/plugins/vite`    | Acorn (JS/JSX) or VueSFC |
+| Vite 5-8  | `@domscribe/transform/plugins/vite`    | Acorn (JS/JSX) or VueSFC |
 | Webpack 5 | `@domscribe/transform/plugins/webpack` | Babel (TS/JSX) or VueSFC |
 | Turbopack | Self-initializing loader               | Babel (TS/JSX)           |
+
+Vite 8 compatibility is in source and awaits the next release; published npm 0.6.1 declares Vite 5-7 support.
 
 ## Configuration
 

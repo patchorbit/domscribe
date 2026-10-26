@@ -89,7 +89,7 @@ Click any element in the browser overlay, describe the change in plain English, 
 
 - 🎯 **Build-time stable IDs** — deterministic `data-ds` attributes injected via AST, stable across HMR and fast refresh
 - 🧩 **Framework-agnostic** — React 18-19, Vue 3, Next.js 15-16, Nuxt 3+, with an [extensible adapter interface](./packages/domscribe-runtime/CUSTOM_ADAPTERS.md)
-- 📦 **Any bundler** — Vite 5-7, Webpack 5, Turbopack
+- 📦 **Any bundler** — Vite 5-8, Webpack 5, Turbopack (Vite 8 support is on main and awaits the next release; npm 0.6.1 supports Vite 5-7)
 - 🔍 **Deep runtime capture** — live props, state, and DOM snapshots via React fiber walking and Vue VNode inspection
 - 🛡️ **Zero production impact** — all instrumentation stripped in production builds, enforced in CI
 - 🔒 **PII redaction** — emails, tokens, and sensitive patterns automatically scrubbed before leaving the browser

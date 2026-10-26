@@ -50,8 +50,8 @@ assert(
   'package-manager must be npm or pnpm',
 );
 assert(
-  /^[567]\.\d+\.\d+$/.test(viteVersion),
-  'vite-version must be an exact Vite 5/6/7 release',
+  /^[5678]\.\d+\.\d+$/.test(viteVersion),
+  'vite-version must be an exact Vite 5/6/7/8 release',
 );
 const reportDirectory = values['report-dir']
   ? path.resolve(values['report-dir'])
