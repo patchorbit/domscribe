@@ -36,7 +36,7 @@ For a healthy control, compare the same commit, or commit a harmless heading cla
 
 ## Results and evidence
 
-The private output directory is mode0700. It retains `report.json`, `comment.md`, `proposal.json`, a bounded diff, raw agent/app/install logs and browser screenshots. Raw logs/screenshots may contain repository/UI data: review before sharing. The draft omits raw transcripts and host paths; artifact links are relative local links, not hosted URLs.
+The private output directory is mode0700. It retains `report.json`, `comment.md`, `proposal.json`, a bounded diff, raw agent/app/install logs and browser screenshots. Raw logs/screenshots may contain repository/UI data: review before sharing. The draft omits raw transcripts and replaces agent-authored uncovered reasons with a stable message; private report details may contain host paths and need review; artifact links are relative local links, not hosted URLs.
 
 - **regression**: all actions complete, approved base observations pass, and the same expectations fail with the same actual values on both fresh head runs.
 - **passed**: those approved observations pass all three runs. This says nothing about unexplored behavior.
@@ -51,7 +51,7 @@ For an already instrumented synthetic-data app, install `@domscribe/mcp` as a di
 
 ## Current limits
 
-Plans support click, fill, check, select, Enter/Escape/Tab and same-origin pathname navigation. Targets use exact accessible role/name, optional literal visible-text filtering and one named accessible ancestor. Empty accessible names are explicit and still must resolve uniquely. No CSS/nth/first fallback, arbitrary verification JS, hover, double-click, file/password inputs, storage seeding, backend restoration or login restoration. Main-document controls and synthetic local app data are the qualified scope. Cross-origin assets/API dependencies are blocked during independent replay. Missing targets remain inconclusive, even when their disappearance might be a real regression.
+Plans support click, fill, check, select, Enter/Escape/Tab and same-origin pathname navigation. Targets use exact accessible role/name, optional literal visible-text filtering and one named accessible ancestor. Empty accessible names are explicit and still must resolve uniquely. No CSS/nth/first fallback, arbitrary verification JS, hover, double-click, file/password inputs, storage seeding, backend restoration or login restoration. Main-document controls and synthetic local app data are the qualified scope. Cross-origin HTTP assets/API dependencies and WebSocket handshakes are blocked during independent replay; the app origin’s corresponding WebSocket origin is allowed for local HMR. These browser controls are not an OS network firewall. Missing targets remain inconclusive, even when their disappearance might be a real regression.
 
 Each phase has a fresh browser context, but a persistent backend would still share server state; do not infer reset/independence of backend data. Observation waits are bounded, not proof that all asynchronous work finished. Console/page error counts are recorded and need interpretation; they are not automatically classified as PR bugs. Expected contracts can intentionally change in a PR and need human maintenance.
 
@@ -62,12 +62,14 @@ pnpm exec tsc -p scripts/investigation/tsconfig.investigation.json
 pnpm exec eslint scripts/investigation --max-warnings=0
 ```
 
-## Recorded acceptance, October27,2026
+## Recorded acceptance, October 27, 2026
 
 Two fresh autonomous runs of the generic CLI used actual upstream TodoMVC Vue at `ff43b02`, with deliberate local test commits: layout-only `add444d` and title-normalization regression `bb16774`. Both revisions were freshly installed using the upstream frozen `npm ci` path and replayed in separate browser contexts. No reporter annotation or seeded action plan was supplied.
 
-The regression comparison independently observed `Invoice review` on base and `INVOICE REVIEW` on both fresh head runs. The heading passed, while the deliberately wrong `Tasks` expectation was labeled pre-existing. The separate healthy/layout comparison passed both real expectations and reported no new findings. All18 independent observations completed, with zero recorded console/page errors and zero failed/HTTP4xx/5xx app requests. Qualification was also rechecked from successful MCP app-navigation events against app startup origins using the final parser.
+The regression comparison independently observed `Invoice review` on base and `INVOICE REVIEW` on both fresh head runs. The heading passed, while the deliberately wrong `Tasks` expectation was labeled pre-existing. The separate healthy/layout comparison passed both real expectations and reported no new findings. All 18 independent observations completed, with zero recorded console/page errors and zero failed/HTTP4xx/5xx app requests. Qualification was also rechecked from successful MCP app-navigation events against app startup origins using the final parser.
 
-Environment: Node24.22.1, pnpm9.12.0, CodexCLI0.164.0, Playwright1.64.1, browser MCP0.0.83; requested model `gpt-6.1-sol`/low, actual provider model metadata unknown. The agent used ordinary browser/source access; **Domscribe MCP was disabled**. These controlled cases establish an executable investigation/reporting path, not product differentiation, organic bug discovery, broad coverage, efficiency or demand.
+Environment: Node 24.22.1, pnpm 9.12.0, Codex CLI 0.164.0, Playwright 1.64.1, browser MCP 0.0.83; requested model `gpt-6.1-sol`/low, actual provider model metadata unknown. The agent used ordinary browser/source access; **Domscribe MCP was disabled**. These controlled cases establish an executable investigation/reporting path, not product differentiation, organic bug discovery, broad coverage, efficiency or demand.
 
 Failed attempts were retained: API output-schema rejection; converted structured-output runs ending before tool use; a browser MCP approval gate correctly producing uncovered results; an overstrict sparse-index guard; and an Nx configuration-inference error. The final adapter validates ordinary final JSON locally and approves only the configured browser server within that invocation. A separate uncached overlay compilation failure was corrected by explicitly preserving the helper's optional-context return type.
+
+The final two autonomous comparisons were repeated after review fixes for scoped counts, WebSocket routing and draft privacy; both retained the same classifications and zero recorded errors. The independent verifier also refuses missing/duplicated count scopes and proves that disallowed WebSocket servers receive no handshake while local sockets still work.

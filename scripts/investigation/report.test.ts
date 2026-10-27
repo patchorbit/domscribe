@@ -60,3 +60,17 @@ test('artifact Markdown cannot escape its link', () => {
   r.journeys[0].findings[0].artifacts = ['a](https:evil).png'];
   assert(!renderReport(r).includes('[a](https:evil)'));
 });
+test('uncovered agent details containing private host paths stay out of the shareable draft', () => {
+  const reason =
+    'Could not load /home/private/project/head/app.ts or C:\\Users\\Private\\app.ts';
+  const r = gradeInvestigation(
+    config,
+    { version: 1, plans: [], uncovered: [{ journeyId: 'edit', reason }] },
+    [],
+    metadata,
+  );
+  const text = renderReport(r);
+  assert(!text.includes('/home/private'));
+  assert(!text.includes('C:\\Users'));
+  assert.equal(r.journeys[0].reason, reason);
+});

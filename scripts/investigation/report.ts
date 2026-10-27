@@ -25,7 +25,11 @@ export function renderReport(input: unknown): string {
       '',
       fence(j.intent),
       '',
-      fence(j.reason),
+      fence(
+        j.status === 'uncovered'
+          ? 'No validated replay plan; inspect private report details before sharing.'
+          : j.reason,
+      ),
       '',
     );
     lines.push(

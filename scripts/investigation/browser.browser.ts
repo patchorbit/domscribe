@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -291,6 +292,168 @@ test('records failed app network requests separately from business observations'
     await browser.close();
     server.closeAllConnections();
     await new Promise<void>((r) => server.close(() => r()));
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+test('count observations require a unique existing ancestor while allowing target multiplicity', async () => {
+  const server = createServer((req, res) =>
+    res
+      .writeHead(200, { 'Content-Type': 'text/html' })
+      .end(
+        req.url === '/missing'
+          ? '<h1>No record</h1>'
+          : req.url === '/duplicate'
+            ? '<section aria-label="Record"><button>Count me</button></section><section aria-label="Record"></section>'
+            : '<section aria-label="Record"><button>Count me</button><button>Count me</button></section>',
+      ),
+  );
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  const address = server.address();
+  if (!address || typeof address === 'string') throw Error('No port');
+  const dir = await mkdtemp(join(tmpdir(), 'investigation-count-scope-')),
+    browser = await chromium.launch();
+  try {
+    const journey = JourneySchema.parse({
+      id: 'count',
+      intent: 'Count controls in the intended record',
+      expectations: [
+        {
+          id: 'buttons',
+          kind: 'count',
+          target: {
+            role: 'button',
+            name: 'Count me',
+            scope: { role: 'region', name: 'Record' },
+          },
+          expected: 2,
+        },
+      ],
+    });
+    for (const pathname of ['/duplicate', '/missing', '/valid']) {
+      const plan = ProposalSchema.parse({
+        version: 1,
+        plans: [
+          { journeyId: 'count', steps: [{ action: 'navigate', pathname }] },
+        ],
+        uncovered: [],
+      }).plans[0];
+      const result = await executeJourney(
+        browser,
+        `http://127.0.0.1:${address.port}`,
+        plan,
+        journey,
+        dir,
+        'base',
+        { timeout: 300 },
+      );
+      if (pathname === '/valid') {
+        assert.equal(result.status, 'completed');
+        assert.equal(result.actuals[0].value, 2);
+      } else {
+        assert.equal(result.status, 'action_failed');
+        assert.equal(
+          result.errorCode,
+          pathname === '/missing' ? 'target_unavailable' : 'target_ambiguous',
+        );
+        assert.equal(result.actuals.length, 0);
+      }
+    }
+  } finally {
+    await browser.close();
+    server.closeAllConnections();
+    await new Promise<void>((r) => server.close(() => r()));
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+test('blocks cross-origin WebSocket handshakes while preserving same-origin sockets', async () => {
+  let forbidden = 0,
+    allowed = 0;
+  const sockets = new Set<import('node:stream').Duplex>();
+  const handshake = (
+    req: import('node:http').IncomingMessage,
+    socket: import('node:stream').Duplex,
+  ) => {
+    sockets.add(socket);
+    socket.on('close', () => sockets.delete(socket));
+    const accept = createHash('sha1')
+      .update(
+        String(req.headers['sec-websocket-key']) +
+          '258EAFA5-E914-47DA-95CA-C5AB0DC85B11',
+      )
+      .digest('base64');
+    socket.write(
+      'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' +
+        accept +
+        '\r\n\r\n',
+    );
+  };
+  const other = createServer();
+  other.on('upgrade', (req, socket) => {
+    forbidden++;
+    handshake(req, socket);
+  });
+  await new Promise<void>((r) => other.listen(0, '127.0.0.1', r));
+  const otherAddress = other.address();
+  if (!otherAddress || typeof otherAddress === 'string') throw Error('No port');
+  const server = createServer((_, res) =>
+    res
+      .writeHead(200, { 'Content-Type': 'text/html' })
+      .end(
+        `<output aria-label="Socket">Waiting</output><script>const own=new WebSocket('ws://'+location.host+'/hmr');own.onopen=()=>document.querySelector('output').textContent='Connected';new WebSocket('ws://127.0.0.1:${otherAddress.port}/forbidden');</script>`,
+      ),
+  );
+  server.on('upgrade', (req, socket) => {
+    allowed++;
+    handshake(req, socket);
+  });
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  const address = server.address();
+  if (!address || typeof address === 'string') throw Error('No port');
+  const dir = await mkdtemp(join(tmpdir(), 'investigation-sockets-')),
+    browser = await chromium.launch();
+  try {
+    const journey = JourneySchema.parse({
+      id: 'socket',
+      intent: 'Keep local sockets and block other origins',
+      expectations: [
+        {
+          id: 'socket',
+          kind: 'text',
+          target: { role: 'status', name: 'Socket' },
+          expected: 'Connected',
+        },
+      ],
+    });
+    const plan = ProposalSchema.parse({
+      version: 1,
+      plans: [
+        { journeyId: 'socket', steps: [{ action: 'navigate', pathname: '/' }] },
+      ],
+      uncovered: [],
+    }).plans[0];
+    const result = await executeJourney(
+      browser,
+      `http://127.0.0.1:${address.port}`,
+      plan,
+      journey,
+      dir,
+      'base',
+      { timeout: 500 },
+    );
+    assert.equal(result.status, 'completed');
+    assert.equal(result.actuals[0].value, 'Connected');
+    assert(allowed > 0);
+    assert.equal(forbidden, 0);
+    assert((result.networkErrorCount ?? 0) > 0);
+  } finally {
+    await browser.close();
+    for (const socket of sockets) socket.destroy();
+    server.closeAllConnections();
+    other.closeAllConnections();
+    await Promise.all([
+      new Promise<void>((r) => server.close(() => r())),
+      new Promise<void>((r) => other.close(() => r())),
+    ]);
     await rm(dir, { recursive: true, force: true });
   }
 });

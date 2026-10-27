@@ -28,18 +28,31 @@ function locate(page: Page, target: Target): Locator {
   });
   return target.text ? locator.filter({ hasText: target.text }) : locator;
 }
+async function validateScope(
+  page: Page,
+  target: Target,
+  timeout: number,
+): Promise<void> {
+  if (!target.scope) return;
+  const scope = page.getByRole(target.scope.role, {
+    name: target.scope.name,
+    exact: true,
+  });
+  if ((await scope.count()) > 1) throw new Refusal('target_ambiguous');
+  try {
+    await scope.waitFor({ state: 'visible', timeout });
+  } catch {
+    if ((await scope.count()) > 1) throw new Refusal('target_ambiguous');
+    throw new Refusal('target_unavailable');
+  }
+  if ((await scope.count()) !== 1) throw new Refusal('target_ambiguous');
+}
 async function unique(
   page: Page,
   target: Target,
   timeout: number,
 ): Promise<Locator> {
-  if (
-    target.scope &&
-    (await page
-      .getByRole(target.scope.role, { name: target.scope.name, exact: true })
-      .count()) !== 1
-  )
-    throw new Refusal('target_ambiguous');
+  await validateScope(page, target, timeout);
   const locator = locate(page, target);
   // Password inputs deliberately have no textbox role. Do not accidentally fill
   // one through a future locator fallback or read it as evidence.
@@ -119,6 +132,23 @@ export async function executeJourney(
         ? route.continue()
         : route.abort('blockedbyclient'),
     );
+    await context.routeWebSocket('**/*', async (socket) => {
+      const destination = new URL(socket.url());
+      if (
+        destination.origin === origin.replace(/^http:/, 'ws:') &&
+        !destination.username &&
+        !destination.password
+      )
+        socket.connectToServer();
+      else {
+        observation.networkErrorCount =
+          (observation.networkErrorCount ?? 0) + 1;
+        await socket.close({
+          code: 1008,
+          reason: 'Outside configured app origin',
+        });
+      }
+    });
     const page = await context.newPage();
     page.setDefaultTimeout(options.timeout);
     page.setDefaultNavigationTimeout(options.timeout);
@@ -163,6 +193,8 @@ export async function executeJourney(
     do {
       const actuals: Observation['actuals'] = [];
       for (const expectation of journey.expectations) {
+        if (expectation.kind === 'count')
+          await validateScope(page, expectation.target, options.timeout);
         const target =
           expectation.kind === 'count'
             ? locate(page, expectation.target)
