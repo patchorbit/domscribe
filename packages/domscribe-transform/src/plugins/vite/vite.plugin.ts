@@ -16,6 +16,7 @@ import {
 import { SourceMapConsumer } from 'source-map';
 import { ManifestWriter } from '@domscribe/manifest';
 import { TransformStats } from '../../core/stats.js';
+import { originalSourceHash } from '../../core/source-hash.js';
 import { FileTimings } from '../../core/types.js';
 import { VitePluginOptions, OverlayPluginOptions } from './types.js';
 import {
@@ -326,6 +327,14 @@ export function domscribe(options: VitePluginOptions = {}): Plugin {
         // Copy injector metrics
         timings.parseMs = injectorMetrics.parseMs;
         timings.traversalMs = injectorMetrics.traversalMs;
+
+        // Capture original source identity before destroying the composed map.
+        const sourceHash = await originalSourceHash(
+          sourceMapConsumer,
+          sourceFile,
+        );
+        if (sourceHash)
+          for (const entry of manifestEntries) entry.sourceHash = sourceHash;
 
         // Cleanup source map consumer
         if (sourceMapConsumer) {

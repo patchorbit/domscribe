@@ -10,6 +10,10 @@ import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
+import {
+  captureIssuePacket,
+  verifyIssueOffline,
+} from './fixtures/issue-handoff.mjs';
 import { writeReplayConsumer } from './fixtures/replay-consumer.mjs';
 import { replayProject } from './fixtures/replay-project.mjs';
 import {
@@ -30,6 +34,7 @@ const { values } = parseArgs({
     'adapter-only': { type: 'boolean', default: false },
     'raw-runtime': { type: 'boolean', default: false },
     'no-overlay': { type: 'boolean', default: false },
+    'issue-handoff': { type: 'boolean', default: false },
   },
 });
 const scope = values.scope;
@@ -68,7 +73,13 @@ const consumer = path.join(work, 'consumer');
 fs.mkdirSync(consumer, { recursive: true });
 const packs = path.join(work, 'packages');
 fs.mkdirSync(packs);
-const names = project.artifacts;
+assert(
+  !values['issue-handoff'] || (!project.ssr && !values['no-overlay']),
+  'issue-handoff requires a React/Vue Vite consumer with overlay',
+);
+const names = values['issue-handoff']
+  ? [...project.artifacts, 'cli']
+  : project.artifacts;
 const dependencies = project.dependencies;
 assert(
   !values['schema-peer'] || !project.ssr,
@@ -131,7 +142,7 @@ try {
         { encoding: 'utf8', timeout: 30000 },
       ),
     );
-    dependencies[`@domscribe/${name}`] =
+    dependencies[manifest.name] =
       `file:${path.join(packs, result[0].filename)}`;
   }
   fs.writeFileSync(
@@ -154,8 +165,10 @@ try {
               pnpm: {
                 overrides: Object.fromEntries(
                   names.map((name) => [
-                    `@domscribe/${name}`,
-                    dependencies[`@domscribe/${name}`],
+                    name === 'cli' ? 'domscribe' : `@domscribe/${name}`,
+                    dependencies[
+                      name === 'cli' ? 'domscribe' : `@domscribe/${name}`
+                    ],
                   ]),
                 ),
               },
@@ -695,8 +708,23 @@ function createProbe(){return{name:'fixture-runtime-probe',apply:'serve',async r
     assert.deepEqual(networkErrors, []);
     check('no application page errors', { errors });
     await page.screenshot({ path: path.join(work, 'replayed.png') });
+    const handoff = values['issue-handoff']
+      ? await captureIssuePacket({ page, consumer, work, client })
+      : undefined;
     await context.close();
     await stopServer();
+    if (handoff) {
+      evidence.issueHandoff = await verifyIssueOffline({
+        consumer,
+        work,
+        handoff,
+        relayPort,
+      });
+      check(
+        'native annotation exported and inspected offline in fresh source worktree without JSON edits',
+        evidence.issueHandoff,
+      );
+    }
     await runOwnedBuild(process.execPath, [cli, ...project.buildArgs], {
       cwd: consumer,
       env: { ...serverEnv, NODE_ENV: 'production' },
@@ -804,6 +832,15 @@ function createProbe(){return{name:'fixture-runtime-probe',apply:'serve',async r
       'production-build.log',
       'install.log',
       'server.log',
+      'issue.domscribe.json',
+      'native-annotation.json',
+      'native-annotation.png',
+      'issue-handoff-result.json',
+      'issue-export.log',
+      'issue-stop-reporter.log',
+      'issue-inspect-matched.log',
+      'issue-inspect-markdown.log',
+      'issue-inspect-changed.log',
       ...(evidence.failureScreenshots ?? []),
     ]) {
       const from = path.join(work, name);

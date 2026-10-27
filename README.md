@@ -452,6 +452,8 @@ Conventions are in `.claude/rules/`. PRs welcome.
 For an isolated browser replay check through the Docker Node SDK, see the
 [Docker Cloud replay smoke test](./docs/docker-cloud-replay.md).
 
+Portable issue-packet CLI commands are being developed on main; see the [source-only handoff guide](./docs/portable-issue-handoff.md) for availability, privacy options and fresh-checkout inspection.
+
 ---
 
 ## License

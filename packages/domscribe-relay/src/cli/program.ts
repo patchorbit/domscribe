@@ -13,6 +13,7 @@ import { InitCommand } from './commands/init.command.js';
 import { ServeCommand } from './commands/serve.command.js';
 import { StopCommand } from './commands/stop.command.js';
 import { StatusCommand } from './commands/status.command.js';
+import { IssueCommand } from './commands/issue.command.js';
 import { McpCommand } from './commands/mcp.command.js';
 
 const program = new Command();
@@ -50,3 +51,5 @@ program.addCommand(McpCommand);
 program.addCommand(InitCommand);
 
 export { program };
+
+program.addCommand(IssueCommand);
