@@ -4,7 +4,7 @@
  */
 
 import { PII_PATTERNS, SENSITIVE_FIELD_NAMES } from './patterns.js';
-import { isRecord } from './redaction-utils.js';
+import { isRecord, hasSensitiveRecordMarker } from './redaction-utils.js';
 
 /**
  * Redaction options
@@ -153,7 +153,7 @@ export function redactSensitiveFields(
 
   // Applications may explicitly label an environment/credential record secret.
   // Redact the whole record: its payload need not use a known credential key.
-  if (isRecord(obj) && obj.secret === true) return '[REDACTED]';
+  if (hasSensitiveRecordMarker(obj)) return '[REDACTED]';
 
   const sensitiveNames = new Set([
     ...SENSITIVE_FIELD_NAMES,

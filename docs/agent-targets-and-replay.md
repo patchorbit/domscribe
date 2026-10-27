@@ -70,7 +70,10 @@ fallback; source-owner matching here is Vue-specific and depends on dev metadata
 
 Capture remains bounded and honors props/state opt-outs and configured redaction.
 OAuth `clientSecret`/`client_secret` fields and entire records marked `secret: true`
-are redacted, including nested environment values. Redaction cannot identify every
+are redacted before field/byte truncation, including nested environment values.
+Credential-field descriptors identified by a known sensitive `id`, `key` or `name`
+are redacted as records. With redaction enabled, native browser storage reachable
+through an injected service is never enumerated into capture. Redaction cannot identify every
 application-specific secret; configure blocked selectors and avoid capturing
 private application state in issue evidence.
 

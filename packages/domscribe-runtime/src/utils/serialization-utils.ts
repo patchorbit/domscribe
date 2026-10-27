@@ -13,7 +13,7 @@ import type { SerializationConstraints } from '../capture/types.js';
  * are set by the capture layer, not by end users.
  */
 export interface SerializationOptions extends SerializationConstraints {
-  /** Redact records explicitly marked secret before truncation can hide their marker. */
+  /** Redact secret/credential records and browser storage before truncation hides identity. */
   redactSecretRecords?: boolean;
 
   /**

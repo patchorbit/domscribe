@@ -37,6 +37,35 @@ describe.each(['props', 'state'] as const)(
         expect(result.data).toMatchObject({ envs: ['[REDACTED]'] });
       },
     );
+    it.each([{ maxProperties: 1 }, { maxTotalBytes: 1 }, {}])(
+      'redacts credential field descriptors before truncation under %j',
+      (options) => {
+        const record = {
+          ref: 'private-descriptor-fixture',
+          ...Object.fromEntries(
+            Array.from({ length: 55 }, (_, i) => [`filler${i}`, i]),
+          ),
+          id: 'clientSecret',
+        };
+        const result = capture({ fields: [record] }, options);
+        expect(result.success).toBe(true);
+        expect(JSON.stringify(result.data)).not.toContain(
+          'private-descriptor-fixture',
+        );
+        expect(result.data).toMatchObject({ fields: ['[REDACTED]'] });
+      },
+    );
+    it('does not invoke non-enumerable type-tag accessors while probing storage', () => {
+      const service = { count: 7 };
+      Object.defineProperty(service, Symbol.toStringTag, {
+        get() {
+          throw new Error('must not execute during capture');
+        },
+      });
+      const result = capture({ service });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ service: { count: 7 } });
+    });
     it('handles a marked cyclic record before walking its properties', () => {
       const record: Record<string, unknown> = {
         payload: 'private-cyclic-fixture',
