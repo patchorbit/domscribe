@@ -18,7 +18,7 @@ npm install -D @domscribe/transform
 | Webpack 5 | `@domscribe/transform/plugins/webpack` | Babel (TS/JSX) or VueSFC |
 | Turbopack | Self-initializing loader               | Babel (TS/JSX)           |
 
-Vite 8 compatibility is in source and awaits the next release; published npm 0.6.1 declares Vite 5-7 support.
+Vite 8 compatibility requires Domscribe 0.7.0 or later; npm 0.6.1 declares Vite 5-7 support.
 
 ## Configuration
 

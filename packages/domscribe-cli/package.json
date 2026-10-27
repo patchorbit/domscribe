@@ -1,6 +1,6 @@
 {
   "name": "domscribe",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "CLI for Domscribe \u2014 pixel-to-code development tool",
   "type": "module",
   "main": "src/bin/domscribe.ts",
