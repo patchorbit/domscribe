@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AnnotationSchema } from '@domscribe/core';
 import { RuntimeManager } from '@domscribe/runtime';
 import { OverlayStore } from './overlay-store.js';
+import '../components/ds-element-preview.js';
 function annotation(selectedElement: Record<string, unknown>) {
   return AnnotationSchema.parse({
     metadata: {
@@ -101,6 +102,12 @@ describe('annotation target resolution', () => {
     document.body.innerHTML =
       '<button data-ds="aB3dEf7h">Generate Token</button>';
     const owner = { recordId: 'alpha' };
+    let ownerName: string | null = 'OAuth2';
+    Object.defineProperty(
+      document.querySelector('button'),
+      '__vueParentComponent',
+      { value: { type: { name: 'Wrapper' } } },
+    );
     const runtime = RuntimeManager.getInstance();
     await runtime.initialize({
       adapter: {
@@ -113,7 +120,7 @@ describe('annotation target resolution', () => {
         captureProps: (component) => component as Record<string, unknown>,
         captureState: () => null,
         getComponentName: (component) =>
-          component === owner ? 'OAuth2' : 'Wrapper',
+          component === owner ? ownerName : 'Wrapper',
       },
     });
     vi.spyOn(RelayService.getInstance(), 'resolve').mockResolvedValue({
@@ -131,6 +138,19 @@ describe('annotation target resolution', () => {
         sourceFile: '/app/OAuth2.vue',
       },
     });
+    const preview = document.createElement('ds-element-preview');
+    document.body.append(preview);
+    await preview.updateComplete;
+    expect(
+      preview.shadowRoot?.querySelector('.component-name')?.textContent,
+    ).toBe('OAuth2');
+    ownerName = null;
+    await store.selectElement(required(document.querySelector('button')));
+    await preview.updateComplete;
+    expect(
+      store.getState().runtimeContext?.componentIdentity?.sourceMatch,
+    ).toBe('matched');
+    expect(preview.shadowRoot?.querySelector('.component-name')).toBeNull();
     vi.restoreAllMocks();
   });
   it('does not capture a replacement after the selected node unmounts during manifest lookup', async () => {

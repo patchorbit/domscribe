@@ -192,7 +192,9 @@ export class DsElementPreview extends LitElement {
     }
 
     const tagName = selectedElement.tagName.toLowerCase();
-    const componentName = this.getComponentName(selectedElement);
+    const componentName = runtimeContext?.componentIdentity
+      ? runtimeContext.componentIdentity.name
+      : this.getComponentName(selectedElement);
 
     const props = (runtimeContext?.componentProps ?? {}) as Record<
       string,
@@ -217,9 +219,11 @@ export class DsElementPreview extends LitElement {
         <div class="element-header">
           <div class="element-primary">
             <span class="tag-name">&lt;${tagName}&gt;</span>
-            ${componentName
-              ? html`<span class="component-name">${componentName}</span>`
-              : null}
+            ${
+              componentName
+                ? html`<span class="component-name">${componentName}</span>`
+                : null
+            }
           </div>
           <button
             class="btn-dismiss"
@@ -239,11 +243,13 @@ export class DsElementPreview extends LitElement {
         </div>
 
         <!-- Source location - compact, hover for full path -->
-        ${sourcePath
-          ? html`<span class="source-location" title="${sourcePath.full}"
-              >${sourcePath.display}</span
-            >`
-          : null}
+        ${
+          sourcePath
+            ? html`<span class="source-location" title="${sourcePath.full}"
+                >${sourcePath.display}</span
+              >`
+            : null
+        }
 
         <!-- Props/State collapsible panel -->
         <ds-context-panel .props=${props} .state=${state}></ds-context-panel>
