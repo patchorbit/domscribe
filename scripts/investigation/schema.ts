@@ -36,7 +36,8 @@ export const TargetSchema = z
       'list',
       'navigation',
     ]),
-    name: z.string().min(1).max(300),
+    name: z.string().max(300),
+    text: z.string().min(1).max(300).optional(),
     scope: z
       .object({
         role: z.enum([
@@ -172,6 +173,13 @@ export const StepSchema = z.discriminatedUnion('action', [
     })
     .strict(),
   z.object({ action: z.literal('click'), target }).strict(),
+  z
+    .object({
+      action: z.literal('press'),
+      target,
+      key: z.enum(['Enter', 'Escape', 'Tab']),
+    })
+    .strict(),
   z
     .object({ action: z.literal('fill'), target, value: z.string().max(1000) })
     .strict(),
