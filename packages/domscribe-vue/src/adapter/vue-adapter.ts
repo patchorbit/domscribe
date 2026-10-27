@@ -22,6 +22,7 @@ import {
   checkVNodeAccess,
   findNearestUserComponent,
 } from '../internals/component-resolver.js';
+import { normalizeSourceFile } from '../internals/source-file.js';
 import { extractProps } from '../internals/props-extractor.js';
 import { extractState } from '../internals/state-extractor.js';
 import { isVueComponentInstance, isRecord } from '../internals/type-guards.js';
@@ -150,6 +151,25 @@ export class VueAdapter implements VueFrameworkAdapter {
    * @param component - The component instance
    * @returns Serialized props object or null
    */
+  resolveSourceComponent(element: HTMLElement, sourceFile: string) {
+    const requested = normalizeSourceFile(sourceFile);
+    if (!requested || !this.state.initialized) return null;
+    let current = resolveComponentFromElement(element).instance;
+    const visited = new Set<VueComponentInstance>();
+    for (let depth = 0; current && depth < this.options.maxTreeDepth; depth++) {
+      if (visited.has(current)) break;
+      visited.add(current);
+      const file =
+        typeof current.type === 'object' || typeof current.type === 'function'
+          ? current.type.__file
+          : undefined;
+      if (file && normalizeSourceFile(file) === requested)
+        return { component: current, sourceFile: requested };
+      current = current.parent ?? undefined;
+    }
+    return null;
+  }
+
   captureProps(component: unknown): Nullable<Record<string, unknown>> {
     if (!this.state.initialized || !isVueComponentInstance(component)) {
       return null;

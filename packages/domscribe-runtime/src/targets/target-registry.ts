@@ -11,6 +11,7 @@ import {
 
 const IDENTITY_ATTRIBUTES = [
   'id',
+  'data-ds-context',
   'data-testid',
   'data-test',
   'aria-label',
@@ -128,18 +129,45 @@ export class TargetRegistry {
     } else if (query.locator) {
       const locator = query.locator;
       if (locator.unsupportedReason)
-        return { status: 'unsupported', targets: [], total: 0 };
+        return {
+          status: 'unsupported',
+          reason: locator.unsupportedReason,
+          targets: [],
+          total: 0,
+        };
       if (locator.pathname !== this.options.document.location.pathname) {
         return { status: 'wrong_page', targets: [], total: 0 };
       }
       if (JSON.stringify(locator).includes('[REDACTED')) {
         return { status: 'not_found', targets: [], total: 0 };
       }
-      elements = Array.from(
+      const candidates = Array.from(
         this.options.document.getElementsByTagName(locator.element.tagName),
       )
         .filter((element): element is HTMLElement => this.eligible(element))
         .filter((element) => this.matches(element, locator));
+      // Old locators carry no proof of dialog business identity. Even a newly
+      // keyed candidate cannot retroactively provide that missing evidence.
+      if (
+        !locator.contexts &&
+        candidates.some(
+          (element) => this.dialogContexts(element).contexts.length,
+        )
+      )
+        return {
+          status: 'unsupported',
+          reason: 'context_required',
+          targets: [],
+          total: 0,
+        };
+      elements = candidates.filter((element) => {
+        const current = this.dialogContexts(element);
+        return (
+          !current.missing &&
+          JSON.stringify(current.contexts) ===
+            JSON.stringify(locator.contexts ?? [])
+        );
+      });
     } else {
       elements = Array.from(
         this.options.document.querySelectorAll('[data-ds]'),
@@ -301,6 +329,33 @@ export class TargetRegistry {
       : normalize(chunks.join(''));
   }
 
+  private dialogContexts(element: HTMLElement): {
+    contexts: string[];
+    missing: boolean;
+  } {
+    const contexts: string[] = [];
+    let missing = false;
+    let key: string | null = null;
+    let current: HTMLElement | null = element;
+    while (current) {
+      // Only keys on this ancestor path count, never siblings or a different
+      // dialog. Reset at each boundary so an outer key cannot cover an inner one.
+      const value = current.getAttribute('data-ds-context');
+      if (value?.trim()) key = value;
+      if (
+        current.matches(
+          'dialog, [role="dialog"], [role="alertdialog"], [aria-modal="true"]',
+        )
+      ) {
+        if (!key) missing = true;
+        contexts.push(key ?? '[CONTEXT_REQUIRED]');
+        key = null;
+      }
+      current = current.parentElement;
+    }
+    return { contexts, missing };
+  }
+
   private locator(
     element: HTMLElement,
     redactSegments = false,
@@ -317,8 +372,11 @@ export class TargetRegistry {
         ancestors.push(identity);
       ancestor = ancestor.parentElement;
     }
+    const dialog = this.dialogContexts(element);
     const locator: PortableLocator = {
       version: 1,
+      contexts: dialog.contexts.length ? dialog.contexts : undefined,
+      unsupportedReason: dialog.missing ? 'context_required' : undefined,
       pathname: this.options.document.location.pathname,
       element: this.identity(element),
       ancestors,
@@ -328,9 +386,10 @@ export class TargetRegistry {
 
   private boundLocator(locator: PortableLocator): PortableLocator {
     let unsupported =
-      !!locator.unsupportedReason ||
       locator.pathname.length > 2048 ||
-      locator.ancestors.length > 4;
+      locator.ancestors.length > 4 ||
+      (locator.contexts?.length ?? 0) > 4 ||
+      !!locator.contexts?.some((key: string) => key.length > 256);
     const bound = (identity: LocatorIdentity): LocatorIdentity => {
       if (
         identity.tagName.length > 64 ||
@@ -357,12 +416,17 @@ export class TargetRegistry {
     const result = {
       ...locator,
       pathname: locator.pathname.slice(0, 2048),
+      contexts: locator.contexts
+        ?.slice(0, 4)
+        .map((key: string) => key.slice(0, 256)),
       element: bound(locator.element),
       ancestors: locator.ancestors.slice(0, 4).map(bound),
     };
     return {
       ...result,
-      unsupportedReason: unsupported ? 'identity_too_long' : undefined,
+      unsupportedReason: unsupported
+        ? 'identity_too_long'
+        : locator.unsupportedReason,
     };
   }
 

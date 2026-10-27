@@ -11,6 +11,7 @@ vi.mock('@domscribe/transform/plugins/vite', () => ({
 }));
 
 import { domscribe } from './vite-plugin.js';
+import { mergeConfig, type UserConfig } from 'vite';
 
 describe('domscribe (react/vite)', () => {
   it('should rename the plugin to vite-plugin-domscribe-react', () => {
@@ -24,6 +25,46 @@ describe('domscribe (react/vite)', () => {
 
     expect(plugin).toBeDefined();
     expect(plugin.name).toBeDefined();
+  });
+
+  describe('injected dependency optimization', () => {
+    it('preserves application includes and explicit runtime/overlay exclusions', () => {
+      const plugin = domscribe();
+      const user: UserConfig = {
+        optimizeDeps: {
+          include: ['application-dependency'],
+          exclude: ['@domscribe/runtime', '@domscribe/overlay'],
+        },
+      };
+      const configure = plugin.config as (config: UserConfig) => UserConfig;
+      const merged = mergeConfig(user, configure(user));
+      expect(merged.optimizeDeps?.include).toContain('application-dependency');
+      expect(merged.optimizeDeps?.include).toContain('@domscribe/react');
+      expect(
+        merged.optimizeDeps?.include?.some((id) =>
+          id.endsWith(' > @domscribe/runtime'),
+        ),
+      ).toBe(false);
+      expect(
+        merged.optimizeDeps?.include?.some((id) =>
+          id.endsWith(' > @domscribe/overlay'),
+        ),
+      ).toBe(false);
+      expect(merged.optimizeDeps?.exclude).toEqual(user.optimizeDeps?.exclude);
+    });
+    it('does not require overlay optimization when overlay is disabled', () => {
+      const plugin = domscribe({ overlay: false });
+      const configure = plugin.config as (config: UserConfig) => UserConfig;
+      const config = configure({});
+      expect(config.optimizeDeps?.include).toContain(
+        '@domscribe/react > @domscribe/runtime',
+      );
+      expect(
+        config.optimizeDeps?.include?.some((id) =>
+          id.includes('@domscribe/overlay'),
+        ),
+      ).toBe(false);
+    });
   });
 
   describe('resolveId', () => {

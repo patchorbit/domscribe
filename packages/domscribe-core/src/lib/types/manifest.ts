@@ -4,7 +4,7 @@
  * @module @domscribe/core/types/manifest
  */
 
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { PATTERNS } from '../constants/index.js';
 
 export const ManifestEntryIdSchema = z

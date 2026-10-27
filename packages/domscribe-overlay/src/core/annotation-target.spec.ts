@@ -96,6 +96,79 @@ describe('annotation target resolution', () => {
     expect(create).not.toHaveBeenCalled();
     vi.restoreAllMocks();
   });
+  it('captures source-owner context after manifest lookup and labels its provenance', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML =
+      '<button data-ds="aB3dEf7h">Generate Token</button>';
+    const owner = { recordId: 'alpha' };
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize({
+      adapter: {
+        name: 'fixture',
+        getComponentInstance: () => ({ wrapper: true }),
+        resolveSourceComponent: (_element, file) =>
+          file === '/app/OAuth2.vue'
+            ? { component: owner, sourceFile: file }
+            : null,
+        captureProps: (component) => component as Record<string, unknown>,
+        captureState: () => null,
+        getComponentName: (component) =>
+          component === owner ? 'OAuth2' : 'Wrapper',
+      },
+    });
+    vi.spyOn(RelayService.getInstance(), 'resolve').mockResolvedValue({
+      id: 'aB3dEf7h',
+      file: '/app/OAuth2.vue',
+      start: { line: 1, column: 0 },
+    });
+    const store = OverlayStore.getInstance();
+    await store.selectElement(required(document.querySelector('button')));
+    expect(store.getState().runtimeContext).toMatchObject({
+      componentProps: { recordId: 'alpha' },
+      componentIdentity: {
+        name: 'OAuth2',
+        sourceMatch: 'matched',
+        sourceFile: '/app/OAuth2.vue',
+      },
+    });
+    vi.restoreAllMocks();
+  });
+  it('does not capture a replacement after the selected node unmounts during manifest lookup', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML =
+      '<button data-ds="aB3dEf7h">Generate Token</button>';
+    const captureProps = vi.fn(() => ({ recordId: 'wrong' }));
+    const runtime = RuntimeManager.getInstance();
+    await runtime.initialize({
+      adapter: {
+        name: 'fixture',
+        getComponentInstance: () => ({}),
+        captureProps,
+        captureState: () => null,
+      },
+    });
+    let resolve!: (value: null) => void;
+    vi.spyOn(RelayService.getInstance(), 'resolve').mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    const store = OverlayStore.getInstance();
+    const selection = store.selectElement(
+      required(document.querySelector('button')),
+    );
+    document.body.innerHTML =
+      '<button data-ds="aB3dEf7h">Generate Token</button>';
+    resolve(null);
+    await selection;
+    expect(store.getState().runtimeContext).toBeNull();
+    expect(captureProps).not.toHaveBeenCalled();
+    await expect(store.submitAnnotation('Selected Alpha')).rejects.toThrow(
+      /changed|stale/i,
+    );
+    vi.restoreAllMocks();
+  });
 });
 
 function required<T>(value: T | null | undefined): T {

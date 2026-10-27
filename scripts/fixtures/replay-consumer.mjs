@@ -60,7 +60,7 @@ const city = ref(props.customer.city);
 const confirmed = ref(false);
 </script>
 <template>
-  <section role="dialog" :aria-label="'Edit ' + customer.name">
+  <section role="dialog" :data-ds-context="'customer:' + customer.id" :aria-label="'Edit ' + customer.name">
     <label>Shipping city<input name="city" v-model="city" /></label>
     <label><input type="checkbox" v-model="confirmed" />Confirm shipping change</label>
     <button :disabled="!confirmed" @click="emit('save', customer.id, city)">Save</button>
@@ -96,7 +96,7 @@ function save(id, city) { customers.value = customers.value.map(customer => cust
 import React,{useState} from 'react';import{createRoot}from'react-dom/client';
 if(import.meta.env.DEV)import('@domscribe/runtime').then(({RuntimeManager})=>window.__runtime=RuntimeManager.getInstance());
 function Card({customer,onEdit}){return <article aria-label={customer.name}><h2>{customer.name}</h2><strong>{customer.city}</strong><button onClick={()=>onEdit(customer)}>Edit</button></article>}
-function Editor({customer,onSave}){const[city,setCity]=useState(customer.city);const[confirmed,setConfirmed]=useState(false);return <section role="dialog" aria-label={'Edit '+customer.name}><label>Shipping city<input name="city" value={city} onChange={e=>setCity(e.target.value)}/></label><label><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>Confirm shipping change</label><button disabled={!confirmed} onClick={()=>onSave(customer.id,city)}>Save</button></section>}
+function Editor({customer,onSave}){const[city,setCity]=useState(customer.city);const[confirmed,setConfirmed]=useState(false);return <section role="dialog" data-ds-context={'customer:'+customer.id} aria-label={'Edit '+customer.name}><label>Shipping city<input name="city" value={city} onChange={e=>setCity(e.target.value)}/></label><label><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>Confirm shipping change</label><button disabled={!confirmed} onClick={()=>onSave(customer.id,city)}>Save</button></section>}
 function App(){const[customers,setCustomers]=useState([{id:'c1',name:'Orion',city:'Seattle'},{id:'c2',name:'Lyra',city:'Portland'},{id:'c3',name:'Vega',city:'Denver'}]);const[editing,setEditing]=useState(null);const[reverse,setReverse]=useState(false);const sorted=[...customers].sort((a,b)=>reverse?b.name.localeCompare(a.name):a.name.localeCompare(b.name));return <main><h1>Customer operations</h1><button onClick={()=>setReverse(x=>!x)}>Sort</button>{sorted.map(customer=><Card key={customer.id} customer={customer} onEdit={setEditing}/>)}{editing&&<Editor customer={editing} onSave={(id,city)=>{setCustomers(all=>all.map(c=>c.id===id?{...c,city}:c));setEditing(null)}}/>}</main>}
 createRoot(document.getElementById('root')).render(<App/>);
 `,

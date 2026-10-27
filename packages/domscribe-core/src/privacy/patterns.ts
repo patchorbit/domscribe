@@ -33,6 +33,8 @@ export const SENSITIVE_FIELD_NAMES = [
   'passwd',
   'pwd',
   'secret',
+  'clientsecret',
+  'client_secret',
   'token',
   'apikey',
   'api_key',

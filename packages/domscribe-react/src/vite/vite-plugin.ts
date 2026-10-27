@@ -53,6 +53,29 @@ export function domscribe(options?: DomscribeReactPluginOptions): Plugin {
 
   basePlugin.name = 'vite-plugin-domscribe-react';
 
+  // The virtual initializer is invisible to the HTML dependency scan. Declare
+  // its graph before first navigation, resolving transitive modules through
+  // the installed adapter so isolated pnpm consumers need no hoisted imports.
+  basePlugin.config = (config) => {
+    const dependencies = [
+      '@domscribe/react',
+      '@domscribe/react > @domscribe/runtime',
+      ...(options?.overlay === false
+        ? []
+        : ['@domscribe/react > @domscribe/transform > @domscribe/overlay']),
+    ];
+    const excluded = config.optimizeDeps?.exclude ?? [];
+    return {
+      optimizeDeps: {
+        include: dependencies.filter(
+          (id) =>
+            !excluded.includes(id) &&
+            !excluded.includes(id.split(' > ').at(-1)!),
+        ),
+      },
+    };
+  };
+
   basePlugin.resolveId = function (id, importer, ...args) {
     if (id === INIT_MODULE_PATH) {
       return INIT_MODULE_PATH;

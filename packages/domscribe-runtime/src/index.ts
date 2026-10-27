@@ -19,7 +19,10 @@ export type { IRuntimeTransport } from './bridge/transport.interface.js';
 
 // Configuration types
 export type { DomscribeRuntimeOptions } from './core/types.js';
-export type { SerializationConstraints } from './capture/types.js';
+export type {
+  CaptureOptions,
+  SerializationConstraints,
+} from './capture/types.js';
 
 // Style capture (RFC 0001)
 export {

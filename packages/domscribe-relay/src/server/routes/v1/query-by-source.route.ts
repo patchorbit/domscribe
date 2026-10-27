@@ -120,10 +120,12 @@ export class QueryBySourceRoute implements RelayRoute {
               : await this.wsServer.requestContext(entry.id);
           if (wsResult) {
             response.selectionStatus = wsResult.selectionStatus;
+            response.selectionReason = wsResult.selectionReason;
             response.targets = wsResult.targets;
             response.total = wsResult.total;
             response.runtime = {
               rendered: wsResult.rendered ?? false,
+              componentIdentity: wsResult.context?.componentIdentity,
               componentProps: wsResult.context?.componentProps,
               componentState: wsResult.context?.componentState,
               componentStyles: wsResult.context?.componentStyles,

@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import {
   SourcePositionSchema,
+  ComponentIdentitySchema,
   PortableLocatorSchema,
   ElementTargetSchema,
   TargetStatusSchema,
+  TargetReasonSchema,
 } from '@domscribe/core';
 import {
   McpToolDefinition,
@@ -47,6 +49,7 @@ type QueryBySourceToolInput = z.infer<typeof QueryBySourceToolInputSchema>;
 
 const QueryBySourceToolOutputSchema = McpToolOutputSchema.extend({
   selectionStatus: TargetStatusSchema.optional(),
+  selectionReason: TargetReasonSchema.optional(),
   targets: z.array(ElementTargetSchema).optional(),
   total: z.number().int().nonnegative().optional(),
   found: z.boolean(),
@@ -63,6 +66,7 @@ const QueryBySourceToolOutputSchema = McpToolOutputSchema.extend({
   runtime: z
     .object({
       rendered: z.boolean(),
+      componentIdentity: ComponentIdentitySchema.optional(),
       componentProps: z.unknown().optional(),
       componentState: z.unknown().optional(),
       componentStyles: z
@@ -123,12 +127,17 @@ export class QueryBySourceTool implements McpToolDefinition<
   private buildHint(result: {
     found: boolean;
     selectionStatus?: string;
+    selectionReason?: string;
     browserConnected?: boolean;
     runtime?: {
       rendered?: boolean;
       componentStyles?: unknown;
     };
   }): string | undefined {
+    if (result.selectionStatus === 'unsupported')
+      return result.selectionReason === 'context_required'
+        ? 'Portable dialog replay requires a stable, non-secret data-ds-context key for each enclosing dialog. Recapture after the app supplies the key; do not guess a business entity.'
+        : 'This portable identity is unsupported. Recapture with shorter, unambiguous identity; do not act on a guessed target.';
     if (result.selectionStatus === 'ambiguous')
       return 'Multiple live instances share this source. Inspect targets and retry with an instanceId; persist its locator for another session.';
     if (result.selectionStatus === 'ambiguous_browser')
@@ -175,6 +184,7 @@ export class QueryBySourceTool implements McpToolDefinition<
 
       const output: QueryBySourceToolOutput = {
         selectionStatus: result.selectionStatus,
+        selectionReason: result.selectionReason,
         targets: result.targets,
         total: result.total,
         found: result.found,

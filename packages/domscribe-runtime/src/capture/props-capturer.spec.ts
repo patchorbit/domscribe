@@ -712,6 +712,7 @@ describe('PropsCapturer', () => {
       expect(mockSerializeValue).toHaveBeenCalledWith(rawProps, {
         maxDepth: 8,
         includeFunctions: false,
+        redactSecretRecords: true,
       });
       expect(mockRedactPII).toHaveBeenCalledWith(serialized);
       expect(mockRedactSensitiveFields).toHaveBeenCalledWith(afterPII);
@@ -771,6 +772,7 @@ describe('PropsCapturer', () => {
       expect(mockSerializeValue).toHaveBeenCalledWith(deepProps, {
         maxDepth: 20,
         includeFunctions: false,
+        redactSecretRecords: false,
       });
     });
 
@@ -853,6 +855,7 @@ describe('PropsCapturer', () => {
       expect(mockSerializeValue).toHaveBeenCalledWith(rawProps, {
         maxDepth: 2,
         includeFunctions: false,
+        redactSecretRecords: false,
       });
     });
 

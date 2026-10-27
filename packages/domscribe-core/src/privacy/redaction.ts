@@ -151,6 +151,10 @@ export function redactSensitiveFields(
     return obj;
   }
 
+  // Applications may explicitly label an environment/credential record secret.
+  // Redact the whole record: its payload need not use a known credential key.
+  if (isRecord(obj) && obj.secret === true) return '[REDACTED]';
+
   const sensitiveNames = new Set([
     ...SENSITIVE_FIELD_NAMES,
     ...additionalFields.map((f) => f.toLowerCase()),

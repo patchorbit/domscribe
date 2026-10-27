@@ -209,6 +209,7 @@ describe('BridgeDispatch', () => {
       expect(result).toBe(context);
       expect(mockRuntimeManager.captureContextForElement).toHaveBeenCalledWith(
         element,
+        {},
       );
     });
 

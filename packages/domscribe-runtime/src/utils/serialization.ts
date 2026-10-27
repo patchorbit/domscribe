@@ -107,6 +107,7 @@ export function serializeValue(
     maxProperties = 50,
     maxTotalBytes = 262144,
     includeFunctions = false,
+    redactSecretRecords = false,
     replacer,
     skipKeys,
     skipKeyPrefixes,
@@ -191,6 +192,15 @@ export function serializeValue(
 
     // Handle objects and arrays
     if (type === 'object' && val !== null && typeof val === 'object') {
+      // Inspect the own data marker before enumerating properties or applying
+      // budgets within this record. Never invoke an arbitrary marker getter.
+      if (
+        redactSecretRecords &&
+        Object.getOwnPropertyDescriptor(val, 'secret')?.value === true
+      ) {
+        trackBytes('[REDACTED]');
+        return '[REDACTED]';
+      }
       // Check for circular reference
       if (seen.has(val)) {
         return SENTINEL_REF.CIRCULAR;

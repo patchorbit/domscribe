@@ -76,3 +76,18 @@ Do not rerun the four agent repair trials until these foundations pass.
   a trustworthy root conversion cannot match by suffix/basename.
 - Initialization tests cover cold first load and an optimizer restart, not merely
   success after a manual reload. Preserve the app's own Zod3 parse behavior.
+
+## Initialization ruling after reproduction
+
+The fresh isolated-pnpm browser test reproduces an application Zod3 parser
+working while shared Domscribe schema evaluation throws `z.partialRecord`.
+The minimal schema-boundary fix uses explicit `zod/v4` imports for core schemas
+and the browser-safe relay schema. These construct Domscribe's own Classic
+schemas; they do not accept user Mini schemas. Keep the declared Zod4 dependency
+without changing the application's Zod or adding consumer overrides. A second,
+independently reproduced Vite8 problem split RuntimeManager between raw and
+optimized adapter imports. React/Vue Vite plugins now predeclare their injected
+adapter/runtime/overlay graph through nested package resolution. They preserve
+explicit consumer exclusions; Nuxt's raw-runtime configuration is unchanged.
+These solve separate schema-major and module-identity failures. Node imports of
+Zod4 root/classic remain compatible; prove browser and full-suite behavior.

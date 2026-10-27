@@ -2,6 +2,7 @@ import {
   PortableLocatorSchema,
   ElementTargetSchema,
   TargetStatusSchema,
+  TargetReasonSchema,
   TargetResolutionSchema,
   TargetQuerySchema,
 } from '@domscribe/core';
@@ -14,7 +15,7 @@ import {
  *
  * @module @domscribe/relay/schema
  */
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import {
   AnnotationContextSchema,
   AnnotationIdSchema,
@@ -25,6 +26,7 @@ import {
   ManifestEntryIdSchema,
   ManifestEntrySchema,
   RuntimeContextSchema,
+  ComponentIdentitySchema,
   SelectedElementSchema,
   SourcePositionSchema,
   AnnotationStatusSchema,
@@ -401,6 +403,7 @@ export const WSContextResponseSchema = z.object({
   success: z.boolean(),
   rendered: z.boolean().optional(),
   selectionStatus: TargetStatusSchema.optional(),
+  selectionReason: TargetReasonSchema.optional(),
   targets: z.array(ElementTargetSchema).max(200).optional(),
   total: z.number().int().nonnegative().optional(),
   context: RuntimeContextSchema.optional(),
@@ -544,6 +547,7 @@ export type QueryBySourceRequest = z.infer<typeof QueryBySourceRequestSchema>;
 
 export const QueryBySourceResponseSchema = z.object({
   selectionStatus: TargetStatusSchema.optional(),
+  selectionReason: TargetReasonSchema.optional(),
   targets: z.array(ElementTargetSchema).max(200).optional(),
   total: z.number().int().nonnegative().optional(),
   found: z.boolean().describe('Whether a manifest entry was found'),
@@ -561,6 +565,7 @@ export const QueryBySourceResponseSchema = z.object({
   runtime: z
     .object({
       rendered: z.boolean(),
+      componentIdentity: ComponentIdentitySchema.optional(),
       componentProps: z.unknown().optional(),
       componentState: z.unknown().optional(),
       componentStyles: z

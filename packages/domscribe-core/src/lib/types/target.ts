@@ -1,9 +1,10 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { ManifestEntryIdSchema } from './manifest.js';
 
 const IdentityAttributesSchema = z.partialRecord(
   z.enum([
     'id',
+    'data-ds-context',
     'data-testid',
     'data-test',
     'aria-label',
@@ -24,10 +25,16 @@ export const LocatorIdentitySchema = z
     heading: z.string().max(128).optional(),
   })
   .strict();
+export const TargetReasonSchema = z.enum([
+  'identity_too_long',
+  'context_required',
+]);
 export const PortableLocatorSchema = z
   .object({
     version: z.literal(1),
-    unsupportedReason: z.literal('identity_too_long').optional(),
+    unsupportedReason: TargetReasonSchema.optional(),
+    // One business key for each enclosing dialog, innermost first.
+    contexts: z.array(z.string().min(1).max(256)).max(4).optional(),
     pathname: z.string().startsWith('/').max(2048),
     element: LocatorIdentitySchema,
     // Nearest identified ancestor first; these scopes are conjunctive.
@@ -82,6 +89,7 @@ export const TargetStatusSchema = z.enum([
 ]);
 export const TargetResolutionSchema = z.object({
   status: TargetStatusSchema,
+  reason: TargetReasonSchema.optional(),
   targets: z.array(ElementTargetSchema).max(200),
   total: z.number().int().nonnegative(),
 });
