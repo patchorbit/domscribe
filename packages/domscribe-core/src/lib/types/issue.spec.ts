@@ -70,3 +70,37 @@ describe('portable issue contract', () => {
     ).toMatchObject({ includeRuntime: false, includeReplay: false });
   });
 });
+
+it('rejects available locators containing existing privacy redaction markers', () => {
+  const value = packet();
+  expect(
+    IssuePacketSchema.safeParse({
+      ...value,
+      capture: {
+        ...value.capture,
+        locator: {
+          version: 1,
+          pathname: '/collections',
+          element: { tagName: 'button', attributes: {}, text: '[REDACTED]' },
+          ancestors: [],
+        },
+      },
+      portability: { locator: 'available', replay: 'not_included' },
+    }).success,
+  ).toBe(false);
+});
+
+it('retains a confirmed original-source hash separately from transformed-code identity', async () => {
+  const { ManifestEntrySchema } = await import('./manifest.js');
+  const entry = ManifestEntrySchema.parse({
+    id: 'abcd1234',
+    file: '/project/src/Card.jsx',
+    start: { line: 1, column: 0 },
+    fileHash: '0011223344556677',
+    sourceHash: '44bc2cf5ad770999',
+  });
+  expect(entry).toMatchObject({
+    fileHash: '0011223344556677',
+    sourceHash: '44bc2cf5ad770999',
+  });
+});

@@ -153,6 +153,13 @@ export const ManifestEntrySchema = z.object({
     .string()
     .optional()
     .describe('xxhash64 hash of file content at transform time (16 hex chars)'),
+  sourceHash: z
+    .string()
+    .regex(/^[a-f0-9]{16}$/)
+    .optional()
+    .describe(
+      'xxhash64 of exact original source-map content when confirmed; distinct from transformed fileHash',
+    ),
   styleSource: StyleSourceSchema.optional().describe(
     'Build-time style attribution (className tokens + CSS-in-JS source-block location)',
   ),

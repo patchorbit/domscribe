@@ -457,3 +457,5 @@ For an isolated browser replay check through the Docker Node SDK, see the
 ## License
 
 [MIT](./LICENSE)
+
+Portable issue-packet CLI commands are being developed on main; see the [source-only handoff guide](./docs/portable-issue-handoff.md) for availability, privacy options and fresh-checkout inspection.

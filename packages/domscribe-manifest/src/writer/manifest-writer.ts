@@ -26,6 +26,7 @@ export class ManifestWriter {
 
   /** Tracks the latest fileHash per file for stale entry eviction */
   private fileHashIndex: Map<string, string> = new Map();
+  private sourceHashIndex = new Map<string, string>();
 
   private index: ManifestIndex = {
     idToFile: new Map(),
@@ -144,7 +145,13 @@ export class ManifestWriter {
    */
   appendEntries(entries: ManifestEntry[]): void {
     // Check if entries are already in the index (deduplication)
-    entries = entries.filter((entry) => !this.index.idToFile.has(entry.id));
+    entries = entries.filter(
+      (entry) =>
+        !this.index.idToFile.has(entry.id) ||
+        (entry.sourceHash !== undefined &&
+          this.index.idToFile.get(entry.id) === entry.file &&
+          this.sourceHashIndex.get(entry.id) !== entry.sourceHash),
+    );
 
     if (entries.length === 0) {
       return;
@@ -221,6 +228,7 @@ export class ManifestWriter {
     this.index.fileToIds.clear();
     this.index.componentToIds.clear();
     this.index.entryCount = 0;
+    this.sourceHashIndex.clear();
 
     // Reload from compacted file
     const entries = this.loadEntries(manifestPath);
@@ -311,10 +319,13 @@ export class ManifestWriter {
       this.fileHashIndex.set(file, newHash);
     }
 
-    const { idToFile, fileToIds, componentToIds, entryCount } = this.index;
+    const { idToFile, fileToIds, componentToIds } = this.index;
 
     for (const entry of entries) {
       const { id, file, componentName } = entry;
+      if (entry.sourceHash) this.sourceHashIndex.set(id, entry.sourceHash);
+      else this.sourceHashIndex.delete(id);
+      if (idToFile.get(id) === file) continue;
 
       // id → file mapping
       idToFile.set(id, file);
@@ -332,7 +343,7 @@ export class ManifestWriter {
       }
     }
 
-    this.index.entryCount = entryCount + entries.length;
+    this.index.entryCount = idToFile.size;
     this.index.lastRebuild = new Date().toISOString();
   }
 
@@ -347,6 +358,7 @@ export class ManifestWriter {
 
     for (const id of oldIds) {
       this.index.idToFile.delete(id);
+      this.sourceHashIndex.delete(id);
     }
     this.index.fileToIds.delete(file);
 

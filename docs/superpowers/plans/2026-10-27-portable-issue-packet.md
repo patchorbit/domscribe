@@ -26,7 +26,7 @@
 ### Task 1: Validated portable evidence and offline source inspection
 
 **Files:** Create core lib/types/issue.ts and issue.spec.ts; export in core index.ts. Create manifest source-hash.ts; export in manifest index.ts. Create relay issue/issue-packet.ts and issue-packet.spec.ts.
-**Interfaces:** `IssuePacketSchema`, inferred `IssuePacket`, `IssueExportOptionsSchema`; `hashSource(content:string):Promise<string>`; `createIssuePacket(annotation, root, options):Promise<IssuePacket>`; `inspectIssuePacket(packet,root):Promise<{packet,sourceStatus}>`; `renderIssuePacket(inspection):string`. Source statuses matched/changed/missing/unverified/unsafe. Export source anchor comes only from matching selected manifest ID; no fallback to unrelated entry. Source checksum uses recorded manifest hash, not a new export-time blessing.
+**Interfaces:** `IssuePacketSchema`, inferred `IssuePacket`, `IssueExportOptionsSchema`; `hashSource(content:string):Promise<string>`; `createIssuePacket(annotation, root, options):Promise<IssuePacket>`; `inspectIssuePacket(packet,root):Promise<{packet,sourceStatus}>`; `renderIssuePacket(inspection):string`. Source statuses matched/changed/missing/unverified/unsafe. Export source anchor comes only from matching selected manifest ID; no fallback to unrelated entry. Source checksum uses recorded manifest sourceHash, not a new export-time blessing.
 
 - [ ] Write failing tests for strict validation, copied-root match/changed source, no handles, no external paths, privacy and redacted actionability, and bounds. Expected: missing public API assertions fail.
 - [ ] Implement smallest schema, pure hash helper and bounded transformation/offline inspector that satisfy tests. Never read through unsafe source symlinks.

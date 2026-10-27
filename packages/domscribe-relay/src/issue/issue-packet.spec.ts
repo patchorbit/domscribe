@@ -67,7 +67,8 @@ function annotation(): Annotation {
           id: 'abcd1234',
           file: path.join(root, 'src/Card.vue'),
           start: { line: 1, column: 1 },
-          fileHash: '44bc2cf5ad770999',
+          fileHash: '0011223344556677',
+          sourceHash: '44bc2cf5ad770999',
         },
         {
           id: 'wxyz1234',
@@ -255,4 +256,62 @@ describe('issue evidence handoff', () => {
     expect(markdown).toContain('untrusted');
     expect(await readFile(path.join(root, 'src/Card.vue'), 'utf8')).toBe('abc');
   });
+});
+
+it('withholds nested dictionary records whose keys contain private evidence without key collisions', async () => {
+  const a = annotation();
+  a.context.runtimeContext = {
+    componentProps: {
+      keyed: {
+        'first@example.com': 'Alpha',
+        'second@example.com': 'Beta',
+        [root + '/private']: 'Gamma',
+      },
+      safe: 'Visible',
+    },
+  };
+  const packet = await createIssuePacket(a, root, {
+    ...options,
+    includeRuntime: true,
+  });
+  expect(packet.runtime?.componentProps).toEqual({
+    keyed: '[REDACTED_KEYS]',
+    safe: 'Visible',
+  });
+  expect(JSON.stringify(packet)).not.toContain('@example.com');
+  expect(JSON.stringify(packet)).not.toContain(root);
+});
+it('withholds an already-redacted locator instead of advertising actionability', async () => {
+  const a = annotation();
+  const target = a.interaction.selectedElement?.target;
+  if (!target) throw new Error('Invalid fixture');
+  target.locator.element.text = '[REDACTED]';
+  const packet = await createIssuePacket(a, root, options);
+  expect(packet.capture.locator).toBeUndefined();
+  expect(packet.portability.locator).toBe('privacy');
+});
+it('renders a valid bounded packet with many separate Markdown backtick runs', async () => {
+  const a = annotation();
+  a.context.runtimeContext = {
+    componentProps: { evidence: '`a'.repeat(150000) },
+  };
+  const packet = await createIssuePacket(a, root, {
+    ...options,
+    includeRuntime: true,
+  });
+  const report = renderIssuePacket(await inspectIssuePacket(packet, root));
+  expect(report).toContain('Source: matched');
+  expect(report).toContain('`a'.repeat(150000));
+});
+
+it('does not treat a legacy transformed-code hash as proof of original source', async () => {
+  const a = annotation();
+  const entry = a.context.manifestSnapshot?.[0];
+  if (!entry) throw new Error('Invalid fixture');
+  delete entry.sourceHash;
+  const packet = await createIssuePacket(a, root, options);
+  expect(packet.source?.fileHash).toBeUndefined();
+  expect((await inspectIssuePacket(packet, root)).sourceStatus).toBe(
+    'unverified',
+  );
 });

@@ -44,10 +44,14 @@ export function sanitizeIssueEvidence(value: unknown, root: string): unknown {
       return redacted;
     }
     if (Array.isArray(current)) return current.map(walk);
-    if (current && typeof current === 'object')
+    if (current && typeof current === 'object') {
+      const entries = Object.entries(current);
+      // Renaming two private keys to the same marker would silently merge distinct evidence.
+      if (entries.some(([key]) => walk(key) !== key)) return '[REDACTED_KEYS]';
       return Object.fromEntries(
-        Object.entries(current).map(([key, child]) => [key, walk(child)]),
+        entries.map(([key, child]) => [key, walk(child)]),
       );
+    }
     return current;
   }
   return walk(

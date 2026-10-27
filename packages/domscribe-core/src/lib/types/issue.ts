@@ -101,6 +101,11 @@ export const IssuePacketSchema = z
   .strict()
   .superRefine((packet, ctx) => {
     const locator = packet.capture.locator;
+    if (locator && JSON.stringify(locator).includes('[REDACTED'))
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Private locator identity must be omitted',
+      });
     if (
       (packet.portability.locator === 'available') !==
         Boolean(locator && !locator.unsupportedReason) ||

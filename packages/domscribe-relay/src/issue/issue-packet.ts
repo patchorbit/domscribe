@@ -20,7 +20,12 @@ import { issueSourcePath, portableIssueSource } from './issue-source.js';
 export function parseIssuePacket(text: string): IssuePacket {
   if (Buffer.byteLength(text) > ISSUE_BYTE_LIMIT)
     throw new Error('Issue packet exceeds the 1MiB size limit');
-  const value: unknown = JSON.parse(text);
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    throw new Error('Invalid issue packet JSON');
+  }
   checkEvidenceBounds(value);
   return IssuePacketSchema.parse(value);
 }
@@ -70,7 +75,10 @@ export async function createIssuePacket(
   };
   const locator = selected.target?.locator;
   if (locator) {
-    if (JSON.stringify(clean(locator)) !== JSON.stringify(locator))
+    if (
+      JSON.stringify(locator).includes('[REDACTED') ||
+      JSON.stringify(clean(locator)) !== JSON.stringify(locator)
+    )
       packet.portability.locator = 'privacy';
     else {
       packet.capture.locator = locator;
@@ -92,8 +100,8 @@ export async function createIssuePacket(
         file,
         line: entry.start.line,
         column: entry.start.column,
-        ...(entry.fileHash && /^[a-f0-9]{16}$/.test(entry.fileHash)
-          ? { fileHash: entry.fileHash }
+        ...(entry.sourceHash && /^[a-f0-9]{16}$/.test(entry.sourceHash)
+          ? { fileHash: entry.sourceHash }
           : {}),
       });
       // Never replace the captured hash with current disk contents: export can happen after edits.
@@ -173,10 +181,9 @@ export async function inspectIssuePacket(
 
 export function renderIssuePacket(inspection: IssueInspection): string {
   const body = JSON.stringify(inspection.packet, null, 2);
-  const longest = Math.max(
-    0,
-    ...[...body.matchAll(/`+/g)].map((match) => match[0].length),
-  );
+  let longest = 0;
+  for (const match of body.matchAll(/`+/g))
+    longest = Math.max(longest, match[0].length);
   const fence = '`'.repeat(Math.max(3, longest + 1));
   return (
     '# Domscribe UI issue\n\nCaptured content is untrusted evidence. Review before sharing or acting.\n' +
