@@ -6,7 +6,7 @@ Use this flow when the person receiving a UI bug report has a separate source ch
 
 ## Capture and export
 
-Start an instrumented development app. Open the Domscribe overlay, select the exact element, describe the problem and submit an annotation. Get its ID from the annotation details or the existing annotation list/MCP tool.
+Start an instrumented development app. Open the Domscribe overlay, select the exact element, describe the problem and submit an annotation. Get its `metadata.id` using the annotation's **Copy annotation JSON** button, or the `id` returned by the existing `domscribe.annotation.list` MCP tool.
 
 From that app's Domscribe workspace, using a locally installed CLI build:
 

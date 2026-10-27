@@ -147,7 +147,7 @@ jobs:
           - id: react-npm-vite7
             framework: react
             package-manager: npm
-            version-args: '--vite-version=7.3.7 --schema-peer'
+            version-args: '--vite-version=7.3.7 --schema-peer --issue-handoff'
           - id: react-pnpm-vite5
             framework: react
             package-manager: pnpm
@@ -159,7 +159,7 @@ jobs:
           - id: vue-pnpm-vite5
             framework: vue
             package-manager: pnpm
-            version-args: '--vite-version=5.4.21 --scope=list --schema-peer --adapter-only --raw-runtime'
+            version-args: '--vite-version=5.4.21 --scope=list --schema-peer --adapter-only --raw-runtime --issue-handoff'
           - id: react-pnpm-vite8
             framework: react
             package-manager: pnpm

@@ -15,6 +15,23 @@ Both paths installed locally packed artifacts in isolated consumers. The pnpm pa
 
 These are controlled customer-editor fixtures. The annotation records an explicit acceptance scenario; it is not evidence of discovering or repairing a real customer bug. Packet integrity was checked before/after transfer, and inspection created no relay state in the receiving checkout. Captured automation durations are fixture-operation timings, not human usability or repair measurements. The headless browser driver exercised native UI controls; it did not inject a fabricated annotation.
 
+## Repeatable browser check
+
+The permanent browser harness now supports `--issue-handoff`. CI enables it on its existing React/npm/Vite7 and Vue/pnpm/Vite5 rows. Both exact configurations passed freshly with local artifacts (12 and 14 assertion groups respectively), including Vue's raw-runtime capture option. Build/synchronize first, then pack/test without concurrent builds:
+
+```sh
+NX_DAEMON=false NX_NO_CLOUD=true pnpm exec nx run-many -t sync-dist --parallel=2
+node scripts/verify-instance-replay.mjs --framework=react --package-manager=npm \
+  --vite-version=7.3.7 --schema-peer --issue-handoff --report-dir=./tmp/issue-react
+node scripts/verify-instance-replay.mjs --framework=vue --package-manager=pnpm \
+  --vite-version=5.4.21 --scope=list --schema-peer --adapter-only --raw-runtime \
+  --issue-handoff --report-dir=./tmp/issue-vue
+```
+
+The report includes the native annotation, exported packet, screenshots and CLI inspection logs. An initial permanent-harness attempt correctly refused unsynchronized artifacts restored by a preceding Nx task check; synchronization was rerun before packing. The earlier Vue8 result remains a separate qualification, not a substitute for the permanent Vue5 path.
+
+A separate compatibility check used the actual historical native Hoppscotch Generate Token annotation from the October 26 run (upstream `63273f8`). The new installed CLI exported it with no packet edits or annotation-record mutations, retained `context_required`, and inspected it offline in a fresh source worktree as `unverified` because the legacy capture lacks original-source metadata. Synthetic private client/environment markers were absent. This was a historical-annotation check, not a fresh Hoppscotch browser or agent repair run.
+
 ## Failures that changed the implementation
 
 - Initial React capture incorrectly compared transformed React Refresh code with the original source. A probe confirmed 3,722 incoming characters versus 1,766 original-source characters. A distinct optional `sourceHash` now comes only from an exact absolute source-map match. Legacy or unconfirmed hashes remain unverified. Source locations were correct; checksum provenance was wrong.
