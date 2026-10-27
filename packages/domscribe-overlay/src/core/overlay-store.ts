@@ -586,7 +586,12 @@ export class OverlayStore {
             (element) => element.getAttribute('data-ds') === selected.dataDs,
           )
         : Array.from(document.querySelectorAll<HTMLElement>(selected.selector));
-      return matches.length === 1 ? matches[0] : null;
+      if (matches.length !== 1) return null;
+      // Legacy annotations have no saved dialog business identity. A unique
+      // source/selector match cannot establish which record was captured.
+      const target = BridgeDispatch.getInstance().describeTarget(matches[0]);
+      if (!target || target.locator.contexts?.length) return null;
+      return matches[0];
     } catch {
       return null;
     }

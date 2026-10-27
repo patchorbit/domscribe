@@ -93,7 +93,9 @@ const trace = { version: 1, steps: [step] };
 
 Actions are `click`, `fill` with `value`, `check` with `checked`, and `select` with an option `value`. Recording is explicit and does not scrape inputs or install an event recorder. Password/file input recording, blocked targets, and values requiring configured PII redaction are refused. Do not include credentials in manually authored traces.
 
-New overlay annotations store `interaction.selectedElement.target`. An explicit trace can be stored in `context.replay`; creating an annotation alone does not record the preceding interactions. Annotation schema v4 adds these optional fields, and old annotations remain readable. The live target is captured at selection time; submission refuses a stale/recycled selection. Locating/refreshing an annotation uses its portable target; old annotations only use a unique legacy match.
+New overlay annotations store `interaction.selectedElement.target`. An explicit trace can be stored in `context.replay`; creating an annotation alone does not record the preceding interactions. Annotation schema v4 adds these optional fields, and old annotations remain readable. The live target is captured at selection time; submission refuses a stale/recycled selection. Locating/refreshing an annotation uses its portable target; old annotations only use an eligible unique legacy match outside dialogs. Legacy
+dialog annotations must be recaptured before relocation or metadata refresh; a
+current dialog key cannot supply missing historical business identity.
 
 ## Replay through a real browser driver
 

@@ -74,6 +74,61 @@ describe('annotation target resolution', () => {
     });
     expect(OverlayStore.getInstance().locateElement(saved)).toBeNull();
   });
+  it.each(['', 'data-ds-context="collection:beta"'])(
+    'refuses legacy annotation relocation into a dialog without recorded business identity (%s)',
+    async (context) => {
+      window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+      document.body.innerHTML = `<section role="dialog" ${context}><button data-ds="aB3dEf7h">Generate Token</button></section>`;
+      const element = required(document.querySelector('button'));
+      element.scrollIntoView = () => {};
+      await RuntimeManager.getInstance().initialize();
+      const saved = annotation({
+        tagName: 'button',
+        dataDs: 'aB3dEf7h',
+        selector: 'button',
+      });
+      const store = OverlayStore.getInstance();
+      expect(store.locateElement(saved)).toBeNull();
+      const patch = vi.spyOn(RelayService.getInstance(), 'patchAnnotation');
+      expect(await store.refreshAnnotationMetadata(saved)).toBeNull();
+      expect(patch).not.toHaveBeenCalled();
+      vi.restoreAllMocks();
+    },
+  );
+  it('preserves an eligible unique legacy source match outside dialogs', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML =
+      '<button data-ds="aB3dEf7h">Edit customer</button>';
+    const element = required(document.querySelector('button'));
+    element.scrollIntoView = () => {};
+    await RuntimeManager.getInstance().initialize();
+    expect(
+      OverlayStore.getInstance().locateElement(
+        annotation({
+          tagName: 'button',
+          dataDs: 'aB3dEf7h',
+          selector: 'button',
+        }),
+      ),
+    ).toBe(element);
+  });
+  it('refuses a blocked legacy target even when its source match is unique', async () => {
+    window.__DOMSCRIBE_RELAY_PORT__ = 6412;
+    document.body.innerHTML =
+      '<button class="private" data-ds="aB3dEf7h">Private control</button>';
+    await RuntimeManager.getInstance().initialize({
+      blockSelectors: ['.private'],
+    });
+    expect(
+      OverlayStore.getInstance().locateElement(
+        annotation({
+          tagName: 'button',
+          dataDs: 'aB3dEf7h',
+          selector: 'button',
+        }),
+      ),
+    ).toBeNull();
+  });
   it('refuses to submit a selection whose row identity was recycled after selection', async () => {
     window.__DOMSCRIBE_RELAY_PORT__ = 6412;
     document.body.innerHTML =
