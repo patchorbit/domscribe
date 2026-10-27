@@ -31,6 +31,10 @@ test('pins detached worktrees, preserves source, detects mutations and cleans pa
     git('commit', '-qam', 'head');
     const head = git('rev-parse', 'HEAD');
     await writeFile(join(repo, 'user-work'), 'preserved');
+    await assert.rejects(
+      () => prepareWorktrees(repo, base, head, join(repo, '..nested')),
+      /outside/,
+    );
     const context = await prepareWorktrees(repo, base, head, join(root, 'out'));
     try {
       assert.equal(context.baseCommit, base);
@@ -40,6 +44,13 @@ test('pins detached worktrees, preserves source, detects mutations and cleans pa
         'base',
       );
       await assertUnchanged(context);
+      execFileSync('git', [
+        '-C',
+        context.headDir,
+        'update-index',
+        '--assume-unchanged',
+        'app.txt',
+      ]);
       await writeFile(join(context.headDir, 'app.txt'), 'tampered');
       await assert.rejects(() => assertUnchanged(context), /Source changed/);
       await symlink(root, join(context.baseDir, 'escape'));

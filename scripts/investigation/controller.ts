@@ -67,6 +67,8 @@ export async function investigate(
     agentBrowserUsed: false,
     domscribeUsed: false,
     model: null,
+    requestedModel: config.agent.model,
+    reasoningEffort: config.agent.reasoningEffort,
   };
   let proposal: Proposal = {
     version: 1,
@@ -79,12 +81,14 @@ export async function investigate(
   const observations: Observation[] = [];
   const sessions: Awaited<ReturnType<typeof startApp>>[] = [];
   let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
+  let stage = 'setup';
   try {
     await writeFile(join(prepared.output, 'diff.patch'), prepared.diff, {
       mode: 0o600,
     });
     const baseApp = await safeAppRoot(prepared.baseDir, config.appRoot),
       headApp = await safeAppRoot(prepared.headDir, config.appRoot);
+    stage = 'install';
     for (const [phase, app] of [
       ['base', baseApp],
       ['head', headApp],
@@ -97,6 +101,7 @@ export async function investigate(
         signal,
       );
     await assertUnchanged(prepared);
+    stage = 'startup';
     const base = await startApp(
       config.start,
       baseApp,
@@ -113,6 +118,7 @@ export async function investigate(
       signal,
     );
     sessions.push(head);
+    stage = 'discovery';
     const result = await discover({
       config,
       prepared,
@@ -127,11 +133,22 @@ export async function investigate(
     metadata.model = result.model;
     // Validate all plan/expectation references before executing any proposed action.
     gradeInvestigation(config, proposal, [], metadata);
+    stage = 'integrity';
     await assertUnchanged(prepared);
+    stage = 'verification';
     browser = await chromium.launch({
       headless: true,
       timeout: config.timeouts.start,
     });
+    await writeFile(
+      join(prepared.output, 'verification-browser.json'),
+      JSON.stringify(
+        { version: browser.version(), node: process.version },
+        null,
+        2,
+      ) + '\n',
+      { mode: 0o600 },
+    );
     for (const journey of config.journeys) {
       const plan = proposal.plans.find((p) => p.journeyId === journey.id);
       if (!plan) continue;
@@ -154,14 +171,21 @@ export async function investigate(
         );
       }
     }
+    stage = 'integrity';
     await assertUnchanged(prepared);
   } catch {
+    await writeFile(
+      join(prepared.output, 'diagnostic.json'),
+      JSON.stringify({ stage, cancelled: signal.aborted }, null, 2) + '\n',
+      { mode: 0o600 },
+    );
     // No raw exception goes into a shareable comment: process output may contain
     // repository/private data. Stable, explicit failure is more useful than green.
     if (observations.length) {
       for (const observation of observations) {
         observation.status = 'setup_failed';
-        observation.errorCode = 'source_changed';
+        observation.errorCode =
+          stage === 'integrity' ? 'source_changed' : 'setup_failed';
       }
     } else
       proposal = {

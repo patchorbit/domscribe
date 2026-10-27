@@ -33,6 +33,13 @@ async function unique(
   target: Target,
   timeout: number,
 ): Promise<Locator> {
+  if (
+    target.scope &&
+    (await page
+      .getByRole(target.scope.role, { name: target.scope.name, exact: true })
+      .count()) !== 1
+  )
+    throw new Refusal('target_ambiguous');
   const locator = locate(page, target);
   // Password inputs deliberately have no textbox role. Do not accidentally fill
   // one through a future locator fallback or read it as evidence.
@@ -97,6 +104,7 @@ export async function executeJourney(
     actuals: [],
     artifacts: [],
     errorCount: 0,
+    networkErrorCount: 0,
   };
   const abort = () => {
     void context.close().catch(() => {
@@ -114,6 +122,14 @@ export async function executeJourney(
     const page = await context.newPage();
     page.setDefaultTimeout(options.timeout);
     page.setDefaultNavigationTimeout(options.timeout);
+    page.on('requestfailed', () => {
+      observation.networkErrorCount = (observation.networkErrorCount ?? 0) + 1;
+    });
+    page.on('response', (response) => {
+      if (response.status() >= 400)
+        observation.networkErrorCount =
+          (observation.networkErrorCount ?? 0) + 1;
+    });
     page.on('pageerror', () => observation.errorCount++);
     page.on('console', (message) => {
       if (message.type() === 'error') observation.errorCount++;
@@ -159,9 +175,11 @@ export async function executeJourney(
               : expectation.kind === 'checked'
                 ? await target.isChecked()
                 : (await target.innerText()).trim();
+        if (typeof value === 'string' && value.length > 2000)
+          throw new Refusal('observation_overflow');
         actuals.push({
           expectationId: expectation.id,
-          value: typeof value === 'string' ? value.slice(0, 2000) : value,
+          value,
         });
       }
       observation.actuals = actuals;

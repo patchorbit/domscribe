@@ -15,7 +15,8 @@ export function renderReport(input: unknown): string {
     `Status: **${report.status}**. Confirmed journey regressions: **${confirmed}**.`,
     `Tested scope: ${report.journeys.length} configured journey contracts; this is not a full-app health verdict.`,
     `Base: ${report.metadata.baseCommit ?? 'unresolved'}; head: ${report.metadata.headCommit ?? 'unresolved'}.`,
-    `Execution: local trusted repository. Agent browser used: ${report.metadata.agentBrowserUsed}; Domscribe inspection used: ${report.metadata.domscribeUsed}.`,
+    `Execution: local trusted repository. Agent browser used: ${report.metadata.agentBrowserUsed}; Domscribe MCP used: ${report.metadata.domscribeUsed}.`,
+    'Replay steps: [proposal JSON](proposal.json). Console/page errors are recorded per observation in [the report](report.json).',
     '',
   ];
   for (const j of report.journeys) {
@@ -25,6 +26,14 @@ export function renderReport(input: unknown): string {
       fence(j.intent),
       '',
       fence(j.reason),
+      '',
+    );
+    lines.push(
+      `Recorded console/page errors across completed/attempted observations: ${j.observations.reduce((sum, o) => sum + o.errorCount, 0)}.`,
+      '',
+    );
+    lines.push(
+      `Recorded failed/HTTP4xx/5xx app requests: ${j.observations.some((o) => o.networkErrorCount === null) ? 'unknown' : j.observations.reduce((sum, o) => sum + (o.networkErrorCount ?? 0), 0)}.`,
       '',
     );
     for (const f of j.findings)

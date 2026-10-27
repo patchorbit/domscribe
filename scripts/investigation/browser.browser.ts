@@ -166,3 +166,131 @@ test('replays keyboard-driven real app controls and disambiguates by visible rec
     await rm(dir, { recursive: true, force: true });
   }
 });
+test('oversized observations cannot pass by truncation, and ambiguous scopes refuse even with one matching child', async () => {
+  const server = createServer((_, res) =>
+    res
+      .writeHead(200, { 'Content-Type': 'text/html' })
+      .end(
+        `<output aria-label="Long value">${'x'.repeat(2001)}</output><section aria-label="Record"><button>Only once</button></section><section aria-label="Record"></section>`,
+      ),
+  );
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  const address = server.address();
+  if (!address || typeof address === 'string') throw Error('No port');
+  const dir = await mkdtemp(join(tmpdir(), 'investigation-bounds-'));
+  const browser = await chromium.launch();
+  try {
+    const journey = JourneySchema.parse({
+      id: 'bounds',
+      intent: 'Observe complete state',
+      expectations: [
+        {
+          id: 'long',
+          kind: 'text',
+          target: { role: 'status', name: 'Long value' },
+          expected: 'x'.repeat(2000),
+        },
+      ],
+    });
+    const plan = ProposalSchema.parse({
+      version: 1,
+      plans: [
+        { journeyId: 'bounds', steps: [{ action: 'navigate', pathname: '/' }] },
+      ],
+      uncovered: [],
+    }).plans[0];
+    const result = await executeJourney(
+      browser,
+      `http://127.0.0.1:${address.port}`,
+      plan,
+      journey,
+      dir,
+      'base',
+      { timeout: 300 },
+    );
+    assert.equal(result.status, 'action_failed');
+    assert.equal(result.actuals.length, 0);
+    const scoped = {
+      ...plan,
+      steps: [
+        {
+          action: 'click' as const,
+          target: {
+            role: 'button' as const,
+            name: 'Only once',
+            scope: { role: 'region' as const, name: 'Record' },
+          },
+        },
+      ],
+    };
+    const ambiguous = await executeJourney(
+      browser,
+      `http://127.0.0.1:${address.port}`,
+      scoped,
+      journey,
+      dir,
+      'head',
+      { timeout: 300 },
+    );
+    assert.equal(ambiguous.errorCode, 'target_ambiguous');
+  } finally {
+    await browser.close();
+    server.closeAllConnections();
+    await new Promise<void>((r) => server.close(() => r()));
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+test('records failed app network requests separately from business observations', async () => {
+  const server = createServer((req, res) =>
+    req.url === '/missing.png'
+      ? res.writeHead(404).end()
+      : res
+          .writeHead(200, { 'Content-Type': 'text/html' })
+          .end('<h1>Ready</h1><img src="/missing.png">'),
+  );
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  const address = server.address();
+  if (!address || typeof address === 'string') throw Error('No port');
+  const dir = await mkdtemp(join(tmpdir(), 'investigation-network-')),
+    browser = await chromium.launch();
+  try {
+    const journey = JourneySchema.parse({
+      id: 'network',
+      intent: 'Observe heading and network separately',
+      expectations: [
+        {
+          id: 'heading',
+          kind: 'text',
+          target: { role: 'heading', name: 'Ready' },
+          expected: 'Ready',
+        },
+      ],
+    });
+    const plan = ProposalSchema.parse({
+      version: 1,
+      plans: [
+        {
+          journeyId: 'network',
+          steps: [{ action: 'navigate', pathname: '/' }],
+        },
+      ],
+      uncovered: [],
+    }).plans[0];
+    const result = await executeJourney(
+      browser,
+      `http://127.0.0.1:${address.port}`,
+      plan,
+      journey,
+      dir,
+      'base',
+      { timeout: 300 },
+    );
+    assert.equal(result.status, 'completed');
+    assert((result.networkErrorCount ?? 0) > 0);
+  } finally {
+    await browser.close();
+    server.closeAllConnections();
+    await new Promise<void>((r) => server.close(() => r()));
+    await rm(dir, { recursive: true, force: true });
+  }
+});

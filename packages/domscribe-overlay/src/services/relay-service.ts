@@ -37,7 +37,9 @@ export class RelayService {
   private store: OverlayStore;
   private unsubscribers: Array<() => void> = [];
 
-  private async querySourceContext(query: TargetQueryInput) {
+  private async querySourceContext(
+    query: TargetQueryInput,
+  ): ReturnType<BridgeDispatch['queryTargets']> {
     const bridge = BridgeDispatch.getInstance();
     const selection = bridge.resolveTargets(query);
     if (selection.status !== 'resolved') return selection;

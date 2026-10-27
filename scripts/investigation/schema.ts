@@ -147,6 +147,16 @@ export const ConfigSchema = z
         step: 5000,
         total: 900000,
       }),
+    agent: z
+      .object({
+        model: z
+          .string()
+          .regex(/^[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,199}$/)
+          .default('gpt-6.1-sol'),
+        reasoningEffort: z.enum(['low', 'medium', 'high']).default('low'),
+      })
+      .strict()
+      .default({ model: 'gpt-6.1-sol', reasoningEffort: 'low' }),
     domscribe: z.boolean().default(false),
   })
   .strict()
@@ -217,6 +227,7 @@ export const ObservationSchema = z
     actuals: z.array(z.object({ expectationId: id, value }).strict()).max(20),
     artifacts: z.array(relative).max(5),
     errorCount: z.number().int().min(0),
+    networkErrorCount: z.number().int().min(0).nullable().default(null),
     errorCode: z
       .enum([
         'target_unavailable',
@@ -226,6 +237,7 @@ export const ObservationSchema = z
         'browser_error',
         'setup_failed',
         'source_changed',
+        'observation_overflow',
       ])
       .optional(),
   })
@@ -255,6 +267,8 @@ export const MetadataSchema = z
     agentBrowserUsed: z.boolean(),
     domscribeUsed: z.boolean(),
     model: z.string().max(200).nullable(),
+    requestedModel: z.string().max(200).nullable().default(null),
+    reasoningEffort: z.string().max(20).nullable().default(null),
   })
   .strict();
 const FindingSchema = z
