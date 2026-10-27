@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { PortableLocatorSchema } from './target.js';
 
 const RecordedValueSchema = z
@@ -35,7 +35,10 @@ export const ReplayStepSchema = z
     )
       ctx.addIssue({
         code: 'custom',
-        message: 'Portable identity cannot be replayed',
+        message:
+          target.unsupportedReason === 'context_required'
+            ? 'Portable dialog replay requires a stable, non-secret data-ds-context key'
+            : 'Portable identity cannot be replayed',
       });
     if (
       ['password', 'file'].includes(

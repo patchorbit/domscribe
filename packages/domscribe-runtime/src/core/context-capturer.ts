@@ -149,10 +149,29 @@ export class ContextCapturer {
         return null;
       }
 
+      const owner = options.sourceFile
+        ? this.options.adapter.resolveSourceComponent?.(
+            element,
+            options.sourceFile,
+          )
+        : null;
+      const capturedComponent = owner?.component ?? componentInstance;
       const context = await this.captureForComponent(
-        componentInstance,
+        capturedComponent,
         options,
       );
+      context.componentIdentity = {
+        name: this.options.adapter
+          .getComponentName?.(capturedComponent)
+          ?.slice(0, 256),
+        sourceFile: owner?.sourceFile.slice(0, 4096),
+        requestedSourceFile: options.sourceFile?.slice(0, 4096),
+        sourceMatch: owner
+          ? 'matched'
+          : options.sourceFile
+            ? 'unavailable'
+            : 'nearest',
+      };
       this.attachStyles(context, element, options);
       return context;
     } catch (error) {

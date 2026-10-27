@@ -48,6 +48,7 @@ export class PropsCapturer {
         maxProperties: this.options.maxProperties,
         maxTotalBytes: this.options.maxTotalBytes,
         includeFunctions: false,
+        redactSecretRecords: this.options.redactPII !== false,
         skipKeys: this.options.skipKeys,
         skipKeyPrefixes: this.options.skipKeyPrefixes,
       });

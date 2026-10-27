@@ -56,6 +56,15 @@ export interface FrameworkAdapter {
    */
   getComponentInstance(element: HTMLElement): Nullable<unknown>;
 
+  /** Resolve an actual ancestor component with matching source metadata. */
+  resolveSourceComponent?(
+    element: HTMLElement,
+    sourceFile: string,
+  ): Nullable<{
+    component: unknown;
+    sourceFile: string;
+  }>;
+
   /**
    * Capture component props
    *

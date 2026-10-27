@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ComponentIdentitySchema } from '@domscribe/core';
 import {
   McpToolDefinition,
   McpToolOutputSchema,
@@ -39,6 +40,7 @@ const ProcessToolSourceLocationSchema = z.object({
 
 /** Schema for runtime context in flattened format */
 const ProcessToolRuntimeContextSchema = z.object({
+  componentIdentity: ComponentIdentitySchema.optional(),
   componentProps: z.unknown().optional().describe('Component props snapshot'),
   componentState: z.unknown().optional().describe('Component state snapshot'),
 });

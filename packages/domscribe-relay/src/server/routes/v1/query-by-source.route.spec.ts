@@ -362,4 +362,27 @@ describe('POST /api/v1/manifest/resolve-by-source', () => {
     vi.mocked(mockWsServer.getClientCount).mockReturnValue(0);
     vi.mocked(mockWsServer.requestContext).mockResolvedValue(null);
   });
+  it('preserves a dialog-context refusal through the HTTP response schema', async () => {
+    vi.mocked(mockWsServer.getClientCount).mockReturnValue(1);
+    vi.mocked(mockWsServer.requestContext).mockResolvedValue({
+      requestId: 'refusal',
+      success: false,
+      rendered: false,
+      selectionStatus: 'unsupported',
+      selectionReason: 'context_required',
+      targets: [],
+      total: 0,
+    });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/manifest/resolve-by-source',
+      payload: { file: 'src/components/Input.tsx', line: 5 },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      selectionStatus: 'unsupported',
+      selectionReason: 'context_required',
+      runtime: { rendered: false },
+    });
+  });
 });

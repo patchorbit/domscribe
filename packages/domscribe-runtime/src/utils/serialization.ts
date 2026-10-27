@@ -4,6 +4,7 @@
  * @module @domscribe/runtime/utils/serialization
  */
 
+import { hasSensitiveRecordMarker } from '@domscribe/core';
 import { SerializationError } from '../errors/index.js';
 import {
   SerializationOptions,
@@ -107,6 +108,7 @@ export function serializeValue(
     maxProperties = 50,
     maxTotalBytes = 262144,
     includeFunctions = false,
+    redactSecretRecords = false,
     replacer,
     skipKeys,
     skipKeyPrefixes,
@@ -124,6 +126,23 @@ export function serializeValue(
    * representation sizes as they are serialized.
    */
   const budget = { bytesUsed: 0 };
+  // The native length getter performs a brand check without enumerating keys,
+  // reading persisted values, or consulting user-defined Symbol.toStringTag.
+  const storageLength =
+    typeof Storage === 'undefined'
+      ? undefined
+      : Object.getOwnPropertyDescriptor(Storage.prototype, 'length')?.get;
+  function isBrowserStorage(value: object): boolean {
+    if (!storageLength) return false;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype === Object.prototype || prototype === null) return false;
+    try {
+      storageLength.call(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   function trackBytes(val: unknown): void {
     if (typeof val === 'string') {
@@ -191,6 +210,18 @@ export function serializeValue(
 
     // Handle objects and arrays
     if (type === 'object' && val !== null && typeof val === 'object') {
+      // Browser storage may be reachable through injected application services.
+      // Probe its native brand before inspecting any named storage properties.
+      if (redactSecretRecords && isBrowserStorage(val)) {
+        trackBytes('[REDACTED_STORAGE]');
+        return '[REDACTED_STORAGE]';
+      }
+      // Inspect own data markers before field budgets can discard them; do not
+      // invoke arbitrary marker accessors or prewalk cyclic/raw application data.
+      if (redactSecretRecords && hasSensitiveRecordMarker(val)) {
+        trackBytes('[REDACTED]');
+        return '[REDACTED]';
+      }
       // Check for circular reference
       if (seen.has(val)) {
         return SENTINEL_REF.CIRCULAR;

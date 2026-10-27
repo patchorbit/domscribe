@@ -35,6 +35,7 @@ export interface VueVNode {
  * @internal
  */
 export interface VueComponentType {
+  __file?: string;
   name?: string;
   __name?: string;
   displayName?: string;
@@ -64,6 +65,7 @@ export interface VueComponentType {
  * @internal
  */
 export type VueFunctionalComponent = ((...args: unknown[]) => unknown) & {
+  __file?: string;
   name?: string;
   displayName?: string;
 };

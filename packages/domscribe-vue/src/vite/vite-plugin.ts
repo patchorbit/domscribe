@@ -52,6 +52,29 @@ export function domscribe(options?: DomscribeVuePluginOptions): Plugin {
 
   basePlugin.name = 'vite-plugin-domscribe-vue';
 
+  // The virtual initializer is invisible to the HTML dependency scan. Declare
+  // its graph before first navigation, resolving transitive modules through
+  // the installed adapter so isolated pnpm consumers need no hoisted imports.
+  basePlugin.config = (config) => {
+    const dependencies = [
+      '@domscribe/vue',
+      '@domscribe/vue > @domscribe/runtime',
+      ...(options?.overlay === false
+        ? []
+        : ['@domscribe/vue > @domscribe/transform > @domscribe/overlay']),
+    ];
+    const excluded = config.optimizeDeps?.exclude ?? [];
+    return {
+      optimizeDeps: {
+        include: dependencies.filter(
+          (id) =>
+            !excluded.includes(id) &&
+            !excluded.includes(id.split(' > ').at(-1)!),
+        ),
+      },
+    };
+  };
+
   basePlugin.resolveId = function (id, importer, ...args) {
     if (id === INIT_MODULE_PATH) {
       return INIT_MODULE_PATH;

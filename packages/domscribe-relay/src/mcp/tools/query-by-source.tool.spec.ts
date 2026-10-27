@@ -81,6 +81,29 @@ describe('QueryBySourceTool', () => {
       );
     });
 
+    it('explains missing dialog identity instead of suggesting navigation', async () => {
+      const mockClient = createMockRelayClient({
+        queryBySource: vi.fn().mockResolvedValue({
+          found: true,
+          browserConnected: true,
+          selectionStatus: 'unsupported',
+          selectionReason: 'context_required',
+          targets: [],
+          total: 0,
+          runtime: { rendered: false },
+        }),
+      });
+      const result = await new QueryBySourceTool(mockClient).toolCallback({
+        file: '/app/OAuth2.vue',
+        line: 526,
+      });
+      expect(result.structuredContent).toMatchObject({
+        selectionReason: 'context_required',
+        hint: expect.stringContaining('data-ds-context'),
+      });
+      expect(getResultText(result)).not.toContain('not currently rendered');
+    });
+
     it('emits no captureStyles hint when componentStyles is already present', async () => {
       // Arrange — simulate the post-RFC 0001 happy path: runtime is configured
       // with captureStyles, the query returns componentStyles, agent has full

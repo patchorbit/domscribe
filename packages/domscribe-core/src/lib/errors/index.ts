@@ -4,7 +4,7 @@
  * @module @domscribe/core/errors
  */
 
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 /**
  * Domscribe error codes following the DS_* convention.

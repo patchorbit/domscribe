@@ -27,6 +27,9 @@ export interface CaptureResult<T> {
  * Options for context capture
  */
 export interface CaptureOptions {
+  /** Manifest source file whose owning component should be captured, if provable. */
+  sourceFile?: string;
+
   /**
    * Include props in capture (Phase 1)
    */

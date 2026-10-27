@@ -102,6 +102,7 @@ export class AnnotationProcessRoute implements RelayRoute {
           : undefined,
         runtimeContext: runtimeCtx
           ? {
+              componentIdentity: runtimeCtx.componentIdentity,
               componentProps: runtimeCtx.componentProps,
               componentState: runtimeCtx.componentState,
             }

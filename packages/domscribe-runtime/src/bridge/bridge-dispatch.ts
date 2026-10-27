@@ -18,6 +18,7 @@ import type {
   TargetQueryInput,
   TargetResolution,
 } from '@domscribe/core';
+import type { CaptureOptions } from '../capture/types.js';
 import type { ElementInfo } from '../core/types.js';
 import type { IRuntimeTransport } from './transport.interface.js';
 import { DirectTransport } from './direct-transport.js';
@@ -88,11 +89,14 @@ export class BridgeDispatch {
    * Capture runtime context for a DOM element directly.
    * Only works in the same JS context as RuntimeManager.
    */
-  async captureContext(element: HTMLElement): Promise<RuntimeContext | null> {
+  async captureContext(
+    element: HTMLElement,
+    options: CaptureOptions = {},
+  ): Promise<RuntimeContext | null> {
     try {
       const runtime = RuntimeManager.getInstance();
       if (!runtime.isReady()) return null;
-      return await runtime.captureContextForElement(element);
+      return await runtime.captureContextForElement(element, options);
     } catch {
       return null;
     }
@@ -105,8 +109,9 @@ export class BridgeDispatch {
 
   queryTargets(
     query: TargetQueryInput,
+    options: CaptureOptions = {},
   ): Promise<TargetResolution & { context?: RuntimeContext }> {
-    return RuntimeManager.getInstance().queryTargets(query);
+    return RuntimeManager.getInstance().queryTargets(query, options);
   }
   resolveTargets(query: TargetQueryInput): TargetResolution {
     return RuntimeManager.getInstance().resolveTargets(query);

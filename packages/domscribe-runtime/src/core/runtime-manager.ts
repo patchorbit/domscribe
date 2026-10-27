@@ -251,12 +251,13 @@ export class RuntimeManager {
   /** Never capture context until a target has resolved to one exact instance. */
   async queryTargets(
     query: TargetQueryInput,
+    options: CaptureOptions = {},
   ): Promise<TargetResolution & { context?: RuntimeContext }> {
     const result = this.resolveTargets(query);
     if (result.status !== 'resolved') return result;
     const element = this.targets?.getElement(result.targets[0].instanceId);
     if (!element) return { status: 'stale', targets: [], total: 0 };
-    const context = await this.captureContextForElement(element);
+    const context = await this.captureContextForElement(element, options);
     if (!this.targets?.getElement(result.targets[0].instanceId))
       return { status: 'stale', targets: [], total: 0 };
     return { ...result, context: context ?? undefined };

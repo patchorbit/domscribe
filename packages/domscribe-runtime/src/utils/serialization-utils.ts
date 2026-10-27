@@ -13,6 +13,9 @@ import type { SerializationConstraints } from '../capture/types.js';
  * are set by the capture layer, not by end users.
  */
 export interface SerializationOptions extends SerializationConstraints {
+  /** Redact secret/credential records and browser storage before truncation hides identity. */
+  redactSecretRecords?: boolean;
+
   /**
    * Whether to include function references
    * @default false

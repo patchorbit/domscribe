@@ -295,40 +295,35 @@ export class OverlayStore {
       hoveredElement: null,
     });
 
-    // Capture runtime context asynchronously
-    try {
-      const bridge = BridgeDispatch.getInstance();
-      const runtimeContext = await bridge.captureContext(element);
-
-      if (runtimeContext && selectionVersion === this.selectionVersion) {
-        this.setState({ runtimeContext });
+    let sourceFile: string | undefined;
+    if (entryId) {
+      try {
+        const manifestEntry = await RelayService.getInstance().resolve(entryId);
+        if (manifestEntry && selectionVersion === this.selectionVersion) {
+          sourceFile = manifestEntry.file;
+          this.setState({ manifestEntry });
+        }
+      } catch {
+        /* Capture remains useful when source metadata is unavailable. */
       }
+    }
+    if (selectionVersion !== this.selectionVersion || !selectedTarget) return;
+    try {
+      const selection = await BridgeDispatch.getInstance().queryTargets(
+        { instanceId: selectedTarget.instanceId },
+        { sourceFile },
+      );
+      if (
+        selectionVersion === this.selectionVersion &&
+        selection.status === 'resolved'
+      )
+        this.setState({ runtimeContext: selection.context ?? null });
     } catch (error) {
-      if (this.state.debug) {
+      if (this.state.debug)
         console.warn(
           '[domscribe-overlay][store] Failed to capture runtime context:',
           error,
         );
-      }
-    }
-
-    // Resolve manifest entry if we have an element ID
-    if (entryId) {
-      try {
-        const relayService = RelayService.getInstance();
-        const manifestEntry = await relayService.resolve(entryId);
-
-        if (manifestEntry && selectionVersion === this.selectionVersion) {
-          this.setState({ manifestEntry });
-        }
-      } catch (error) {
-        if (this.state.debug) {
-          console.warn(
-            '[domscribe-overlay][store] Failed to resolve manifest entry:',
-            error,
-          );
-        }
-      }
     }
   }
 
@@ -502,18 +497,10 @@ export class OverlayStore {
     const element = this.findAnnotationElement(annotation);
     if (!element) return null;
 
-    // Re-capture runtime context
+    const bridge = BridgeDispatch.getInstance();
+    const target = bridge.describeTarget(element);
+    if (!target) return null;
     let runtimeContext: RuntimeContext | undefined;
-    try {
-      const bridge = BridgeDispatch.getInstance();
-      const ctx = await bridge.captureContext(element);
-      if (ctx) {
-        runtimeContext = ctx;
-      }
-    } catch {
-      // Continue without runtime context
-    }
-
     // Re-resolve manifest entry
     let manifestSnapshot: ManifestEntry[] | undefined;
     if (dataDs) {
@@ -526,6 +513,17 @@ export class OverlayStore {
       } catch {
         // Continue without manifest
       }
+    }
+
+    try {
+      const selection = await bridge.queryTargets(
+        { instanceId: target.instanceId },
+        { sourceFile: manifestSnapshot?.[0]?.file },
+      );
+      if (selection.status !== 'resolved') return null;
+      runtimeContext = selection.context;
+    } catch {
+      return null;
     }
 
     // Patch the annotation with fresh data
@@ -588,7 +586,12 @@ export class OverlayStore {
             (element) => element.getAttribute('data-ds') === selected.dataDs,
           )
         : Array.from(document.querySelectorAll<HTMLElement>(selected.selector));
-      return matches.length === 1 ? matches[0] : null;
+      if (matches.length !== 1) return null;
+      // Legacy annotations have no saved dialog business identity. A unique
+      // source/selector match cannot establish which record was captured.
+      const target = BridgeDispatch.getInstance().describeTarget(matches[0]);
+      if (!target || target.locator.contexts?.length) return null;
+      return matches[0];
     } catch {
       return null;
     }

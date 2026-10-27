@@ -21,6 +21,7 @@ import type {
   AnnotationContext,
   AnnotationStatus,
   AnnotationId,
+  TargetQueryInput,
 } from '@domscribe/core';
 import { AnnotationStatusEnum, WS_EVENTS } from '@domscribe/core';
 import { BridgeDispatch } from '@domscribe/runtime';
@@ -35,6 +36,24 @@ export class RelayService {
   private wsClient: RelayWSClient | null = null;
   private store: OverlayStore;
   private unsubscribers: Array<() => void> = [];
+
+  private async querySourceContext(query: TargetQueryInput) {
+    const bridge = BridgeDispatch.getInstance();
+    const selection = bridge.resolveTargets(query);
+    if (selection.status !== 'resolved') return selection;
+    const target = selection.targets[0];
+    let sourceFile: string | undefined;
+    try {
+      if (target.entryId)
+        sourceFile = (await this.resolve(target.entryId))?.file;
+    } catch {
+      /* Source metadata may be unavailable; nearest context is labeled. */
+    }
+    return bridge.queryTargets(
+      { instanceId: target.instanceId },
+      { sourceFile },
+    );
+  }
 
   private constructor() {
     this.store = OverlayStore.getInstance();
@@ -141,9 +160,7 @@ export class RelayService {
         if (!packet.success) return;
         let result;
         try {
-          result = await BridgeDispatch.getInstance().queryTargets(
-            packet.data.query,
-          );
+          result = await this.querySourceContext(packet.data.query);
         } catch {
           result = { status: 'unavailable', targets: [], total: 0 };
         }
@@ -174,7 +191,7 @@ export class RelayService {
           };
         } else {
           try {
-            const selection = await bridge.queryTargets({
+            const selection = await this.querySourceContext({
               entryId,
               instanceId,
               locator,
@@ -190,6 +207,7 @@ export class RelayService {
             responseData = {
               requestId,
               selectionStatus: selection.status,
+              selectionReason: selection.reason,
               targets: selection.targets,
               total: selection.total,
               success: selection.status === 'resolved' && context != null,

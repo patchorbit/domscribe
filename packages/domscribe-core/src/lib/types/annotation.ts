@@ -4,7 +4,7 @@
  * @module @domscribe/core/types/annotation
  */
 import { ManifestEntryIdSchema, ManifestEntrySchema } from './manifest.js';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { PATTERNS } from '../constants/index.js';
 import { ElementTargetSchema } from './target.js';
 import { ReplayTraceSchema } from './replay.js';
@@ -90,7 +90,17 @@ export const ComponentStylesSchema = z.object({
     ),
 });
 
+/** Identifies whose props/state were captured; source matching is explicit. */
+export const ComponentIdentitySchema = z.object({
+  name: z.string().max(256).optional(),
+  sourceFile: z.string().max(4096).optional(),
+  requestedSourceFile: z.string().max(4096).optional(),
+  sourceMatch: z.enum(['matched', 'nearest', 'unavailable']),
+});
+export type ComponentIdentity = z.infer<typeof ComponentIdentitySchema>;
+
 export const RuntimeContextSchema = z.object({
+  componentIdentity: ComponentIdentitySchema.optional(),
   componentProps: z.unknown().optional().describe('Component props snapshot'),
   componentState: z.unknown().optional().describe('Component state snapshot'),
   componentStyles: ComponentStylesSchema.optional().describe(

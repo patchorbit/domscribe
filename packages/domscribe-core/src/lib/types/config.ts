@@ -2,7 +2,7 @@
  * Domscribe project configuration schema.
  * @module @domscribe/core/types/config
  */
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 /**
  * Schema for `domscribe.config.json`.
