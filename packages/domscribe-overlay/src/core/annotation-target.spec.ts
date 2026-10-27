@@ -80,7 +80,9 @@ describe('annotation target resolution', () => {
       window.__DOMSCRIBE_RELAY_PORT__ = 6412;
       document.body.innerHTML = `<section role="dialog" ${context}><button data-ds="aB3dEf7h">Generate Token</button></section>`;
       const element = required(document.querySelector('button'));
-      element.scrollIntoView = () => {};
+      element.scrollIntoView = () => {
+        /* jsdom has no layout scrolling. */
+      };
       await RuntimeManager.getInstance().initialize();
       const saved = annotation({
         tagName: 'button',
@@ -100,7 +102,9 @@ describe('annotation target resolution', () => {
     document.body.innerHTML =
       '<button data-ds="aB3dEf7h">Edit customer</button>';
     const element = required(document.querySelector('button'));
-    element.scrollIntoView = () => {};
+    element.scrollIntoView = () => {
+      /* jsdom has no layout scrolling. */
+    };
     await RuntimeManager.getInstance().initialize();
     expect(
       OverlayStore.getInstance().locateElement(
