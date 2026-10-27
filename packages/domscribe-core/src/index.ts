@@ -33,3 +33,6 @@ export * from './privacy/patterns.js';
 export { redactPII, redactSensitiveFields } from './privacy/redaction.js';
 export type { RedactionOptions } from './privacy/redaction.js';
 export * from './privacy/redaction-utils.js';
+
+// Portable, historical UI issue evidence (not a live browser selection).
+export * from './lib/types/issue.js';

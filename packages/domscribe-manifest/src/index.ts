@@ -35,3 +35,5 @@ export type { ManifestResolveResult } from './reader/manifest-reader.js';
 // ID stabilization for consistent element IDs across builds
 export { IDStabilizer } from './id-stabilizer/id-stabilizer.js';
 export type { IDGenerator } from './id-stabilizer/types.js';
+
+export { hashSource } from './source-hash.js';
