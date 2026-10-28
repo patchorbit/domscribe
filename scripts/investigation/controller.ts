@@ -17,6 +17,7 @@ import {
   type Prepared,
 } from './workspace.js';
 import { runCommand, startApp } from './process.js';
+import { stageFixtures, type StagedFixture } from './fixtures.js';
 import { executeJourney } from './browser.js';
 import { gradeInvestigation } from './grade.js';
 import { renderReport } from './report.js';
@@ -27,6 +28,7 @@ export type DiscoveryContext = {
   baseUrl: string;
   headUrl: string;
   headApp: string;
+  fixtures: StagedFixture[];
   signal: AbortSignal;
 };
 export type DiscoveryResult = {
@@ -118,6 +120,7 @@ export async function investigate(
       signal,
     );
     sessions.push(head);
+    const fixtures = await stageFixtures(headApp, config.fixtures);
     stage = 'discovery';
     const result = await discover({
       config,
@@ -125,6 +128,7 @@ export async function investigate(
       baseUrl: base.url,
       headUrl: head.url,
       headApp,
+      fixtures,
       signal,
     });
     proposal = ProposalSchema.parse(result.proposal);
@@ -166,7 +170,11 @@ export async function investigate(
             journey,
             prepared.output,
             phase,
-            { timeout: config.timeouts.step, signal },
+            {
+              timeout: config.timeouts.step,
+              signal,
+              fixtures: config.fixtures,
+            },
           ),
         );
       }

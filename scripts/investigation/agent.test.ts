@@ -144,3 +144,34 @@ test('browser bookkeeping or an unrelated page cannot qualify actual app explora
     true,
   );
 });
+test('approved fixture descriptors are discoverable without inlining data or permitting arbitrary files', () => {
+  const c = ConfigSchema.parse({
+    ...config,
+    fixtures: [
+      {
+        id: 'payload',
+        name: 'data.json',
+        mimeType: 'application/json',
+        content: '{"fileOnlyCanary":"synthetic-only"}',
+      },
+    ],
+  });
+  const prompt = buildPrompt(
+    c,
+    'http://127.0.0.1:1',
+    'http://127.0.0.1:2',
+    '',
+    [
+      {
+        id: 'payload',
+        name: 'data.json',
+        relativePath: 'node_modules/.cache/inputs/data.json',
+      },
+    ],
+  );
+  assert(prompt.includes('node_modules/.cache/inputs/data.json'));
+  assert(prompt.includes('fixtureId'));
+  assert(prompt.includes('never other host files'));
+  assert(!prompt.includes('fileOnlyCanary'));
+  assert(!prompt.includes('password/file controls'));
+});

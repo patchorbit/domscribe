@@ -33,3 +33,5 @@ export async function stageFixtures(app: string, rawFixtures: FileFixture[]) {
   }
   return descriptors;
 }
+
+export type StagedFixture = Awaited<ReturnType<typeof stageFixtures>>[number];

@@ -1,8 +1,10 @@
 import test from 'node:test';
+import { execFileSync } from 'node:child_process';
+import { investigate } from './controller.js';
 import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
@@ -598,5 +600,100 @@ test('unknown upload fixtures reject before any browser navigation or action', a
     server.closeAllConnections();
     await new Promise<void>((r) => server.close(() => r()));
     await rm(out, { recursive: true, force: true });
+  }
+});
+test('controller stages fixtures for discovery but independent replay ignores poisoned staged bytes', async () => {
+  const root = await mkdtemp(
+      join(tmpdir(), 'investigation-fixture-controller-'),
+    ),
+    repo = join(root, 'repo');
+  await mkdir(repo);
+  const git = (...args: string[]) =>
+    execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8' }).trim();
+  try {
+    git('init', '-q');
+    git('config', 'user.name', 'Test');
+    git('config', 'user.email', 'test@example.invalid');
+    await writeFile(join(repo, '.gitignore'), 'node_modules/\n');
+    const html =
+      '<input aria-label="Payload" type="file"><output aria-label="Content">Waiting</output><script>document.querySelector("input").onchange=()=>{const r=new FileReader();r.onload=()=>document.querySelector("output").textContent=r.result;r.readAsText(document.querySelector("input").files[0])};</script>';
+    await writeFile(
+      join(repo, 'server.cjs'),
+      `require('node:http').createServer((_,r)=>r.writeHead(200,{'Content-Type':'text/html'}).end(${JSON.stringify(html)})).listen(Number(process.argv[2]),'127.0.0.1')`,
+    );
+    git('add', '.');
+    git('commit', '-qm', 'fixture app');
+    const commit = git('rev-parse', 'HEAD');
+    const report = await investigate(
+      {
+        version: 1,
+        repo,
+        base: commit,
+        head: commit,
+        install: [process.execPath, '-e', 'process.exit(0)'],
+        start: [process.execPath, 'server.cjs', '{port}'],
+        fixtures: [
+          {
+            id: 'payload',
+            name: 'data.txt',
+            mimeType: 'text/plain',
+            content: 'approved original',
+          },
+        ],
+        journeys: [
+          {
+            id: 'upload',
+            intent: 'Upload approved fixture',
+            expectations: [
+              {
+                id: 'content',
+                kind: 'text',
+                target: { role: 'status', name: 'Content' },
+                expected: 'approved original',
+              },
+            ],
+          },
+        ],
+      },
+      join(root, 'out'),
+      async (context) => {
+        assert.equal(context.fixtures.length, 1);
+        await writeFile(
+          join(context.headApp, context.fixtures[0].relativePath),
+          'poisoned staged bytes',
+        );
+        return {
+          proposal: ProposalSchema.parse({
+            version: 1,
+            plans: [
+              {
+                journeyId: 'upload',
+                steps: [
+                  {
+                    action: 'upload',
+                    target: { role: 'button', name: 'Payload' },
+                    fixtureId: 'payload',
+                  },
+                ],
+              },
+            ],
+            uncovered: [],
+          }),
+          browserUsed: true,
+          domscribeUsed: false,
+          model: null,
+        };
+      },
+    );
+    assert.equal(report.status, 'verified');
+    assert.equal(report.journeys[0].status, 'passed');
+    assert(
+      report.journeys[0].observations.every(
+        (o) => o.actuals[0].value === 'approved original',
+      ),
+    );
+    assert.equal(git('status', '--porcelain'), '');
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
