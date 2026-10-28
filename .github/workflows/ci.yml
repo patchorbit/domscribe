@@ -49,6 +49,13 @@ jobs:
           pnpm exec tsx scripts/cloud/run.ts --help
           pnpm exec tsx scripts/cloud/repair-run.ts --help
 
+      - name: Verify browser investigation offline
+        run: |
+          pnpm exec tsx --test scripts/investigation/*.test.ts
+          pnpm exec tsc -p scripts/investigation/tsconfig.investigation.json
+          pnpm exec eslint scripts/investigation --max-warnings=0
+          pnpm exec tsx scripts/investigation/run.ts --help
+
       - run: pnpm exec nx run-many -t lint test build typecheck --exclude domscribe-test-fixtures
 
       - name: Update coverage badge
@@ -59,6 +66,27 @@ jobs:
           npx nx run domscribe:coverage-badge
           gh api --method PATCH "gists/${{ vars.COVERAGE_GIST_ID }}" \
             -f "files[domscribe-coverage.json][content]=$(cat coverage/shields.json)"
+
+  browser-investigation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Prepare browser dependency mirrors
+        run: |
+          node scripts/fixtures/browser-mirrors.mjs /etc/apt/apt-mirrors.txt "${RUNNER_TEMP}/domscribe-apt-mirrors.txt"
+          sudo install -m 644 "${RUNNER_TEMP}/domscribe-apt-mirrors.txt" /etc/apt/apt-mirrors.txt
+      - name: Install Chromium
+        timeout-minutes: 5
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Verify independent browser executor
+        run: pnpm exec tsx --test scripts/investigation/browser.browser.ts
 
   build-registry:
     runs-on: ubuntu-latest

@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "repo": "/absolute/path/to/trusted/todomvc-worktree",
+  "base": "ff43b02e59dfa604386bb382034b2cd07c2bcd8a",
+  "head": "HEAD",
+  "appRoot": "examples/vue",
+  "install": ["npm", "ci", "--no-audit", "--no-fund"],
+  "start": [
+    "npm",
+    "run",
+    "dev",
+    "--",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "{port}",
+    "--strictPort"
+  ],
+  "brief": "TodoMVC Vue task manager. Preserve user-entered task titles. Use synthetic tasks only; no backend or login is required.",
+  "journeys": [
+    {
+      "id": "add-title",
+      "intent": "Add Invoice review as a new task, preserving the entered title exactly.",
+      "expectations": [
+        {
+          "id": "title",
+          "kind": "text",
+          "target": {
+            "role": "listitem",
+            "name": "",
+            "text": "Invoice"
+          },
+          "expected": "Invoice review"
+        }
+      ]
+    },
+    {
+      "id": "heading",
+      "intent": "The app heading remains todos.",
+      "expectations": [
+        {
+          "id": "heading",
+          "kind": "text",
+          "target": {
+            "role": "heading",
+            "name": "todos"
+          },
+          "expected": "todos"
+        }
+      ]
+    }
+  ],
+  "timeouts": {
+    "agent": 240000,
+    "total": 600000,
+    "step": 2000
+  },
+  "domscribe": false,
+  "agent": {
+    "model": "gpt-6.1-sol",
+    "reasoningEffort": "low"
+  }
+}
