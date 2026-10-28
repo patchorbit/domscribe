@@ -17,6 +17,7 @@ export const TargetSchema = z
   .object({
     role: z.enum([
       'button',
+      'menuitem',
       'textbox',
       'checkbox',
       'combobox',
@@ -50,7 +51,7 @@ export const TargetSchema = z
           'list',
           'navigation',
         ]),
-        name: z.string().min(1).max(300),
+        name: z.string().max(300),
       })
       .strict()
       .optional(),
@@ -117,6 +118,34 @@ const argv = z
   )
   .min(1)
   .max(40);
+export const FixtureSchema = z
+  .object({
+    id,
+    name: z
+      .string()
+      .min(1)
+      .max(80)
+      .regex(/^[a-z0-9][a-z0-9._-]*\.(json|csv|txt)$/i),
+    mimeType: z.enum(['application/json', 'text/plain', 'text/csv']),
+    content: z
+      .string()
+      .max(65536)
+      .refine(
+        (value) => Buffer.byteLength(value, 'utf8') <= 65536,
+        'Fixture exceeds64KiB',
+      ),
+  })
+  .strict();
+export const FixturesSchema = z
+  .array(FixtureSchema)
+  .max(4)
+  .refine(
+    (files) =>
+      new Set(files.map((f) => f.id)).size === files.length &&
+      new Set(files.map((f) => f.name)).size === files.length,
+    'Duplicate fixture IDs or filenames',
+  );
+export type FileFixture = z.infer<typeof FixtureSchema>;
 export const ConfigSchema = z
   .object({
     version: z.literal(1),
@@ -130,6 +159,7 @@ export const ConfigSchema = z
       'Start command must include {port}',
     ),
     brief: z.string().max(12000).default(''),
+    fixtures: FixturesSchema.default([]),
     journeys: z.array(JourneySchema).min(1).max(10),
     timeouts: z
       .object({
@@ -183,6 +213,7 @@ export const StepSchema = z.discriminatedUnion('action', [
     })
     .strict(),
   z.object({ action: z.literal('click'), target }).strict(),
+  z.object({ action: z.literal('upload'), target, fixtureId: id }).strict(),
   z
     .object({
       action: z.literal('press'),
@@ -318,4 +349,15 @@ export function parseProposal(encoded: string): Proposal {
   if (Buffer.byteLength(encoded) > 1048576)
     throw Error('Proposal exceeds 1MiB');
   return ProposalSchema.parse(JSON.parse(encoded));
+}
+
+export function assertFixtureReferences(
+  proposal: Proposal,
+  fixtures: FileFixture[],
+): void {
+  const ids = new Set(fixtures.map((f) => f.id));
+  for (const plan of proposal.plans)
+    for (const step of plan.steps)
+      if (step.action === 'upload' && !ids.has(step.fixtureId))
+        throw Error('Unknown fixture ID');
 }

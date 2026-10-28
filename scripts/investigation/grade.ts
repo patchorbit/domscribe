@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import {
   ConfigSchema,
+  assertFixtureReferences,
   ProposalSchema,
   ObservationSchema,
   MetadataSchema,
@@ -17,6 +18,7 @@ export function gradeInvestigation(
   const config = ConfigSchema.parse(rawConfig),
     proposal = ProposalSchema.parse(rawProposal),
     metadata = MetadataSchema.parse(rawMetadata);
+  assertFixtureReferences(proposal, config.fixtures);
   if (rawObservations.length > 30) throw Error('Too many observations');
   const observations = rawObservations.map((o) => ObservationSchema.parse(o));
   const ids = new Set(config.journeys.map((j) => j.id));

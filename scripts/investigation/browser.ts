@@ -3,6 +3,9 @@ import { join } from 'node:path';
 import type { Browser, Locator, Page } from 'playwright';
 import {
   JourneySchema,
+  FixturesSchema,
+  assertFixtureReferences,
+  type FileFixture,
   ProposalSchema,
   type Journey,
   type Observation,
@@ -51,6 +54,7 @@ async function unique(
   page: Page,
   target: Target,
   timeout: number,
+  allowFile = false,
 ): Promise<Locator> {
   await validateScope(page, target, timeout);
   const locator = locate(page, target);
@@ -66,9 +70,12 @@ async function unique(
   if (
     (await labeled.count()) === 1 &&
     (await labeled.evaluate(
-      (e) =>
+      (e, allowFile) =>
         e instanceof HTMLInputElement &&
-        ['password', 'file', 'hidden'].includes(e.type),
+        (e.type === 'password' ||
+          e.type === 'hidden' ||
+          (!allowFile && e.type === 'file')),
+      allowFile,
     ))
   )
     throw new Refusal('unsafe_target');
@@ -82,9 +89,12 @@ async function unique(
   if ((await locator.count()) !== 1) throw new Refusal('target_ambiguous');
   if (
     await locator.evaluate(
-      (e) =>
+      (e, allowFile) =>
         e instanceof HTMLInputElement &&
-        ['password', 'file', 'hidden'].includes(e.type),
+        (e.type === 'password' ||
+          e.type === 'hidden' ||
+          (!allowFile && e.type === 'file')),
+      allowFile,
     )
   )
     throw new Refusal('unsafe_target');
@@ -97,11 +107,16 @@ export async function executeJourney(
   rawJourney: Journey,
   outputDir: string,
   phase: Observation['phase'],
-  options: { timeout: number; signal?: AbortSignal },
+  options: { timeout: number; signal?: AbortSignal; fixtures?: FileFixture[] },
 ): Promise<Observation> {
   const journey = JourneySchema.parse(rawJourney),
     plan = ProposalSchema.parse({ version: 1, plans: [rawPlan], uncovered: [] })
       .plans[0];
+  const fixtures = FixturesSchema.parse(options.fixtures ?? []);
+  assertFixtureReferences(
+    { version: 1, plans: [plan], uncovered: [] },
+    fixtures,
+  );
   if (plan.journeyId !== journey.id) throw Error('Journey mismatch');
   const origin = new URL(url).origin;
   if (
@@ -182,7 +197,35 @@ export async function executeJourney(
       }
       if (new URL(page.url()).origin !== origin)
         throw new Refusal('navigation_blocked');
-      const target = await unique(page, step.target, options.timeout);
+      const target = await unique(
+        page,
+        step.target,
+        options.timeout,
+        step.action === 'upload',
+      );
+      if (step.action === 'upload') {
+        const fixture = fixtures.find((file) => file.id === step.fixtureId);
+        if (!fixture) throw Error('Unknown fixture ID');
+        const payload = {
+          name: fixture.name,
+          mimeType: fixture.mimeType,
+          buffer: Buffer.from(fixture.content, 'utf8'),
+        };
+        if (
+          await target.evaluate(
+            (e) => e instanceof HTMLInputElement && e.type === 'file',
+          )
+        )
+          await target.setInputFiles(payload, { timeout: options.timeout });
+        else {
+          const [chooser] = await Promise.all([
+            page.waitForEvent('filechooser', { timeout: options.timeout }),
+            target.click(),
+          ]);
+          await chooser.setFiles(payload, { timeout: options.timeout });
+        }
+        continue;
+      }
       if (step.action === 'click') await target.click();
       else if (step.action === 'press') await target.press(step.key);
       else if (step.action === 'fill') await target.fill(step.value);

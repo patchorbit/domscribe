@@ -457,3 +457,146 @@ test('blocks cross-origin WebSocket handshakes while preserving same-origin sock
     await rm(dir, { recursive: true, force: true });
   }
 });
+test('approved buffer uploads replay through native input or chooser inside one unnamed dialog', async () => {
+  const server = createServer((_, res) =>
+    res
+      .writeHead(200, { 'Content-Type': 'text/html' })
+      .end(
+        `<div role="menuitem" onclick="document.querySelector('dialog').showModal()">Import data</div><dialog><button aria-label="button" onclick="document.getElementById('hidden').click()">Choose File</button><input id="hidden" type="file" hidden><input id="native" aria-label="Native file" type="file"></dialog><output aria-label="Imported">Waiting</output><script>for(const input of document.querySelectorAll('input'))input.onchange=()=>{const reader=new FileReader();reader.onload=()=>document.querySelector('output').textContent=reader.result;reader.readAsText(input.files[0])};</script>`,
+      ),
+  );
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  const address = server.address();
+  if (!address || typeof address === 'string') throw Error('No port');
+  const out = await mkdtemp(join(tmpdir(), 'investigation-upload-')),
+    browser = await chromium.launch();
+  try {
+    const journey = JourneySchema.parse({
+      id: 'upload',
+      intent: 'Import approved data',
+      expectations: [
+        {
+          id: 'content',
+          kind: 'text',
+          target: { role: 'status', name: 'Imported' },
+          expected: 'approved bytes',
+        },
+      ],
+    });
+    const fixtures = [
+      {
+        id: 'payload',
+        name: 'data.txt',
+        mimeType: 'text/plain' as const,
+        content: 'approved bytes',
+      },
+    ];
+    for (const native of [false, true]) {
+      const plan = ProposalSchema.parse({
+        version: 1,
+        plans: [
+          {
+            journeyId: 'upload',
+            steps: [
+              {
+                action: 'click',
+                target: { role: 'menuitem', name: 'Import data' },
+              },
+              {
+                action: 'upload',
+                target: {
+                  role: 'button',
+                  name: native ? 'Native file' : 'button',
+                  ...(native ? {} : { text: 'Choose File' }),
+                  scope: { role: 'dialog', name: '' },
+                },
+                fixtureId: 'payload',
+              },
+            ],
+          },
+        ],
+        uncovered: [],
+      }).plans[0];
+      const result = await executeJourney(
+        browser,
+        `http://127.0.0.1:${address.port}`,
+        plan,
+        journey,
+        out,
+        'base',
+        { timeout: 500, fixtures },
+      );
+      assert.equal(result.status, 'completed', JSON.stringify(result));
+      assert.equal(result.actuals[0].value, 'approved bytes');
+    }
+  } finally {
+    await browser.close();
+    server.closeAllConnections();
+    await new Promise<void>((r) => server.close(() => r()));
+    await rm(out, { recursive: true, force: true });
+  }
+});
+test('unknown upload fixtures reject before any browser navigation or action', async () => {
+  let requests = 0;
+  const server = createServer((_, res) => {
+    requests++;
+    res
+      .writeHead(200, { 'Content-Type': 'text/html' })
+      .end('<button>Act</button>');
+  });
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  const address = server.address();
+  if (!address || typeof address === 'string') throw Error('No port');
+  const browser = await chromium.launch();
+  const out = await mkdtemp(join(tmpdir(), 'investigation-unknown-file-'));
+  try {
+    const journey = JourneySchema.parse({
+      id: 'upload',
+      intent: 'No unapproved file',
+      expectations: [
+        {
+          id: 'button',
+          kind: 'count',
+          target: { role: 'button', name: 'Act' },
+          expected: 1,
+        },
+      ],
+    });
+    const plan = ProposalSchema.parse({
+      version: 1,
+      plans: [
+        {
+          journeyId: 'upload',
+          steps: [
+            { action: 'click', target: { role: 'button', name: 'Act' } },
+            {
+              action: 'upload',
+              target: { role: 'button', name: 'Choose File' },
+              fixtureId: 'missing',
+            },
+          ],
+        },
+      ],
+      uncovered: [],
+    }).plans[0];
+    await assert.rejects(
+      () =>
+        executeJourney(
+          browser,
+          `http://127.0.0.1:${address.port}`,
+          plan,
+          journey,
+          out,
+          'base',
+          { timeout: 300 },
+        ),
+      /Unknown fixture/,
+    );
+    assert.equal(requests, 0);
+  } finally {
+    await browser.close();
+    server.closeAllConnections();
+    await new Promise<void>((r) => server.close(() => r()));
+    await rm(out, { recursive: true, force: true });
+  }
+});

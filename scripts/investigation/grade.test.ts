@@ -200,3 +200,88 @@ test('valid config and proposal parse, but unresolved commit provenance cannot q
   );
   assert.equal(r.status, 'unqualified');
 });
+test('approved data uploads and unnamed unique scopes parse, unknown fixture IDs cannot be graded', () => {
+  const fixture = {
+    id: 'payload',
+    name: 'payload.json',
+    mimeType: 'application/json',
+    content: '{"approved":true}',
+  };
+  const c = ConfigSchema.parse({ ...config, fixtures: [fixture] });
+  const p = ProposalSchema.parse({
+    version: 1,
+    plans: [
+      {
+        journeyId: 'edit',
+        steps: [
+          { action: 'click', target: { role: 'menuitem', name: 'Import' } },
+          {
+            action: 'upload',
+            target: {
+              role: 'button',
+              name: 'button',
+              text: 'Choose File',
+              scope: { role: 'dialog', name: '' },
+            },
+            fixtureId: 'payload',
+          },
+        ],
+      },
+    ],
+    uncovered: [],
+  });
+  assert.equal(gradeInvestigation(c, p, [], metadata).status, 'blocked');
+  assert.throws(
+    () =>
+      gradeInvestigation(
+        c,
+        {
+          ...p,
+          plans: [
+            {
+              ...p.plans[0],
+              steps: [{ ...p.plans[0].steps[1], fixtureId: 'missing' }],
+            },
+          ],
+        },
+        [],
+        metadata,
+      ),
+    /Unknown fixture/,
+  );
+  assert.throws(() =>
+    ProposalSchema.parse({
+      ...p,
+      plans: [
+        {
+          ...p.plans[0],
+          steps: [{ ...p.plans[0].steps[1], path: '/home/private/file' }],
+        },
+      ],
+    }),
+  );
+});
+test('fixture data is bounded, basename-only and unique before any staging', () => {
+  const f = {
+    id: 'payload',
+    name: 'payload.json',
+    mimeType: 'application/json',
+    content: '{}',
+  };
+  for (const fixtures of [
+    [f, f],
+    [f, { ...f, id: 'other' }],
+    [{ ...f, name: '../outside.json' }],
+    [{ ...f, name: '/outside.json' }],
+    [{ ...f, name: 'data.exe' }],
+    [{ ...f, mimeType: 'application/octet-stream' }],
+    [{ ...f, content: '🐋'.repeat(20000) }],
+    Array.from({ length: 5 }, (_, i) => ({
+      ...f,
+      id: 'file-' + i,
+      name: 'file-' + i + '.json',
+    })),
+  ])
+    assert.throws(() => ConfigSchema.parse({ ...config, fixtures }));
+  assert.equal(ConfigSchema.parse(config).fixtures.length, 0);
+});
