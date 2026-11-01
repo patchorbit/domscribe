@@ -20,30 +20,18 @@ export function preferUbuntuMirrors(content) {
     }
     const match = line.match(/^(https?:\/\/[^\s]+)\t(.+)$/);
     if (!match) unsupported();
-    let uri;
-    try {
-      uri = new URL(match[1]);
-    } catch {
-      // Native URL errors retain input; do not echo unfamiliar runner data.
-      unsupported();
-    }
+    // Validate the bytes we emit, not a URL parser's normalized spelling.
+    const host = match[1].match(
+      /^https?:\/\/(archive\.ubuntu\.com|security\.ubuntu\.com|azure\.archive\.ubuntu\.com)\/ubuntu\/?$/,
+    )?.[1];
+    if (!host) unsupported();
     const metadata = match[2].trim().split(/\s+/);
     const priorities = metadata.filter((value) =>
       value.startsWith('priority:'),
     );
-    if (
-      !order.includes(uri.hostname) ||
-      uri.username ||
-      uri.password ||
-      uri.search ||
-      uri.hash ||
-      uri.port ||
-      !/^\/ubuntu\/?$/.test(uri.pathname) ||
-      priorities.length !== 1 ||
-      !/^priority:\d+$/.test(priorities[0])
-    )
+    if (priorities.length !== 1 || !/^priority:\d+$/.test(priorities[0]))
       unsupported();
-    rows.push({ uri: match[1], host: uri.hostname, metadata });
+    rows.push({ uri: match[1], host, metadata });
   }
   if (
     rows.length !== order.length ||
@@ -72,5 +60,9 @@ if (
       'Usage: browser-mirrors.mjs <runner-mirror-list> <prepared-list>',
     );
   }
-  writeFileSync(output, preferUbuntuMirrors(readFileSync(input, 'utf8')));
+  // Exclusive creation refuses existing files and filesystem aliases atomically.
+  writeFileSync(output, preferUbuntuMirrors(readFileSync(input, 'utf8')), {
+    flag: 'wx',
+    mode: 0o600,
+  });
 }

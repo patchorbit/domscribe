@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+  symlinkSync,
+  linkSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -123,5 +130,100 @@ test('invalid CLI input fails without replacing an existing prepared copy', () =
     assert.doesNotMatch(result.stderr, /mirror\.example/);
   } finally {
     rmSync(root, { recursive: true });
+  }
+});
+
+test('reject raw URL spellings that a URL parser would normalize into the allowlist', () => {
+  for (const url of [
+    'http://archive.ubuntu.com:80/ubuntu',
+    'https://archive.ubuntu.com:443/ubuntu',
+    'http://archive.ubuntu.com/unexpected/../ubuntu',
+    'http://archive.ubuntu.com/ubuntu?',
+    'http://archive.ubuntu.com/ubuntu#',
+    'http://@archive.ubuntu.com/ubuntu',
+    'http://%61rchive.ubuntu.com/ubuntu',
+  ])
+    assert.throws(
+      () =>
+        preferUbuntuMirrors(
+          runnerList.replace('http://archive.ubuntu.com/ubuntu', url),
+        ),
+      { message: 'Unsupported Ubuntu runner mirror list' },
+    );
+});
+test('CLI rejects normalized URL tokens without replacing existing output', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ds-mirror-normalized-'));
+  try {
+    const input = join(root, 'input'),
+      output = join(root, 'output');
+    writeFileSync(
+      input,
+      runnerList.replace(
+        'http://archive.ubuntu.com/ubuntu',
+        'http://archive.ubuntu.com:80/ubuntu',
+      ),
+    );
+    writeFileSync(output, 'unchanged');
+    const result = spawnSync(
+      process.execPath,
+      [
+        new URL('./browser-mirrors.mjs', import.meta.url).pathname,
+        input,
+        output,
+      ],
+      { encoding: 'utf8' },
+    );
+    assert.notEqual(result.status, 0);
+    assert.equal(readFileSync(output, 'utf8'), 'unchanged');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+for (const kind of ['symlink', 'hardlink'])
+  test('CLI refuses ' + kind + ' output alias without modifying input', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ds-mirror-alias-'));
+    try {
+      const input = join(root, 'input'),
+        output = join(root, 'output');
+      writeFileSync(input, runnerList);
+      if (kind === 'symlink') symlinkSync(input, output);
+      else linkSync(input, output);
+      const result = spawnSync(
+        process.execPath,
+        [
+          new URL('./browser-mirrors.mjs', import.meta.url).pathname,
+          input,
+          output,
+        ],
+        { encoding: 'utf8' },
+      );
+      assert.notEqual(result.status, 0);
+      assert.equal(readFileSync(input, 'utf8'), runnerList);
+      assert.equal(readFileSync(output, 'utf8'), runnerList);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+test('CLI requires a new output even for valid input', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ds-mirror-existing-'));
+  try {
+    const input = join(root, 'input'),
+      output = join(root, 'output');
+    writeFileSync(input, runnerList);
+    writeFileSync(output, 'keep');
+    const result = spawnSync(
+      process.execPath,
+      [
+        new URL('./browser-mirrors.mjs', import.meta.url).pathname,
+        input,
+        output,
+      ],
+      { encoding: 'utf8' },
+    );
+    assert.notEqual(result.status, 0);
+    assert.equal(readFileSync(output, 'utf8'), 'keep');
+    assert.equal(readFileSync(input, 'utf8'), runnerList);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });
