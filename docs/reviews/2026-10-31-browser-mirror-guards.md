@@ -1,0 +1,9 @@
+# Browser mirror CLI guard review
+
+One fresh read-only whole-change review used gpt-6-astra/high on 59e2e19..fa17609. No Critical, Important or Minor findings. The reviewer independently ran all 12 tests under Node24.22.1 with zero failures, cancellations or skips; git diff --check passed. No additional review pass or code correction was required.
+
+The port validates the exact raw URL token subsequently emitted and preserves supported transport, ordering, metadata and Azure fallback. Exclusive new output creation refuses existing files, symbolic links and hard links without modifying input; validation finishes before creation. Mode0600 is compatible with the existing subsequent sudo install. The three call sites belong to separate browser-investigation, portable-replay and e2e Ubuntu jobs, including independent matrix jobs. An earlier narrative incorrectly named the third job integration; e2e is correct.
+
+Root's baseline7 tests passed. Five added actual regressions failed against unmodified main, then the corrected helper passed all12. The existing configured Prettier3.9.10 binary was used with this repository's configuration; no dependency installation, consumer qualification, local /etc operation or release occurred.
+
+The review declined hosted mirror availability/performance/TLS/package-install outcomes; unchanged application/browser functionality; alternative filesystems or hostile concurrent replacement outside trusted runner temporary directories; and formatter-install/dependency provenance qualification. Root preserves these as explicit evidence limits. The contract is for the observed local Ubuntu filesystem and trusted runner inputs, not customer isolation or arbitrary filesystem security. Required latest-head hosted CI remains mandatory before merge; no speed or live package-security guarantee is claimed. No deferred minor findings.
