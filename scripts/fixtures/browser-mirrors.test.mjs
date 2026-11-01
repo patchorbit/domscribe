@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, symlinkSync, linkSync } from 'node:fs';
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+  symlinkSync,
+  linkSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -23,9 +30,14 @@ test('prefer existing official Ubuntu mirrors while retaining Azure fallback', (
 test('preserve transport, metadata and comments without adding package sources', () => {
   const source =
     '# Hosted runner mirrors\n\n' +
-    runnerList.replaceAll('http:', 'https:').replace('priority:2', 'priority:2 arch:amd64');
+    runnerList
+      .replaceAll('http:', 'https:')
+      .replace('priority:2', 'priority:2 arch:amd64');
   const prepared = preferUbuntuMirrors(source);
-  assert.match(prepared, /https:\/\/archive\.ubuntu\.com\/ubuntu\tpriority:1 arch:amd64/);
+  assert.match(
+    prepared,
+    /https:\/\/archive\.ubuntu\.com\/ubuntu\tpriority:1 arch:amd64/,
+  );
   assert.match(prepared, /^# Hosted runner mirrors/m);
   assert.equal((prepared.match(/https:/g) ?? []).length, 3);
 });
@@ -40,12 +52,18 @@ test('refuse unfamiliar or incomplete runner lists', () => {
     runnerList + 'http://archive.ubuntu.com/ubuntu\tpriority:4\n',
     runnerList.replace('priority:2', ''),
   ])
-    assert.throws(() => preferUbuntuMirrors(source), /Unsupported Ubuntu runner mirror list/);
+    assert.throws(
+      () => preferUbuntuMirrors(source),
+      /Unsupported Ubuntu runner mirror list/,
+    );
 });
 
 test('reject a malformed duplicate priority instead of preserving it', () => {
   assert.throws(
-    () => preferUbuntuMirrors(runnerList.replace('priority:2', 'priority:2 priority:invalid')),
+    () =>
+      preferUbuntuMirrors(
+        runnerList.replace('priority:2', 'priority:2 priority:invalid'),
+      ),
     /Unsupported Ubuntu runner mirror list/,
   );
 });
@@ -54,9 +72,14 @@ test('malformed URLs use a generic error without retaining raw input', () => {
   assert.throws(
     () =>
       preferUbuntuMirrors(
-        runnerList.replace('http://archive.ubuntu.com/ubuntu', 'http://[invalid]/ubuntu'),
+        runnerList.replace(
+          'http://archive.ubuntu.com/ubuntu',
+          'http://[invalid]/ubuntu',
+        ),
       ),
-    (error) => error.message === 'Unsupported Ubuntu runner mirror list' && !('input' in error),
+    (error) =>
+      error.message === 'Unsupported Ubuntu runner mirror list' &&
+      !('input' in error),
   );
 });
 
@@ -68,7 +91,11 @@ test('CLI writes a prepared copy and leaves the runner input unchanged', () => {
     writeFileSync(input, runnerList);
     const result = spawnSync(
       process.execPath,
-      [new URL('./browser-mirrors.mjs', import.meta.url).pathname, input, output],
+      [
+        new URL('./browser-mirrors.mjs', import.meta.url).pathname,
+        input,
+        output,
+      ],
       { encoding: 'utf8' },
     );
     assert.equal(result.status, 0, result.stderr);
@@ -91,7 +118,11 @@ test('invalid CLI input fails without replacing an existing prepared copy', () =
     writeFileSync(output, 'unchanged');
     const result = spawnSync(
       process.execPath,
-      [new URL('./browser-mirrors.mjs', import.meta.url).pathname, input, output],
+      [
+        new URL('./browser-mirrors.mjs', import.meta.url).pathname,
+        input,
+        output,
+      ],
       { encoding: 'utf8' },
     );
     assert.notEqual(result.status, 0);
@@ -113,7 +144,10 @@ test('reject raw URL spellings that a URL parser would normalize into the allowl
     'http://%61rchive.ubuntu.com/ubuntu',
   ])
     assert.throws(
-      () => preferUbuntuMirrors(runnerList.replace('http://archive.ubuntu.com/ubuntu', url)),
+      () =>
+        preferUbuntuMirrors(
+          runnerList.replace('http://archive.ubuntu.com/ubuntu', url),
+        ),
       { message: 'Unsupported Ubuntu runner mirror list' },
     );
 });
@@ -124,12 +158,19 @@ test('CLI rejects normalized URL tokens without replacing existing output', () =
       output = join(root, 'output');
     writeFileSync(
       input,
-      runnerList.replace('http://archive.ubuntu.com/ubuntu', 'http://archive.ubuntu.com:80/ubuntu'),
+      runnerList.replace(
+        'http://archive.ubuntu.com/ubuntu',
+        'http://archive.ubuntu.com:80/ubuntu',
+      ),
     );
     writeFileSync(output, 'unchanged');
     const result = spawnSync(
       process.execPath,
-      [new URL('./browser-mirrors.mjs', import.meta.url).pathname, input, output],
+      [
+        new URL('./browser-mirrors.mjs', import.meta.url).pathname,
+        input,
+        output,
+      ],
       { encoding: 'utf8' },
     );
     assert.notEqual(result.status, 0);
@@ -149,7 +190,11 @@ for (const kind of ['symlink', 'hardlink'])
       else linkSync(input, output);
       const result = spawnSync(
         process.execPath,
-        [new URL('./browser-mirrors.mjs', import.meta.url).pathname, input, output],
+        [
+          new URL('./browser-mirrors.mjs', import.meta.url).pathname,
+          input,
+          output,
+        ],
         { encoding: 'utf8' },
       );
       assert.notEqual(result.status, 0);
@@ -168,7 +213,11 @@ test('CLI requires a new output even for valid input', () => {
     writeFileSync(output, 'keep');
     const result = spawnSync(
       process.execPath,
-      [new URL('./browser-mirrors.mjs', import.meta.url).pathname, input, output],
+      [
+        new URL('./browser-mirrors.mjs', import.meta.url).pathname,
+        input,
+        output,
+      ],
       { encoding: 'utf8' },
     );
     assert.notEqual(result.status, 0);
